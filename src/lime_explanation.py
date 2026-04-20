@@ -230,7 +230,6 @@ def semantic_segmentation(instance_multimodal, target_segments=30, min_len=50):
         segments.append((start_idx, total_length))
 
     if len(segments) < target_segments // 2:
-        print("⚠️ 多模态联合特征过于平缓，部分退化为均匀切片以保证 LIME 运行...")
         slice_width = total_length // target_segments
         segments = [(i * slice_width, min((i + 1) * slice_width, total_length)) for i in range(target_segments)]
 
