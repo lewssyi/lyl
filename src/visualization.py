@@ -3,7 +3,12 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import seaborn as sns
 import os
+import matplotlib.pyplot as plt
 
+# 设置中文字体（以黑体为例）
+plt.rcParams['font.sans-serif'] = ['SimHei']
+# 解决坐标轴负号显示问题
+plt.rcParams['axes.unicode_minus'] = False
 
 # ==========================================
 # 1. 核心创新可视化：多通道 XAI 动态贡献仪表盘
