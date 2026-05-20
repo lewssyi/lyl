@@ -13,30 +13,24 @@ plt.rcParams['axes.unicode_minus'] = False
 # ==========================================
 # 1. 核心创新可视化：多通道 XAI 动态贡献仪表盘
 # ==========================================
-def plot_xai_multimodal_dashboard(signal, segments, segment_importance, dccs,
+def plot_xai_multimodal_dashboard(signal, segments, segment_importance, raw_dccs, calibrated_dccs,
                                   channel_names=['EEG', 'EOG', 'EMG'],
                                   target_class_name="REM",
                                   save_path=None):
     """
     绘制 CCF-A 级别的多通道 XAI 解释仪表盘
-    包含：原始信号波形、LIME 切片热力图、DCCS 通道贡献度环形图
+    包含：原始信号波形、LIME 切片热力图、Raw DCCS + Clinical Calibrated DCCS 双环形图
     """
-    # 设置学术级字体与风格
     plt.style.use('seaborn-v0_8-whitegrid')
     plt.rcParams.update({'font.size': 12, 'font.family': 'sans-serif'})
 
     num_channels = signal.shape[1]
     num_segments = len(segments)
 
-    # 创建画布与网格布局
-    fig = plt.figure(figsize=(16, 10))
-    # 设定网格：左边占 3 列画波形，右边占 1 列画环形图
+    fig = plt.figure(figsize=(18, 10))
     gs = gridspec.GridSpec(num_channels, 4, figure=fig, width_ratios=[1, 1, 1, 0.8])
 
-    # 颜色映射：正贡献为红(促进该分类)，负贡献为蓝(抑制该分类)
     cmap = plt.get_cmap('coolwarm')
-
-    # 获取特征权重的极值用于归一化颜色
     max_abs_weight = np.max(np.abs(segment_importance))
     if max_abs_weight == 0:
         max_abs_weight = 1.0
@@ -49,30 +43,22 @@ def plot_xai_multimodal_dashboard(signal, segments, segment_importance, dccs,
         ax = fig.add_subplot(gs[c, :3])
         ax_signals.append(ax)
 
-        # 画原始波形
         time_axis = np.arange(signal.shape[0])
         ax.plot(time_axis, signal[:, c], color='black', linewidth=0.8, alpha=0.8)
 
-        # 叠加 LIME 切片热力背景
         c_weights = segment_importance[c * num_segments: (c + 1) * num_segments]
 
         for i, (start_idx, end_idx) in enumerate(segments):
             weight = c_weights[i]
-            # 归一化权重到 0-1 之间用于取色 (0.5 为中性白)
             norm_weight = 0.5 + (weight / (2 * max_abs_weight))
             color = cmap(norm_weight)
-
-            # 绘制背景色块
             ax.axvspan(start_idx, end_idx, facecolor=color, alpha=0.5, edgecolor='none')
-
-            # 画切片分割线
             ax.axvline(x=end_idx, color='gray', linestyle='--', linewidth=0.5, alpha=0.5)
 
         channel_label = channel_names[c] if c < len(channel_names) else f'CH {c}'
         ax.set_ylabel(f'{channel_label}\nAmplitude', fontweight='bold')
         ax.set_xlim(0, signal.shape[0])
 
-        # 隐藏上方通道的 X 轴刻度，使其更紧凑
         if c < num_channels - 1:
             ax.set_xticklabels([])
         else:
@@ -82,57 +68,52 @@ def plot_xai_multimodal_dashboard(signal, segments, segment_importance, dccs,
                             fontweight='bold', fontsize=16, loc='left')
 
     # ------------------------------------------
-    # 右侧模块：绘制 DCCS 动态通道贡献环形图
+    # 右侧模块：上下堆叠两个 DCCS 环形图（等分高度）
     # ------------------------------------------
-    # 将右侧合并为一个大子图
-    ax_dccs = fig.add_subplot(gs[:, 3])
-
-    # 环形图配色 (根据通道数量动态调整，优先使用预设的温和学术色)
     base_colors = ['#4C72B0', '#DD8452', '#55A868', '#C44E52', '#8172B2']
     colors = base_colors[:num_channels]
-    explode = [0.05] * num_channels  # 让环形图切片稍微裂开，增加立体感
+    explode = [0.05] * num_channels
 
-    # 过滤可能存在的全0情况
-    plot_dccs = dccs if sum(dccs) > 0 else [1.0 / num_channels] * num_channels
+    def _plot_donut(ax, dccs_values, title):
+        plot_vals = dccs_values if sum(dccs_values) > 0 else [1.0 / num_channels] * num_channels
+        wedges, texts, autotexts = ax.pie(
+            plot_vals,
+            labels=channel_names[:num_channels],
+            autopct='%1.1f%%',
+            startangle=140,
+            colors=colors,
+            explode=explode,
+            textprops=dict(color="w", weight="bold", fontsize=10),
+            wedgeprops=dict(width=0.4, edgecolor='w')
+        )
+        for text, color in zip(texts, colors):
+            text.set_color(color)
+            text.set_fontsize(12)
+            text.set_fontweight('bold')
+        ax.set_title(title, fontweight='bold', fontsize=12)
 
-    wedges, texts, autotexts = ax_dccs.pie(
-        plot_dccs,
-        labels=channel_names[:num_channels],
-        autopct='%1.1f%%',
-        startangle=140,
-        colors=colors,
-        explode=explode,
-        textprops=dict(color="w", weight="bold", fontsize=12),
-        wedgeprops=dict(width=0.4, edgecolor='w')  # width 参数控制环的厚度
-    )
-
-    # 优化标签颜色使其与区块对应
-    for text, color in zip(texts, colors):
-        text.set_color(color)
-        text.set_fontsize(14)
-        text.set_fontweight('bold')
-
-    ax_dccs.set_title("Dynamic Channel\nContribution Score (DCCS)", fontweight='bold', fontsize=14)
+    gs_right = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs[:, 3], hspace=0.35)
+    ax_raw = fig.add_subplot(gs_right[0])
+    _plot_donut(ax_raw, raw_dccs, "Model Attention\n(Raw DCCS)")
+    ax_cal = fig.add_subplot(gs_right[1])
+    _plot_donut(ax_cal, calibrated_dccs, "Clinical Calibrated\n(DCCS)")
 
     # ------------------------------------------
     # 全局模块：排版与 Colorbar
     # ------------------------------------------
     plt.tight_layout()
 
-    # 添加底部的全局 Colorbar
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=-max_abs_weight, vmax=max_abs_weight))
     sm.set_array([])
-    # 位置：[左, 下, 宽, 高]
     cbar_ax = fig.add_axes([0.05, -0.05, 0.65, 0.02])
     cbar = fig.colorbar(sm, cax=cbar_ax, orientation='horizontal')
     cbar.set_label('LIME Feature Importance (Red: Supports Prediction, Blue: Contradicts Prediction)',
                    fontweight='bold', fontsize=12)
 
-    # 确保保存目录存在
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"✅ XAI 学术仪表盘已保存至: {save_path}")
+        print(f"XAI 学术仪表盘已保存至: {save_path}")
     else:
         plt.show()
 

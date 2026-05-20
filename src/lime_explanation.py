@@ -132,16 +132,16 @@ def calculate_dccs(segment_importance, num_channels, num_segments, target_class)
     prior = clinical_priors.get(target_class, [0.33, 0.33, 0.34])
 
     # 3. 临床认知与模型注意力的加权融合 (校准)
-    # 将模型测出的 raw_dccs 与 表格规定的 prior 相乘，放大符合医学逻辑的关注点，压制模型“走神”的噪声。
+    # 将模型测出的 raw_dccs 与 表格规定的 prior 相乘，放大符合医学逻辑的关注点，压制模型”走神”的噪声。
     calibrated_dccs = [raw_dccs[i] * prior[i] for i in range(num_channels)]
     calibrated_total = np.sum(calibrated_dccs)
-    
+
     if calibrated_total > 0:
         final_dccs = [s / calibrated_total for s in calibrated_dccs]
     else:
         final_dccs = raw_dccs
 
-    return final_dccs
+    return raw_dccs, final_dccs
 
 # ==========================================
 # 5. 主干调用接口
@@ -171,9 +171,9 @@ def run_multimodal_lime(model, instance_multimodal, segments, num_perturbations=
     segment_importance = fit_explainable_model(predictions, random_perturbations, weights, target_class)
 
     # 3. 计算结合了表格先验的 DCCS
-    dccs = calculate_dccs(segment_importance, num_channels, num_segments, target_class)
+    raw_dccs, calibrated_dccs = calculate_dccs(segment_importance, num_channels, num_segments, target_class)
 
-    return target_class, original_pred, segment_importance, dccs
+    return target_class, original_pred, segment_importance, raw_dccs, calibrated_dccs
 
 
 # ==========================================
