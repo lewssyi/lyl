@@ -1,4 +1,3 @@
-
 import os
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
@@ -15,8 +14,9 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 from tqdm import tqdm
 
+
 # ==========================================
-# 🌟 结果摘要记录类 (保留摘要输出逻辑)
+# 🌟 结果摘要记录类
 # ==========================================
 class Logger(object):
     def __init__(self, filename="Run_Results.log"):
@@ -32,7 +32,7 @@ class Logger(object):
 
 
 # ==========================================
-# 0. 环境路径与随机种子设置 (保留原版)
+# 0. 环境路径与随机种子设置
 # ==========================================
 np.random.seed(42)
 tf.random.set_seed(42)
@@ -47,14 +47,14 @@ OUTPUT_DIR = 'outputs'
 LOG_DIR = os.path.join(OUTPUT_DIR, 'logs')
 os.makedirs(LOG_DIR, exist_ok=True)
 
-# 启动日志
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 log_path = os.path.join(LOG_DIR, f"result_{timestamp}.txt")
 sys.stdout = Logger(log_path)
 
 try:
     from src.data_processing import load_npz_data
-    from src.model_training import create_hybrid_model
+    # 🌟 导入我们最成功的 V2 架构 (BiLSTM + 先验路由)
+    from src.model_training import create_hybrid_model_v2 
     from src.lime_explanation import (
         run_multimodal_lime, perturb_mean,
         semantic_segmentation, extract_segment_features
@@ -69,17 +69,16 @@ except ImportError as e:
 
 
 # ==========================================
-# 流式数据生成器 (恢复 TTT 2输出标准版)
+# 流式数据生成器
 # ==========================================
 class SleepDataGenerator(Sequence):
-    def __init__(self, X_raw, X_segment, y_main, batch_size=16, shuffle=True):
+    def __init__(self, X_raw, X_segment, y_main, batch_size=32, shuffle=True):
         self.X_raw = X_raw
         self.X_segment = X_segment
         self.y_main = y_main
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.indices = np.arange(len(self.X_raw))
-   
         if self.shuffle:
             np.random.shuffle(self.indices)
 
@@ -93,12 +92,17 @@ class SleepDataGenerator(Sequence):
         batch_X_segment = self.X_segment[batch_indices]
         batch_y_main = self.y_main[batch_indices]
 
-        # TTT 辅助重建分支的目标值就是原始波形本身
+        # 辅助目标
         batch_y_ttt = batch_X_raw
+        batch_y_att = batch_y_main 
 
         return (
             {'raw_input': batch_X_raw, 'segment_input': batch_X_segment},
-            {'main_output': batch_y_main, 'ttt_output': batch_y_ttt}
+            {
+                'main_output': batch_y_main, 
+                'ttt_output': batch_y_ttt, 
+                'channel_attention_weights': batch_y_att 
+            }
         )
 
     def on_epoch_end(self):
@@ -107,7 +111,7 @@ class SleepDataGenerator(Sequence):
 
 
 # ==========================================
-# 【包装器】：彻底修复 [300, 1500] 维度报错
+# 模型包装器 (修复 LIME 维度报错)
 # ==========================================
 class ModelWrapperForLIME:
     def __init__(self, base_model):
@@ -119,7 +123,7 @@ class ModelWrapperForLIME:
 
 
 # ==========================================
-# 辅助绘图：蓝红专业色系
+# 辅助绘图
 # ==========================================
 def save_academic_results(y_true, y_pred, class_names, output_dir):
     report_dict = classification_report(y_true, y_pred, target_names=class_names, output_dict=True)
@@ -137,30 +141,7 @@ def save_academic_results(y_true, y_pred, class_names, output_dir):
 
 
 # ==========================================
-# TTT 推理引擎 (严格冻结保护版)
-# ==========================================
-@tf.function
-def ttt_step(m, xr, xs, o):
-    with tf.GradientTape() as tape:
-        _, ttt_pred = m([xr, xs], training=False)
-        ttt_loss = tf.reduce_mean(tf.square(ttt_pred - xr))
-
-    # 在测试期适应阶段，保护脆弱的 Attention 和 LSTM 层！
-    v = [
-        v for v in m.trainable_variables
-        if ('main_output' not in v.name)  # 不更新分类头
-           and ('multi_head_attention' not in v.name)  # 绝对禁止更新注意力矩阵
-           and ('lstm' not in v.name)  # 绝对禁止更新时序记忆单元
-    ]
-
-    g = tape.gradient(ttt_loss, v)
-    valid_g = [(gi, vi) for gi, vi in zip(g, v) if gi is not None]
-    o.apply_gradients(valid_g)
-    return ttt_loss
-
-
-# ==========================================
-# 1-3. 数据流与流式训练
+# 1-3. 数据流与模型训练
 # ==========================================
 NUM_CLASSES, CLASS_LABELS = 5, ['W', 'N1', 'N2', 'N3', 'REM']
 MULTI_CHANNEL_PATH = r"E:\Python\LIME-for-Time-Series\EEG_data\eeg_eog_emg"
@@ -174,26 +155,26 @@ for instance in tqdm(X_raw, desc="特征提取"):
     X_segments.append(extract_segment_features(instance, segs, max_segments=30))
 X_segments = np.array(X_segments)
 
-# 数据切分：测试集 (15%) -> 修正切片右侧对象为 X_raw
+# 切分：测试集 (15%)
 split_test = int(len(X_raw) * 0.85)
 X_train_val_raw, X_test_raw = X_raw[:split_test], X_raw[split_test:]
 X_train_val_seg, X_test_seg = X_segments[:split_test], X_segments[split_test:]
 y_train_val, y_test = y[:split_test], y[split_test:]
 
-# 数据切分：训练集 (85% of 85%) 与验证集 (15% of 85%)
+# 切分：训练集 (85% of 85%) 与验证集
 split_val = int(len(X_train_val_raw) * 0.85)
 X_train_raw, X_val_raw = X_train_val_raw[:split_val], X_train_val_raw[split_val:]
 X_train_seg, X_val_seg = X_train_val_seg[:split_val], X_train_val_seg[split_val:]
 y_train, y_val = y_train_val[:split_val], y_train_val[split_val:]
 
-model = create_hybrid_model()
+# 🌟 实例化最终的 V3 模型
+model = create_hybrid_model_v2()
 callbacks = [EarlyStopping(monitor='val_main_output_accuracy', patience=5, restore_best_weights=True)]
 
-# 实例化数据生成器 (batch_size 设为 16 以进一步保护显存)
-train_gen = SleepDataGenerator(X_train_raw, X_train_seg, y_train, batch_size=16, shuffle=True)
-val_gen = SleepDataGenerator(X_val_raw, X_val_seg, y_val, batch_size=16, shuffle=False)
+train_gen = SleepDataGenerator(X_train_raw, X_train_seg, y_train, batch_size=32, shuffle=True)
+val_gen = SleepDataGenerator(X_val_raw, X_val_seg, y_val, batch_size=32, shuffle=False)
 
-print("\n🚀 数据流水线构建完毕，开始流式训练 (摘要模式)...")
+print("\n🚀 数据流水线构建完毕，开始流式训练 (最终 V3 架构)...")
 model.fit(
     train_gen,
     epochs=30,
@@ -202,107 +183,50 @@ model.fit(
     verbose=2
 )
 
-
 # ==========================================
-# 4. 双模式推理评估 (纯推理 vs 受限 TTT)
+# 4. 全局极速推理评估
 # ==========================================
 print("\n==========================================")
-print("4. 正在执行双模式性能评估 (Ablation Study)")
+print("4. 正在执行全局极速推理...")
 print("==========================================")
 
-# ---------------------------------------------------------
-# 【模式 A】：纯推理 (验证 SE + BiLSTM 混合架构的真实底线)
-# ---------------------------------------------------------
-print("\n▶ [模式 A] 正在执行全局极速推理 (关闭 TTT)...")
-y_pred_probs_all, _ = model.predict([X_test_raw, X_test_seg], batch_size=32, verbose=1)
-y_pred_no_ttt = np.argmax(y_pred_probs_all, axis=1)
+y_pred_probs_all, _, _ = model.predict([X_test_raw, X_test_seg], batch_size=64, verbose=1)
+y_pred_final = np.argmax(y_pred_probs_all, axis=1)
 y_true = np.argmax(y_test, axis=1)
 
-print(f"\n📊 分类报告 [模式 A: 纯推理无 TTT]:")
-print(classification_report(y_true, y_pred_no_ttt, target_names=CLASS_LABELS, digits=4))
+print(f"\n📊 最终分类报告:")
+print(classification_report(y_true, y_pred_final, target_names=CLASS_LABELS, digits=4))
 
-# ---------------------------------------------------------
-# 【模式 B】：受限 TTT (验证个体自适应能否进一步提分)
-# ---------------------------------------------------------
-print("\n▶ [模式 B] 正在执行受限 TTT 推理 (防 OOM 内存泄漏版)...")
-
-# 重新定义针对 SE 架构的保护性 TTT 更新逻辑
-@tf.function
-def ttt_step_secure(m, xr, xs, o):
-    with tf.GradientTape() as tape:
-        _, ttt_pred = m([xr, xs], training=False)
-        ttt_loss = tf.reduce_mean(tf.square(ttt_pred - xr))
-
-    # 【核心保护】：在测试期，绝对冻结 LSTM 和主分类头！
-    v = [
-        var for var in m.trainable_variables
-        if ('main_output' not in var.name)  # 锁死分类头
-           and ('lstm' not in var.name)  # 锁死时序记忆
-           and ('bidirectional' not in var.name)  # 锁死时序记忆
-    ]
-
-    g = tape.gradient(ttt_loss, v)
-    valid_g = [(gi, vi) for gi, vi in zip(g, v) if gi is not None]
-    o.apply_gradients(valid_g)
-    return ttt_loss
-
-
-y_pred_ttt = []
-# 保持极低学习率，防止单样本梯度爆炸
-ttt_opt = tf.keras.optimizers.Adam(learning_rate=1e-5)
-
-# 使用 tf.identity 备份权重图，不产生 Python 垃圾对象
-base_vars = [tf.identity(v) for v in model.trainable_variables]
-
-for i in tqdm(range(len(X_test_raw)), desc="Secure TTT Adaptation"):
-    xr, xs = X_test_raw[i:i + 1], X_test_seg[i:i + 1]
-
-    # 1. 适应 (微调前端波形提取器)
-    _ = ttt_step_secure(model, xr, xs, ttt_opt)
-
-    # 2. 预测
-    pred, _ = model([xr, xs], training=False)
-    y_pred_ttt.append(np.argmax(pred[0]))
-
-    # 3. 原地极速恢复权重，彻底告别崩溃！
-    for var, base_var in zip(model.trainable_variables, base_vars):
-        var.assign(base_var)
-
-print(f"\n📊 分类报告 [模式 B: 受限 TTT 适应版]:")
-print(classification_report(y_true, y_pred_ttt, target_names=CLASS_LABELS, digits=4))
-
-# 将模式 B 结果保存为图表
-save_academic_results(y_true, y_pred_ttt, CLASS_LABELS, OUTPUT_DIR)
+save_academic_results(y_true, y_pred_final, CLASS_LABELS, OUTPUT_DIR)
 
 
 # ==========================================
-# 5. 多阶段 XAI 协同诊断系统
+# 5. 多阶段 XAI 协同诊断系统 (LIME)
 # ==========================================
-print("\n5. 执行多阶段 XAI 协同分析 (为每个阶段各出一张图)...")
+print("\n5. 执行多阶段 XAI 协同分析 (生成可解释图)...")
 lime_wrapper = ModelWrapperForLIME(model)
 
 for stage_idx, stage_name in enumerate(CLASS_LABELS):
-    indices = np.where(y_true == stage_idx)[0]
-    if len(indices) == 0: continue
+    # 🌟 精准抓取：只挑选真实标签和预测标签都正确的样本进行解释
+    correct_indices = np.where((y_true == stage_idx) & (y_pred_final == stage_idx))[0]
+    
+    if len(correct_indices) == 0: 
+        print(f"⚠️ 阶段 {stage_name} 没有预测正确的样本，跳过解释。")
+        continue
 
-    target_idx = indices[0]
+    target_idx = correct_indices[0] 
     instance_raw = X_test_raw[target_idx]
 
     print(f"   🔎 正在诊断阶段: {stage_name} (样本索引: {target_idx})")
 
     segments = semantic_segmentation(instance_raw, target_segments=30)
-
-    # 运行 LIME 归因，解包返回的 raw_dccs 与 calibrated_dccs
     target_class, _, importance, raw_dccs, calibrated_dccs = run_multimodal_lime(
         model=lime_wrapper,
         instance_multimodal=instance_raw,
         segments=segments,
         num_perturbations=300
     )
-    
     save_path = os.path.join(OUTPUT_DIR, f'XAI_Diagnosis_{stage_name}.png')
-    
-    # 🌟 完全适配 visualization.py 的双 dccs 核心传参结构
     plot_xai_multimodal_dashboard(
         signal=instance_raw,
         segments=segments,
@@ -314,329 +238,4 @@ for stage_idx, stage_name in enumerate(CLASS_LABELS):
         save_path=save_path
     )
 
-print(f"\n🎉 任务圆满完成！所有阶段的诊断图已存入: {OUTPUT_DIR}")
-
-# import os
-# os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
-
-# import sys
-# import numpy as np
-# import random
-# import tensorflow as tf
-# import pandas as pd
-# import matplotlib.pyplot as plt
-# import seaborn as sns
-# import datetime
-# from tensorflow.keras.utils import to_categorical, Sequence
-# from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
-# from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
-# from tqdm import tqdm
-
-# # ==========================================
-# # 🌟 结果摘要记录类 (保留摘要输出逻辑)
-# # ==========================================
-# class Logger(object):
-#     def __init__(self, filename="Run_Results.log"):
-#         self.terminal = sys.stdout
-#         self.log = open(filename, "w", encoding='utf-8')
-
-#     def write(self, message):
-#         self.terminal.write(message)
-#         self.log.write(message)
-
-#     def flush(self):
-#         pass
-
-
-# # ==========================================
-# # 0. 环境路径与随机种子设置
-# # ==========================================
-# np.random.seed(42)
-# tf.random.set_seed(42)
-# random.seed(42)
-
-# current_dir = os.getcwd()
-# src_path = os.path.join(current_dir, 'src')
-# if src_path not in sys.path:
-#     sys.path.append(src_path)
-
-# OUTPUT_DIR = 'outputs'
-# LOG_DIR = os.path.join(OUTPUT_DIR, 'logs')
-# os.makedirs(LOG_DIR, exist_ok=True)
-
-# # 启动日志
-# timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-# log_path = os.path.join(LOG_DIR, f"result_{timestamp}.txt")
-# sys.stdout = Logger(log_path)
-
-# try:
-#     from src.data_processing import load_npz_data
-#     from src.model_training import create_hybrid_model
-#     from src.lime_explanation import (
-#         run_multimodal_lime, perturb_mean,
-#         semantic_segmentation, extract_segment_features
-#     )
-#     from src.visualization import plot_xai_multimodal_dashboard
-#     from src.grad_cam import run_hybrid_grad_cam
-
-#     print("✅ 核心模块加载成功！")
-# except ImportError as e:
-#     print(f"❌ 导入失败: {e}")
-#     sys.exit()
-
-
-# # ==========================================
-# # 流式数据生成器 (支持通道权重损失)
-# # ==========================================
-# class SleepDataGenerator(Sequence):
-#     def __init__(self, X_raw, X_segment, y_main, batch_size=16, shuffle=True):
-#         self.X_raw = X_raw
-#         self.X_segment = X_segment
-#         self.y_main = y_main
-#         self.batch_size = batch_size
-#         self.shuffle = shuffle
-#         self.indices = np.arange(len(self.X_raw))
-   
-#         if self.shuffle:
-#             np.random.shuffle(self.indices)
-
-#     def __len__(self):
-#         return int(np.ceil(len(self.X_raw) / self.batch_size))
-
-#     def __getitem__(self, index):
-#         batch_indices = self.indices[index * self.batch_size: (index + 1) * self.batch_size]
-
-#         batch_X_raw = self.X_raw[batch_indices]
-#         batch_X_segment = self.X_segment[batch_indices]
-#         batch_y_main = self.y_main[batch_indices]
-
-#         # TTT 辅助重建分支的目标值就是原始波形本身
-#         batch_y_ttt = batch_X_raw
-
-#         return (
-#             {'raw_input': batch_X_raw, 'segment_input': batch_X_segment},
-#             {
-#                 'main_output': batch_y_main, 
-#                 'ttt_output': batch_y_ttt,
-#                 'channel_weights': batch_y_main  # 【新增】将真实标签传给权重分支，用于计算先验损失
-#             }
-#         )
-
-#     def on_epoch_end(self):
-#         if self.shuffle:
-#             np.random.shuffle(self.indices)
-
-
-# # ==========================================
-# # 【包装器】：彻底修复 [300, 1500] 维度报错
-# # ==========================================
-# class ModelWrapperForLIME:
-#     def __init__(self, base_model):
-#         self.base_model = base_model
-
-#     def predict(self, inputs, **kwargs):
-#         preds = self.base_model.predict(inputs, **kwargs)
-#         return preds[0] if isinstance(preds, list) else preds
-
-
-# # ==========================================
-# # 辅助绘图：蓝红专业色系
-# # ==========================================
-# def save_academic_results(y_true, y_pred, class_names, output_dir):
-#     report_dict = classification_report(y_true, y_pred, target_names=class_names, output_dict=True)
-#     df = pd.DataFrame(report_dict).transpose()
-#     report_df = df.drop(index=['accuracy'], errors='ignore').drop(columns=['support'], errors='ignore')
-#     report_df.columns = ['Precision', 'Recall', 'F1-Score']
-
-#     plt.figure(figsize=(14, 8))
-#     sns.heatmap(report_df.astype(float), annot=True, cmap='RdBu_r', fmt=".4f", center=0.5, vmin=0, vmax=1,
-#                 linewidths=1.5, annot_kws={"size": 13, "weight": "bold"})
-#     plt.title(f'Classification Report | Accuracy: {report_dict.get("accuracy", 0):.4f}', fontweight='bold', fontsize=15)
-#     plt.tight_layout()
-#     plt.savefig(os.path.join(output_dir, 'classification_report_visual.png'), dpi=300)
-#     plt.close()
-
-
-# # ==========================================
-# # TTT 推理引擎 (严格冻结保护版)
-# # ==========================================
-# @tf.function
-# def ttt_step(m, xr, xs, o):
-#     with tf.GradientTape() as tape:
-#         # 【修改】解包 3 个输出
-#         _, ttt_pred, _ = m([xr, xs], training=False)
-#         ttt_loss = tf.reduce_mean(tf.square(ttt_pred - xr))
-
-#     # 【核心修复】：在测试期适应阶段，保护脆弱的 Attention 和 LSTM 层！
-#     # 仅仅允许 TTT 更新前端的 Conv1D 卷积核（MRCNN）以及专用的 ttt_output 重建头。
-#     v = [
-#         v for v in m.trainable_variables
-#         if ('main_output' not in v.name)  # 不更新分类头
-#            and ('multi_head_attention' not in v.name)  # 绝对禁止更新注意力矩阵
-#            and ('lstm' not in v.name)  # 绝对禁止更新时序记忆单元
-#            and ('channel_weights' not in v.name) # 【修改】绝对禁止更新通道权重头
-#     ]
-
-#     g = tape.gradient(ttt_loss, v)
-#     valid_g = [(gi, vi) for gi, vi in zip(g, v) if gi is not None]
-#     o.apply_gradients(valid_g)
-#     return ttt_loss
-
-
-# # ==========================================
-# # 1-3. 数据流与流式训练
-# # ==========================================
-# NUM_CLASSES, CLASS_LABELS = 5, ['W', 'N1', 'N2', 'N3', 'REM']
-# MULTI_CHANNEL_PATH = r"E:\Python\LIME-for-Time-Series\EEG_data\eeg_eog_emg"
-
-# X_raw, y_raw = load_npz_data(MULTI_CHANNEL_PATH)
-# y = to_categorical(y_raw, num_classes=NUM_CLASSES)
-
-# X_segments = []
-# for instance in tqdm(X_raw, desc="特征提取"):
-#     segs = semantic_segmentation(instance, target_segments=30)
-#     X_segments.append(extract_segment_features(instance, segs, max_segments=30))
-# X_segments = np.array(X_segments)
-
-# # 数据切分：测试集 (15%)
-# split_test = int(len(X_raw) * 0.85)
-# X_train_val_raw, X_test_raw = X_raw[:split_test], X_raw[split_test:]
-# X_train_val_seg, X_test_seg = X_segments[:split_test], X_segments[split_test:]
-# y_train_val, y_test = y[:split_test], y[split_test:]
-
-# # 数据切分：训练集 (85% of 85%) 与验证集 (15% of 85%)
-# split_val = int(len(X_train_val_raw) * 0.85)
-# X_train_raw, X_val_raw = X_train_val_raw[:split_val], X_train_val_raw[split_val:]
-# X_train_seg, X_val_seg = X_train_val_seg[:split_val], X_train_val_seg[split_val:]
-# y_train, y_val = y_train_val[:split_val], y_train_val[split_val:]
-
-# model = create_hybrid_model()
-# callbacks = [EarlyStopping(monitor='val_main_output_accuracy', patience=5, restore_best_weights=True)]
-
-# # 实例化数据生成器 (batch_size 设为 16 以进一步保护显存)
-# train_gen = SleepDataGenerator(X_train_raw, X_train_seg, y_train, batch_size=16, shuffle=True)
-# val_gen = SleepDataGenerator(X_val_raw, X_val_seg, y_val, batch_size=16, shuffle=False)
-
-# print("\n🚀 数据流水线构建完毕，开始流式训练 (摘要模式)...")
-# model.fit(
-#     train_gen,
-#     epochs=30,
-#     validation_data=val_gen,
-#     callbacks=callbacks,
-#     verbose=2
-# )
-
-# # ==========================================
-# # 4. 双模式推理评估 (纯推理 vs 受限 TTT)
-# # ==========================================
-# print("\n==========================================")
-# print("4. 正在执行双模式性能评估 (Ablation Study)")
-# print("==========================================")
-
-# # ---------------------------------------------------------
-# # 【模式 A】：纯推理 (验证 SE + BiLSTM 混合架构的真实底线)
-# # ---------------------------------------------------------
-# print("\n▶ [模式 A] 正在执行全局极速推理 (关闭 TTT)...")
-# # 【修改】接收 3 个输出，只取第 0 个用于分类评估
-# model_preds = model.predict([X_test_raw, X_test_seg], batch_size=32, verbose=0)
-# y_pred_probs_all = model_preds[0] 
-# y_pred_no_ttt = np.argmax(y_pred_probs_all, axis=1)
-# y_true = np.argmax(y_test, axis=1)
-
-# print(f"\n📊 分类报告 [模式 A: 纯推理无 TTT]:")
-# print(classification_report(y_true, y_pred_no_ttt, target_names=CLASS_LABELS, digits=4))
-
-# # ---------------------------------------------------------
-# # 【模式 B】：受限 TTT (验证个体自适应能否进一步提分)
-# # ---------------------------------------------------------
-# print("\n▶ [模式 B] 正在执行受限 TTT 推理 (防 OOM 内存泄漏版)...")
-
-# # 重新定义针对 SE 架构的保护性 TTT 更新逻辑
-# @tf.function
-# def ttt_step_secure(m, xr, xs, o):
-#     with tf.GradientTape() as tape:
-#         # 【修改】解包 3 个输出
-#         _, ttt_pred, _ = m([xr, xs], training=False)
-#         ttt_loss = tf.reduce_mean(tf.square(ttt_pred - xr))
-
-#     # 【核心保护】：在测试期，绝对冻结 LSTM 和主分类头！
-#     v = [
-#         var for var in m.trainable_variables
-#         if ('main_output' not in var.name)  # 锁死分类头
-#            and ('lstm' not in var.name)  # 锁死时序记忆
-#            and ('bidirectional' not in var.name)  # 锁死时序记忆
-#            and ('channel_weights' not in var.name) # 【修改】锁死先验权重头
-#     ]
-
-#     g = tape.gradient(ttt_loss, v)
-#     valid_g = [(gi, vi) for gi, vi in zip(g, v) if gi is not None]
-#     o.apply_gradients(valid_g)
-#     return ttt_loss
-
-
-# y_pred_ttt = []
-# # 保持极低学习率，防止单样本梯度爆炸
-# ttt_opt = tf.keras.optimizers.Adam(learning_rate=1e-5)
-
-# # 【防崩溃神技】：使用 tf.identity 备份权重图，不产生 Python 垃圾对象
-# base_vars = [tf.identity(v) for v in model.trainable_variables]
-
-# for i in tqdm(range(len(X_test_raw)), desc="Secure TTT Adaptation"):
-#     xr, xs = X_test_raw[i:i + 1], X_test_seg[i:i + 1]
-
-#     # 1. 适应 (微调前端波形提取器)
-#     _ = ttt_step_secure(model, xr, xs, ttt_opt)
-
-#     # 2. 预测 【修改】解包 3 个输出
-#     pred, _, _ = model([xr, xs], training=False)
-#     y_pred_ttt.append(np.argmax(pred[0]))
-
-#     # 3. 原地极速恢复权重，彻底告别 0xC0000409 崩溃！
-#     for var, base_var in zip(model.trainable_variables, base_vars):
-#         var.assign(base_var)
-
-# print(f"\n📊 分类报告 [模式 B: 受限 TTT 适应版]:")
-# print(classification_report(y_true, y_pred_ttt, target_names=CLASS_LABELS, digits=4))
-
-# # 默认将表现最好的 (或者你想展示的) 结果保存为图表，这里默认保存模式 B
-# save_academic_results(y_true, y_pred_ttt, CLASS_LABELS, OUTPUT_DIR)
-
-
-# # ==========================================
-# # 5. 多阶段 XAI 协同诊断系统
-# # ==========================================
-# print("\n5. 执行多阶段 XAI 协同分析 (为每个阶段各出一张图)...")
-# lime_wrapper = ModelWrapperForLIME(model)
-
-# for stage_idx, stage_name in enumerate(CLASS_LABELS):
-#     indices = np.where(y_true == stage_idx)[0]
-#     if len(indices) == 0: continue
-
-#     target_idx = indices[0]
-#     instance_raw = X_test_raw[target_idx]
-
-#     print(f"   🔎 正在诊断阶段: {stage_name} (样本索引: {target_idx})")
-
-#     segments = semantic_segmentation(instance_raw, target_segments=30)
-
-#     target_class, _, importance, raw_dccs, calibrated_dccs = run_multimodal_lime(
-#         model=lime_wrapper,
-#         instance_multimodal=instance_raw,
-#         segments=segments,
-#         num_perturbations=300
-#     )
-    
-#     save_path = os.path.join(OUTPUT_DIR, f'XAI_Diagnosis_{stage_name}.png')
-    
-#     # 注：传入 calibrated_dccs 用于可视化，确保图表显示正确
-#     plot_xai_multimodal_dashboard(
-#         signal=instance_raw,
-#         segments=segments,
-#         segment_importance=importance,
-#         dccs=calibrated_dccs, 
-#         channel_names=['EEG', 'EOG', 'EMG'],
-#         target_class_name=CLASS_LABELS[target_class],
-#         save_path=save_path
-#     )
-
-# print(f"\n🎉 任务圆满完成！所有阶段的诊断图已存入: {OUTPUT_DIR}")
+print(f"\n🎉 任务圆满完成！诊断图和分类报告已存入: {OUTPUT_DIR}")
