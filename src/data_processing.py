@@ -1,7 +1,66 @@
 import numpy as np
 import os
-import mne
 from tensorflow.keras.utils import to_categorical
+from scipy import signal
+
+
+def preprocess_multichannel_epochs(X, fs=100, apply_filters=True, normalize=True):
+    """
+    Apply lightweight physiology-aware preprocessing to one recording.
+
+    X is expected to be (epochs, samples, channels). EEG/EOG are band-passed
+    to 0.5-30 Hz. EMG is left unfiltered to preserve tonic muscle tone,
+    then each channel is normalized
+    per recording. Recording-level normalization keeps relative epoch amplitude
+    cues while reducing subject/device scale drift.
+    """
+    X = np.asarray(X, dtype=np.float32)
+
+    if X.ndim == 2:
+        X = X[..., np.newaxis]
+
+    if apply_filters and X.shape[1] > 15:
+        fs = float(fs) if fs is not None else 100.0
+        nyquist = fs / 2.0
+        processed = X.copy()
+
+        eeg_high = min(30.0, nyquist * 0.95)
+        if eeg_high > 0.5 and X.shape[-1] >= 1:
+            sos_eeg = signal.butter(4, [0.5, eeg_high], btype="bandpass", fs=fs, output="sos")
+            processed[:, :, 0] = signal.sosfiltfilt(sos_eeg, processed[:, :, 0], axis=1).astype(np.float32)
+
+        if eeg_high > 0.5 and X.shape[-1] >= 2:
+            sos_eog = signal.butter(4, [0.5, eeg_high], btype="bandpass", fs=fs, output="sos")
+            processed[:, :, 1] = signal.sosfiltfilt(sos_eog, processed[:, :, 1], axis=1).astype(np.float32)
+
+        X = processed
+
+    if normalize:
+        mean = np.mean(X, axis=(0, 1), keepdims=True)
+        std = np.std(X, axis=(0, 1), keepdims=True)
+        X = (X - mean) / (std + 1e-6)
+
+    return X.astype(np.float32)
+
+
+def split_npz_files(files, test_size=0.15, val_size=0.15, seed=42):
+    """
+    Deterministic file-level split. This avoids mixing epochs from the same
+    recording across train/validation/test sets.
+    """
+    rng = np.random.default_rng(seed)
+    files = np.array(sorted(files))
+    shuffled = files[rng.permutation(len(files))]
+
+    n_test = max(1, int(round(len(shuffled) * test_size)))
+    test_files = sorted(shuffled[:n_test].tolist())
+    train_val_files = shuffled[n_test:]
+
+    n_val = max(1, int(round(len(train_val_files) * val_size)))
+    val_files = sorted(train_val_files[:n_val].tolist())
+    train_files = sorted(train_val_files[n_val:].tolist())
+
+    return train_files, val_files, test_files
 
 # --- 获取文件列表 ---
 def get_npz_file_list(folder_path):
@@ -12,7 +71,14 @@ def get_npz_file_list(folder_path):
 
 
 # --- 处理 NPZ 文件 (预分配内存 + 支持按文件子集加载) ---
-def load_npz_data(folder_path, max_files=None, file_subset=None):
+def load_npz_data(
+    folder_path,
+    max_files=None,
+    file_subset=None,
+    preprocess=False,
+    apply_filters=True,
+    normalize=True,
+):
     """
     加载指定文件夹下所有的 npz 文件并合并。
     采用预分配内存策略，彻底解决 concatenate 导致的 OOM 内存爆炸问题。
@@ -46,20 +112,37 @@ def load_npz_data(folder_path, max_files=None, file_subset=None):
 
     print(f"扫描完毕，总样本数: {total_samples}。正在预分配连续内存...")
 
-    X = np.empty((total_samples, 3000, 3), dtype=np.float32)
+    with np.load(os.path.join(folder_path, files[0]), mmap_mode='r') as first_data:
+        first_shape = first_data['x'].shape
+
+    if len(first_shape) == 2:
+        sample_shape = (first_shape[1], 1)
+    else:
+        sample_shape = first_shape[1:]
+
+    X = np.empty((total_samples, *sample_shape), dtype=np.float32)
     y = np.empty((total_samples,), dtype=np.int32)
 
     # 第二遍扫描：像拼图一样把数据填进预先挖好的坑里
     current_idx = 0
     for i, f in enumerate(files):
         with np.load(os.path.join(folder_path, f)) as data:
-            x_data = data['x']
+            x_data = data['x'].astype(np.float32)
             y_data = data['y']
+            fs = float(data['fs']) if 'fs' in data.files else 100.0
             n_samples = x_data.shape[0]
 
             # 适配 3 通道格式
             if len(x_data.shape) == 2:
                 x_data = np.expand_dims(x_data, axis=-1)
+
+            if preprocess:
+                x_data = preprocess_multichannel_epochs(
+                    x_data,
+                    fs=fs,
+                    apply_filters=apply_filters,
+                    normalize=normalize,
+                )
 
             X[current_idx: current_idx + n_samples] = x_data
             y[current_idx: current_idx + n_samples] = y_data
@@ -85,6 +168,8 @@ def format_for_model(X, y, num_classes=5):
 
 # --- 处理 EDF 文件 (可选备份) ---
 def load_edf_epoch(psg_path, hypno_path):
+    import mne
+
     raw = mne.io.read_raw_edf(psg_path, preload=True, verbose=False)
     annot = mne.read_annotations(hypno_path)
     raw.set_annotations(annot, emit_warning=False)

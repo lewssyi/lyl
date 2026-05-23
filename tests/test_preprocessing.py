@@ -25,7 +25,7 @@ def test_load_npz_data(tmp_path):
     X, y = load_npz_data(str(d))
 
     # 断言：合并后应该是 15 个样本
-    assert X.shape == (15, 3000), "合并后的特征维度不正确"
+    assert X.shape == (15, 3000, 1), "合并后的特征维度不正确"
     assert y.shape == (15,), "合并后的标签维度不正确"
     assert len(np.unique(y)) == 2, "标签合并错误"
 
