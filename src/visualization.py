@@ -49,6 +49,12 @@ def _annotate_bars(ax, bars):
         )
 
 
+def _optional_array(values):
+    if values is None:
+        return None
+    return np.nan_to_num(np.asarray(values, dtype=float), nan=0.0, posinf=0.0, neginf=0.0)
+
+
 def plot_xai_multimodal_dashboard(
     signal,
     segments,
@@ -62,6 +68,14 @@ def plot_xai_multimodal_dashboard(
     conflict_score,
     prior_alignment,
     channel_disagreement,
+    clinical_concept_names=None,
+    clinical_concept_matrix=None,
+    clinical_concept_evidence_matrix=None,
+    raw_concept_dccs=None,
+    calibrated_concept_dccs=None,
+    concept_prior=None,
+    concept_alignment=None,
+    perturbation_mode=None,
     channel_names=None,
     target_class_name="REM",
     save_path=None,
@@ -125,45 +139,110 @@ def plot_xai_multimodal_dashboard(
         posinf=0.0,
         neginf=0.0,
     )
+    concept_names = list(clinical_concept_names or [])
+    concept_evidence = _optional_array(clinical_concept_evidence_matrix)
+    concept_activation = _optional_array(clinical_concept_matrix)
+    raw_concept_pct = _as_percentage(raw_concept_dccs) if raw_concept_dccs is not None else np.array([])
+    calibrated_concept_pct = (
+        _as_percentage(calibrated_concept_dccs) if calibrated_concept_dccs is not None else np.array([])
+    )
+    concept_prior_pct = _as_percentage(concept_prior) if concept_prior is not None else np.array([])
+    has_concepts = (
+        len(concept_names) > 0
+        and len(calibrated_concept_pct) == len(concept_names)
+        and len(raw_concept_pct) == len(concept_names)
+    )
 
     fig_dccs, axes_dccs = plt.subplots(
-        1,
         2,
-        figsize=(13, 4.5),
-        gridspec_kw={"width_ratios": [1.6, 1.0]},
+        2,
+        figsize=(15, 8.2),
+        gridspec_kw={"width_ratios": [1.45, 1.0], "height_ratios": [1.0, 1.2]},
         constrained_layout=True,
     )
     x = np.arange(num_channels)
     width = 0.34
-    raw_bars = axes_dccs[0].bar(x - width / 2, raw_pct, width, label="Raw DCCS", color="#4C72B0")
-    calibrated_bars = axes_dccs[0].bar(
+    raw_bars = axes_dccs[0, 0].bar(x - width / 2, raw_pct, width, label="Raw DCCS", color="#4C72B0")
+    calibrated_bars = axes_dccs[0, 0].bar(
         x + width / 2,
         calibrated_pct,
         width,
         label="Calibrated DCCS",
         color="#DD8452",
     )
-    axes_dccs[0].set_xticks(x)
-    axes_dccs[0].set_xticklabels(visible_channel_names)
-    axes_dccs[0].set_ylim(0, max(100.0, float(np.max([raw_pct.max(), calibrated_pct.max()])) * 1.2))
-    axes_dccs[0].set_ylabel("Channel Contribution (%)", fontweight="bold")
-    axes_dccs[0].set_title("DCCS Percentage by Channel", fontweight="bold")
-    axes_dccs[0].legend(fontsize=9)
-    _annotate_bars(axes_dccs[0], raw_bars)
-    _annotate_bars(axes_dccs[0], calibrated_bars)
+    axes_dccs[0, 0].set_xticks(x)
+    axes_dccs[0, 0].set_xticklabels(visible_channel_names)
+    axes_dccs[0, 0].set_ylim(0, max(100.0, float(np.max([raw_pct.max(), calibrated_pct.max()])) * 1.2))
+    axes_dccs[0, 0].set_ylabel("Channel Contribution (%)", fontweight="bold")
+    axes_dccs[0, 0].set_title("DCCS Percentage by Channel", fontweight="bold")
+    axes_dccs[0, 0].legend(fontsize=9)
+    _annotate_bars(axes_dccs[0, 0], raw_bars)
+    _annotate_bars(axes_dccs[0, 0], calibrated_bars)
 
-    axes_dccs[1].bar(
+    axes_dccs[0, 1].bar(
         visible_channel_names,
         disagreement,
         color=["#4C72B0", "#DD8452", "#55A868"][:num_channels],
     )
-    axes_dccs[1].set_ylim(0, max(1.0, float(np.max(disagreement)) * 1.2))
-    axes_dccs[1].set_ylabel("Disagreement", fontweight="bold")
-    axes_dccs[1].set_title(f"Prior Alignment = {prior_alignment:.3f}", fontweight="bold")
+    axes_dccs[0, 1].set_ylim(0, max(1.0, float(np.max(disagreement)) * 1.2))
+    axes_dccs[0, 1].set_ylabel("Disagreement", fontweight="bold")
+    mode_suffix = f" | {perturbation_mode}" if perturbation_mode else ""
+    axes_dccs[0, 1].set_title(f"Prior Alignment = {prior_alignment:.3f}{mode_suffix}", fontweight="bold")
+
+    if has_concepts:
+        concept_strength = raw_concept_pct + calibrated_concept_pct + concept_prior_pct
+        top_count = min(8, len(concept_names))
+        top_idx = np.argsort(concept_strength)[-top_count:][::-1]
+        y_pos = np.arange(top_count)
+        bar_height = 0.24
+        axes_dccs[1, 0].barh(
+            y_pos - bar_height,
+            raw_concept_pct[top_idx],
+            bar_height,
+            label="Raw Concept DCCS",
+            color="#4C72B0",
+        )
+        axes_dccs[1, 0].barh(
+            y_pos,
+            calibrated_concept_pct[top_idx],
+            bar_height,
+            label="Calibrated Concept DCCS",
+            color="#DD8452",
+        )
+        if len(concept_prior_pct) == len(concept_names):
+            axes_dccs[1, 0].barh(
+                y_pos + bar_height,
+                concept_prior_pct[top_idx],
+                bar_height,
+                label="Clinical Prior",
+                color="#55A868",
+            )
+        axes_dccs[1, 0].set_yticks(y_pos)
+        axes_dccs[1, 0].set_yticklabels([concept_names[idx] for idx in top_idx])
+        axes_dccs[1, 0].invert_yaxis()
+        axes_dccs[1, 0].set_xlabel("Contribution (%)", fontweight="bold")
+        axes_dccs[1, 0].set_title("Clinical Concept DCCS", fontweight="bold")
+        axes_dccs[1, 0].legend(fontsize=8)
+
+        axes_dccs[1, 1].bar(
+            ["Concept\nAlignment"],
+            [float(concept_alignment or 0.0)],
+            color="#8172B2",
+        )
+        axes_dccs[1, 1].set_ylim(0, 1.05)
+        axes_dccs[1, 1].set_ylabel("Alignment", fontweight="bold")
+        axes_dccs[1, 1].set_title("AASM Concept Prior Alignment", fontweight="bold")
+    else:
+        axes_dccs[1, 0].axis("off")
+        axes_dccs[1, 1].axis("off")
     _save_or_show(fig_dccs, dccs_path, "XAI DCCS percentage saved to")
 
-    fig_evidence = plt.figure(figsize=(17, 10), constrained_layout=True)
-    gs = fig_evidence.add_gridspec(2, 2, hspace=0.25, wspace=0.2)
+    has_concept_heatmap = concept_evidence is not None and concept_evidence.size > 0 and len(concept_names) > 0
+    fig_evidence = plt.figure(figsize=(17, 12 if has_concept_heatmap else 10), constrained_layout=True)
+    if has_concept_heatmap:
+        gs = fig_evidence.add_gridspec(3, 2, hspace=0.25, wspace=0.2, height_ratios=[1.0, 0.9, 0.9])
+    else:
+        gs = fig_evidence.add_gridspec(2, 2, hspace=0.25, wspace=0.2)
 
     ax_joint = fig_evidence.add_subplot(gs[0, 0])
     sns.heatmap(
@@ -193,7 +272,25 @@ def plot_xai_multimodal_dashboard(
     ax_calibrated.set_xlabel("Dynamic Segment")
     ax_calibrated.set_ylabel("Physiological Channel")
 
-    ax_temporal = fig_evidence.add_subplot(gs[1, :])
+    if has_concept_heatmap:
+        ax_concept = fig_evidence.add_subplot(gs[1, :])
+        concept_heatmap = concept_evidence
+        if concept_activation is not None and concept_activation.shape == concept_evidence.shape:
+            concept_heatmap = concept_evidence * np.sign(np.sum(segment_matrix, axis=0, keepdims=True))
+        sns.heatmap(
+            concept_heatmap,
+            cmap="coolwarm",
+            center=0.0,
+            ax=ax_concept,
+            cbar=True,
+            xticklabels=[f"S{idx + 1}" for idx in range(num_segments)],
+            yticklabels=concept_names,
+        )
+        ax_concept.set_title("Clinical Concept-Segment Evidence", fontweight="bold")
+        ax_concept.set_xlabel("Dynamic Segment")
+        ax_concept.set_ylabel("Clinical Concept")
+
+    ax_temporal = fig_evidence.add_subplot(gs[2 if has_concept_heatmap else 1, :])
     segment_axis = np.arange(num_segments)
     ax_temporal.plot(segment_axis, temporal_net, color="#3B5BA9", linewidth=2.0, label="Net evidence")
     ax_temporal.fill_between(segment_axis, 0, cooperation_score, color="#55A868", alpha=0.25, label="Cooperation")
@@ -227,9 +324,14 @@ def plot_transition_explanation_dashboard(
     mean_conflict = transition_summary["mean_conflict"]
     prior_alignment_trend = transition_summary["prior_alignment_trend"]
     channel_shift = transition_summary["channel_shift"]
+    concept_names = transition_summary.get("clinical_concept_names", [])
+    concept_shift = _optional_array(transition_summary.get("transition_concept_shift"))
+    concept_prior = _optional_array(transition_summary.get("transition_concept_prior"))
+    transition_prior_alignment = float(transition_summary.get("transition_prior_alignment", 0.0))
+    transition_plausibility = float(transition_summary.get("transition_plausibility", 0.0))
 
-    fig = plt.figure(figsize=(18, 10))
-    gs = gridspec.GridSpec(2, 3, figure=fig, hspace=0.4, wspace=0.35)
+    fig = plt.figure(figsize=(22, 10))
+    gs = gridspec.GridSpec(2, 4, figure=fig, hspace=0.4, wspace=0.35, width_ratios=[1.25, 1.0, 1.0, 1.1])
 
     ax_heat = fig.add_subplot(gs[:, 0])
     sns.heatmap(
@@ -264,7 +366,10 @@ def plot_transition_explanation_dashboard(
     ax_align = fig.add_subplot(gs[0, 2])
     ax_align.plot(prior_alignment_trend, marker="o", color="#8172B2", linewidth=2.0)
     ax_align.set_ylim(0, 1.05)
-    ax_align.set_title("Clinical Prior Alignment Across Transition", fontweight="bold")
+    ax_align.set_title(
+        f"Clinical Prior Alignment | transition={transition_prior_alignment:.3f}",
+        fontweight="bold",
+    )
     ax_align.set_xlabel("Epoch in transition window")
     ax_align.set_ylabel("Alignment")
 
@@ -273,6 +378,29 @@ def plot_transition_explanation_dashboard(
     ax_channel.axhline(0, color="black", linewidth=0.8, alpha=0.6)
     ax_channel.set_title("Dominant Channel Shift", fontweight="bold")
     ax_channel.set_ylabel("Change in absolute evidence")
+
+    ax_concept = fig.add_subplot(gs[:, 3])
+    if concept_shift is not None and len(concept_names) == len(concept_shift):
+        prior_pct = _as_percentage(concept_prior) if concept_prior is not None else np.zeros_like(concept_shift)
+        top_strength = np.abs(concept_shift) + prior_pct / 100.0
+        top_count = min(8, len(concept_names))
+        top_idx = np.argsort(top_strength)[-top_count:][::-1]
+        y_pos = np.arange(top_count)
+        colors = ["#C44E52" if concept_shift[idx] >= 0 else "#4C72B0" for idx in top_idx]
+        ax_concept.barh(y_pos, concept_shift[top_idx], color=colors, alpha=0.85, label="Observed shift")
+        ax_concept.plot(prior_pct[top_idx] / 100.0, y_pos, "o", color="#55A868", label="Transition prior")
+        ax_concept.axvline(0, color="black", linewidth=0.8, alpha=0.6)
+        ax_concept.set_yticks(y_pos)
+        ax_concept.set_yticklabels([concept_names[idx] for idx in top_idx])
+        ax_concept.invert_yaxis()
+        ax_concept.set_title(
+            f"Clinical Concept Shift\nPlausibility={transition_plausibility:.3f}",
+            fontweight="bold",
+        )
+        ax_concept.set_xlabel("Change in concept DCCS")
+        ax_concept.legend(fontsize=8)
+    else:
+        ax_concept.axis("off")
 
     plt.tight_layout()
     if save_path:

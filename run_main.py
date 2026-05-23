@@ -135,6 +135,14 @@ def normalize_lime_explanation(explanation, num_channels, num_segments):
             "conflict_score": zeros_vector,
             "prior_alignment": 0.0,
             "channel_disagreement": np.zeros((num_channels,), dtype=np.float32),
+            "clinical_concept_names": [],
+            "clinical_concept_matrix": np.zeros((0, num_segments), dtype=np.float32),
+            "clinical_concept_evidence_matrix": np.zeros((0, num_segments), dtype=np.float32),
+            "raw_concept_dccs": np.zeros((0,), dtype=np.float32),
+            "calibrated_concept_dccs": np.zeros((0,), dtype=np.float32),
+            "concept_prior": np.zeros((0,), dtype=np.float32),
+            "concept_alignment": 0.0,
+            "perturbation_mode": "legacy",
         }
 
     raise TypeError(f"Unsupported LIME explanation type: {type(explanation)!r}")
@@ -777,6 +785,14 @@ def main():
             conflict_score=explanation["conflict_score"],
             prior_alignment=explanation["prior_alignment"],
             channel_disagreement=explanation["channel_disagreement"],
+            clinical_concept_names=explanation.get("clinical_concept_names"),
+            clinical_concept_matrix=explanation.get("clinical_concept_matrix"),
+            clinical_concept_evidence_matrix=explanation.get("clinical_concept_evidence_matrix"),
+            raw_concept_dccs=explanation.get("raw_concept_dccs"),
+            calibrated_concept_dccs=explanation.get("calibrated_concept_dccs"),
+            concept_prior=explanation.get("concept_prior"),
+            concept_alignment=explanation.get("concept_alignment"),
+            perturbation_mode=explanation.get("perturbation_mode"),
             channel_names=["EEG", "EOG", "EMG"],
             target_class_name=CLASS_LABELS[explanation["target_class"]],
             save_path=save_path,
@@ -818,12 +834,17 @@ def main():
                 )
                 epoch_explanations.append(explanation)
 
-            transition_summary = summarize_transition_explanation(epoch_explanations, ["EEG", "EOG", "EMG"])
+            from_stage = CLASS_LABELS[file_true[transition_idx - 1]]
+            to_stage = CLASS_LABELS[file_true[transition_idx]]
+            transition_summary = summarize_transition_explanation(
+                epoch_explanations,
+                ["EEG", "EOG", "EMG"],
+                from_stage=from_stage,
+                to_stage=to_stage,
+            )
             if transition_summary is None:
                 continue
 
-            from_stage = CLASS_LABELS[file_true[transition_idx - 1]]
-            to_stage = CLASS_LABELS[file_true[transition_idx]]
             transition_path = os.path.join(
                 OUTPUT_DIR,
                 f"XAI_Transition_{test_files[file_idx].replace('.npz', '')}_{from_stage}_to_{to_stage}.png",
