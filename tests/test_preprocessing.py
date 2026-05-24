@@ -1,7 +1,12 @@
 import numpy as np
 import os
 import pytest
-from src.data_processing import load_npz_data, format_for_model
+from src.data_processing import (
+    compute_epoch_quality_weights,
+    format_for_model,
+    load_npz_data,
+    preprocess_multichannel_epochs,
+)
 
 
 # --- 1. 测试 .npz 数据加载与合并 ---
@@ -59,3 +64,45 @@ def test_load_npz_invalid_path():
     """
     with pytest.raises(FileNotFoundError):
         load_npz_data("non_existent_path_123")
+
+
+def test_preprocessing_sanitizes_and_quality_downweights_bad_epoch():
+    X = np.random.default_rng(42).normal(size=(3, 100, 3)).astype(np.float32)
+    X[0, :, 0] = np.nan
+    X[1, :, 1] = 0.0
+    X[2, 10:20, 2] = 1e6
+
+    processed = preprocess_multichannel_epochs(
+        X,
+        fs=100,
+        apply_filters=False,
+        normalize=True,
+        clip_sigma=8.0,
+    )
+    quality = compute_epoch_quality_weights(processed)
+
+    assert np.all(np.isfinite(processed))
+    assert np.max(np.abs(processed)) <= 8.0
+    assert quality.shape == (3,)
+    assert np.any(quality < 1.0)
+
+
+def test_load_npz_data_can_return_quality_weights(tmp_path):
+    d = tmp_path / "quality_npz"
+    d.mkdir()
+    file_path = d / "sample.npz"
+    x = np.random.default_rng(7).normal(size=(4, 100, 3)).astype(np.float32)
+    y = np.array([0, 1, 2, 3], dtype=np.int32)
+    np.savez(file_path, x=x, y=y, fs=100)
+
+    X, labels, quality = load_npz_data(
+        str(d),
+        preprocess=True,
+        apply_filters=False,
+        return_quality=True,
+    )
+
+    assert X.shape == (4, 100, 3)
+    assert labels.shape == (4,)
+    assert quality.shape == (4,)
+    assert np.all((quality >= 0.35) & (quality <= 1.0))

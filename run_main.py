@@ -38,7 +38,15 @@ N1_WEIGHT_BOOST = 1.20
 BATCH_SIZE = 32
 EPOCHS = 40
 SEED = 42
-USE_METRIC_SELECTOR = False
+USE_METRIC_SELECTOR = True
+USE_HMM_VITERBI = True
+SELECTOR_MODE = "n1_n2_macro"
+TEMPERATURE_SCALING = True
+TEMPERATURE_GRID = np.linspace(0.8, 2.8, 21)
+HMM_ILLEGAL_TRANSITION_PENALTY = -7.0
+HMM_EMISSION_WEIGHT = 0.85
+QUALITY_WEIGHTING = True
+QUALITY_CLIP_SIGMA = 8.0
 
 
 class Logger:
@@ -96,6 +104,7 @@ class SleepDataGenerator(Sequence):
             {
                 "main_output": batch_y_main,
                 "channel_attention_weights": batch_y_main,
+                "concept_output": batch_y_main,
             },
             {"main_output": batch_weights},
         )
@@ -215,6 +224,89 @@ def compute_main_sample_weights(
     sample_weights = class_weights[y_raw].astype(np.float32)
     sample_weights = sample_weights / (np.mean(sample_weights) + 1e-8)
     return sample_weights, class_weights.astype(np.float32)
+
+
+def print_quality_summary(name, quality_weights):
+    if quality_weights is None:
+        return
+    quality_weights = np.asarray(quality_weights, dtype=np.float32)
+    downweighted = float(np.mean(quality_weights < 0.999))
+    print(
+        f"{name} quality: mean_weight={np.mean(quality_weights):.3f}, "
+        f"downweighted={downweighted * 100:.1f}%, "
+        f"min={np.min(quality_weights):.3f}"
+    )
+
+
+def temperature_scale_probabilities(probabilities, temperature=1.0):
+    probabilities = np.asarray(probabilities, dtype=np.float32)
+    temperature = max(float(temperature), 1e-3)
+    log_probs = np.log(np.clip(probabilities, 1e-8, 1.0)) / temperature
+    log_probs = log_probs - np.max(log_probs, axis=1, keepdims=True)
+    scaled = np.exp(log_probs)
+    return (scaled / np.maximum(np.sum(scaled, axis=1, keepdims=True), 1e-8)).astype(np.float32)
+
+
+def negative_log_likelihood(y_true, probabilities):
+    probabilities = np.asarray(probabilities, dtype=np.float32)
+    y_true = np.asarray(y_true, dtype=np.int32)
+    return float(-np.mean(np.log(np.clip(probabilities[np.arange(len(y_true)), y_true], 1e-8, 1.0))))
+
+
+def class_precision_recall(y_true, y_pred, class_idx):
+    y_true = np.asarray(y_true, dtype=np.int32)
+    y_pred = np.asarray(y_pred, dtype=np.int32)
+    true_mask = y_true == class_idx
+    pred_mask = y_pred == class_idx
+    true_positive = float(np.sum(true_mask & pred_mask))
+    precision = true_positive / max(float(np.sum(pred_mask)), 1.0)
+    recall = true_positive / max(float(np.sum(true_mask)), 1.0)
+    f1 = 0.0 if precision + recall == 0 else 2.0 * precision * recall / (precision + recall)
+    return precision, recall, f1
+
+
+def score_predictions(y_true, predictions, mode="macro_f1"):
+    accuracy = float(np.mean(predictions == y_true))
+    macro_f1 = float(f1_score(y_true, predictions, average="macro", zero_division=0))
+    n1_precision, n1_recall, n1_f1 = class_precision_recall(y_true, predictions, 1)
+    _, n2_recall, n2_f1 = class_precision_recall(y_true, predictions, 2)
+
+    if mode == "macro_f1":
+        score = macro_f1
+    elif mode == "n1_n2":
+        score = 0.45 * n1_f1 + 0.35 * n2_recall + 0.20 * accuracy
+    elif mode == "accuracy_macro":
+        score = accuracy + 0.20 * macro_f1
+    else:
+        score = 0.35 * macro_f1 + 0.25 * n1_precision + 0.20 * n1_recall + 0.20 * n2_recall
+
+    return {
+        "score": float(score),
+        "accuracy": accuracy,
+        "macro_f1": macro_f1,
+        "n1_precision": n1_precision,
+        "n1_recall": n1_recall,
+        "n1_f1": n1_f1,
+        "n2_recall": n2_recall,
+        "n2_f1": n2_f1,
+    }
+
+
+def tune_temperature(y_true, probabilities, temperatures=None):
+    temperatures = np.asarray(temperatures if temperatures is not None else TEMPERATURE_GRID, dtype=np.float32)
+    best_temperature = 1.0
+    best_nll = np.inf
+    best_probabilities = probabilities
+
+    for temperature in temperatures:
+        scaled_probabilities = temperature_scale_probabilities(probabilities, temperature)
+        nll = negative_log_likelihood(y_true, scaled_probabilities)
+        if nll < best_nll:
+            best_temperature = float(temperature)
+            best_nll = nll
+            best_probabilities = scaled_probabilities
+
+    return best_temperature, best_probabilities, best_nll
 
 
 def predict_with_n1_threshold(probabilities, n1_threshold, n1_margin=0.03):
@@ -358,6 +450,148 @@ def smooth_predictions_by_recording(
     return np.concatenate(smoothed_parts) if smoothed_parts else np.array([], dtype=np.int32)
 
 
+def build_clinical_transition_mask():
+    return np.array(
+        [
+            [1, 1, 1, 0, 0],  # W cannot jump directly to N3 or REM.
+            [1, 1, 1, 0, 1],  # N1 is a gateway to N2, W, or rare REM onset.
+            [1, 1, 1, 1, 1],  # N2 is the central transition hub.
+            [1, 0, 1, 1, 0],  # N3 usually returns through N2; direct REM is locked out.
+            [1, 1, 1, 0, 1],  # REM may persist or exit to W/N1/N2, not N3.
+        ],
+        dtype=bool,
+    )
+
+
+def build_transition_model(
+    y_raw,
+    file_sample_counts,
+    num_classes,
+    smoothing=0.05,
+    self_bias=1.50,
+    illegal_transition_penalty=HMM_ILLEGAL_TRANSITION_PENALTY,
+):
+    mask = build_clinical_transition_mask()
+    transition_counts = np.where(mask, smoothing, 0.0).astype(np.float32)
+    initial_counts = np.ones(num_classes, dtype=np.float32) * smoothing
+
+    start = 0
+    for count in file_sample_counts:
+        end = start + count
+        labels = np.asarray(y_raw[start:end], dtype=np.int32)
+        if len(labels) > 0:
+            initial_counts[labels[0]] += 1.0
+        for previous_stage, next_stage in zip(labels[:-1], labels[1:]):
+            if mask[previous_stage, next_stage]:
+                transition_counts[previous_stage, next_stage] += 1.0
+        start = end
+
+    for stage_idx in range(num_classes):
+        transition_counts[stage_idx, stage_idx] += self_bias
+
+    transition_matrix = transition_counts / np.maximum(
+        transition_counts.sum(axis=1, keepdims=True),
+        1e-8,
+    )
+    initial_probs = initial_counts / np.maximum(np.sum(initial_counts), 1e-8)
+    transition_log = np.where(
+        mask,
+        np.log(np.clip(transition_matrix, 1e-8, 1.0)),
+        float(illegal_transition_penalty),
+    )
+    initial_log = np.log(np.clip(initial_probs, 1e-8, 1.0))
+    return transition_log.astype(np.float32), initial_log.astype(np.float32), transition_matrix.astype(np.float32)
+
+
+def viterbi_decode(probabilities, transition_log, initial_log, emission_weight=1.0):
+    probabilities = np.asarray(probabilities, dtype=np.float32)
+    if len(probabilities) == 0:
+        return np.array([], dtype=np.int32)
+
+    emissions = emission_weight * np.log(np.clip(probabilities, 1e-8, 1.0))
+    num_steps, num_classes = emissions.shape
+    scores = np.full((num_steps, num_classes), -np.inf, dtype=np.float32)
+    backpointers = np.zeros((num_steps, num_classes), dtype=np.int32)
+
+    scores[0] = initial_log + emissions[0]
+    for step_idx in range(1, num_steps):
+        candidate_scores = scores[step_idx - 1][:, np.newaxis] + transition_log
+        backpointers[step_idx] = np.argmax(candidate_scores, axis=0)
+        scores[step_idx] = np.max(candidate_scores, axis=0) + emissions[step_idx]
+
+    decoded = np.zeros(num_steps, dtype=np.int32)
+    decoded[-1] = int(np.argmax(scores[-1]))
+    for step_idx in range(num_steps - 2, -1, -1):
+        decoded[step_idx] = backpointers[step_idx + 1, decoded[step_idx + 1]]
+    return decoded
+
+
+def viterbi_predictions_by_recording(
+    probabilities,
+    file_sample_counts,
+    transition_log,
+    initial_log,
+    emission_weight=HMM_EMISSION_WEIGHT,
+):
+    decoded_parts = []
+    start = 0
+    for count in file_sample_counts:
+        end = start + count
+        decoded_parts.append(
+            viterbi_decode(
+                probabilities[start:end],
+                transition_log,
+                initial_log,
+                emission_weight=emission_weight,
+            )
+        )
+        start = end
+    return np.concatenate(decoded_parts) if decoded_parts else np.array([], dtype=np.int32)
+
+
+def build_postprocessor_candidates(
+    probabilities,
+    file_sample_counts,
+    n1_threshold,
+    transition_log=None,
+    initial_log=None,
+    emission_weight=HMM_EMISSION_WEIGHT,
+    include_hmm=True,
+):
+    calibrated_predictions = predict_with_n1_threshold(probabilities, n1_threshold)
+    candidates = {
+        "temperature_argmax": np.argmax(probabilities, axis=1).astype(np.int32),
+        "n1_calibrated": calibrated_predictions,
+        "n1_protected_smoothed": smooth_predictions_by_recording(
+            probabilities,
+            file_sample_counts,
+            window_size=5,
+            min_confidence=0.35,
+            base_predictions=calibrated_predictions,
+            protected_classes={1},
+            protection_thresholds={1: n1_threshold},
+        ),
+    }
+    if include_hmm and transition_log is not None and initial_log is not None:
+        candidates["clinical_hmm"] = viterbi_predictions_by_recording(
+            probabilities,
+            file_sample_counts,
+            transition_log,
+            initial_log,
+            emission_weight=emission_weight,
+        )
+    return candidates
+
+
+def select_postprocessor_candidate(y_true, candidates, selector_mode=SELECTOR_MODE):
+    scored_candidates = {
+        name: score_predictions(y_true, predictions, selector_mode)
+        for name, predictions in candidates.items()
+    }
+    best_name = max(scored_candidates, key=lambda name: scored_candidates[name]["score"])
+    return best_name, scored_candidates[best_name], scored_candidates
+
+
 class BestValidationSelector(Callback):
     def __init__(
         self,
@@ -368,7 +602,12 @@ class BestValidationSelector(Callback):
         batch_size=64,
         patience=8,
         min_delta=1e-4,
-        macro_weight=0.20,
+        selector_mode=SELECTOR_MODE,
+        temperature_scaling=TEMPERATURE_SCALING,
+        transition_log=None,
+        initial_log=None,
+        emission_weight=HMM_EMISSION_WEIGHT,
+        use_hmm=False,
     ):
         super().__init__()
         self.X_val_raw = X_val_raw
@@ -378,12 +617,19 @@ class BestValidationSelector(Callback):
         self.batch_size = batch_size
         self.patience = patience
         self.min_delta = min_delta
-        self.macro_weight = macro_weight
+        self.selector_mode = selector_mode
+        self.temperature_scaling = temperature_scaling
+        self.transition_log = transition_log
+        self.initial_log = initial_log
+        self.emission_weight = emission_weight
+        self.use_hmm = use_hmm
         self.wait = 0
         self.best_epoch = 0
         self.best_score = -np.inf
         self.best_weights = None
         self.best_n1_threshold = 0.50
+        self.best_temperature = 1.0
+        self.best_decoder_mode = "n1_protected_smoothed"
         self.best_metrics = None
 
     def _predict_probabilities(self):
@@ -396,43 +642,45 @@ class BestValidationSelector(Callback):
 
     def _evaluate_current_model(self):
         probabilities = self._predict_probabilities()
+        temperature = 1.0
+        nll = negative_log_likelihood(self.y_val_raw, probabilities)
+        if self.temperature_scaling:
+            temperature, probabilities, nll = tune_temperature(self.y_val_raw, probabilities)
+
         n1_threshold, threshold_metrics = tune_n1_threshold(self.y_val_raw, probabilities)
-        calibrated_predictions = predict_with_n1_threshold(probabilities, n1_threshold)
-        smoothed_predictions = smooth_predictions_by_recording(
+        candidates = build_postprocessor_candidates(
             probabilities,
             self.val_file_sample_counts,
-            window_size=5,
-            min_confidence=0.35,
-            base_predictions=calibrated_predictions,
-            protected_classes={1},
-            protection_thresholds={1: n1_threshold},
+            n1_threshold,
+            transition_log=self.transition_log,
+            initial_log=self.initial_log,
+            emission_weight=self.emission_weight,
+            include_hmm=self.use_hmm,
         )
-
-        argmax_predictions = np.argmax(probabilities, axis=1)
-        smoothed_accuracy = float(np.mean(smoothed_predictions == self.y_val_raw))
-        smoothed_macro_f1 = float(
-            f1_score(self.y_val_raw, smoothed_predictions, average="macro", zero_division=0)
+        decoder_mode, selected_metrics, candidate_metrics = select_postprocessor_candidate(
+            self.y_val_raw,
+            candidates,
+            self.selector_mode,
         )
-        n1_mask = self.y_val_raw == 1
-        n1_predictions = smoothed_predictions == 1
-        n1_true_positive = float(np.sum(n1_mask & n1_predictions))
-        n1_precision = n1_true_positive / max(float(np.sum(n1_predictions)), 1.0)
-        n1_recall = n1_true_positive / max(float(np.sum(n1_mask)), 1.0)
-        n1_f1 = 0.0 if n1_precision + n1_recall == 0 else (
-            2.0 * n1_precision * n1_recall / (n1_precision + n1_recall)
-        )
-        score = smoothed_accuracy + self.macro_weight * smoothed_macro_f1
+        argmax_predictions = candidates["temperature_argmax"]
+        smoothed_metrics = candidate_metrics["n1_protected_smoothed"]
 
         return {
-            "score": score,
+            "score": selected_metrics["score"],
+            "decoder_mode": decoder_mode,
+            "temperature": temperature,
+            "nll": nll,
             "n1_threshold": n1_threshold,
             "argmax_accuracy": float(np.mean(argmax_predictions == self.y_val_raw)),
             "calibrated_accuracy": threshold_metrics["best_accuracy"],
-            "smoothed_accuracy": smoothed_accuracy,
-            "smoothed_macro_f1": smoothed_macro_f1,
-            "n1_precision": n1_precision,
-            "n1_recall": n1_recall,
-            "n1_f1": n1_f1,
+            "smoothed_accuracy": smoothed_metrics["accuracy"],
+            "smoothed_macro_f1": smoothed_metrics["macro_f1"],
+            "selected_accuracy": selected_metrics["accuracy"],
+            "selected_macro_f1": selected_metrics["macro_f1"],
+            "n1_precision": selected_metrics["n1_precision"],
+            "n1_recall": selected_metrics["n1_recall"],
+            "n1_f1": selected_metrics["n1_f1"],
+            "n2_recall": selected_metrics["n2_recall"],
         }
 
     def on_epoch_end(self, epoch, logs=None):
@@ -448,6 +696,8 @@ class BestValidationSelector(Callback):
             self.best_weights = self.model.get_weights()
             self.best_epoch = epoch + 1
             self.best_n1_threshold = metrics["n1_threshold"]
+            self.best_temperature = metrics["temperature"]
+            self.best_decoder_mode = metrics["decoder_mode"]
             self.best_metrics = metrics
             self.wait = 0
             status = "new best"
@@ -458,10 +708,13 @@ class BestValidationSelector(Callback):
         print(
             "\nValidation selector "
             f"({status}) | score={metrics['score']:.4f} "
-            f"acc={metrics['smoothed_accuracy']:.4f} "
-            f"macro_f1={metrics['smoothed_macro_f1']:.4f} "
+            f"acc={metrics['selected_accuracy']:.4f} "
+            f"macro_f1={metrics['selected_macro_f1']:.4f} "
             f"N1_P={metrics['n1_precision']:.4f} "
             f"N1_R={metrics['n1_recall']:.4f} "
+            f"N2_R={metrics['n2_recall']:.4f} "
+            f"decoder={metrics['decoder_mode']} "
+            f"T={metrics['temperature']:.2f} "
             f"thr={metrics['n1_threshold']:.3f}"
         )
 
@@ -478,6 +731,8 @@ class BestValidationSelector(Callback):
             print(
                 "Validation selector restored best weights from "
                 f"epoch {self.best_epoch} | score={self.best_score:.4f} "
+                f"decoder={self.best_decoder_mode} "
+                f"T={self.best_temperature:.2f} "
                 f"thr={self.best_n1_threshold:.3f}"
             )
 
@@ -573,27 +828,37 @@ def main():
     print(f"Val files   ({len(val_files)}): {val_files}")
     print(f"Test files  ({len(test_files)}): {test_files}")
 
-    X_train_raw, y_train_raw = load_npz_data(
+    X_train_raw, y_train_raw, train_quality_weights = load_npz_data(
         MULTI_CHANNEL_PATH,
         file_subset=train_files,
         preprocess=PREPROCESS_SIGNALS,
+        clip_sigma=QUALITY_CLIP_SIGMA,
+        return_quality=True,
     )
-    X_val_raw, y_val_raw = load_npz_data(
+    X_val_raw, y_val_raw, val_quality_weights = load_npz_data(
         MULTI_CHANNEL_PATH,
         file_subset=val_files,
         preprocess=PREPROCESS_SIGNALS,
+        clip_sigma=QUALITY_CLIP_SIGMA,
+        return_quality=True,
     )
-    X_test_raw, y_test_raw = load_npz_data(
+    X_test_raw, y_test_raw, test_quality_weights = load_npz_data(
         MULTI_CHANNEL_PATH,
         file_subset=test_files,
         preprocess=PREPROCESS_SIGNALS,
+        clip_sigma=QUALITY_CLIP_SIGMA,
+        return_quality=True,
     )
+    train_file_sample_counts = get_file_sample_counts(MULTI_CHANNEL_PATH, train_files)
     val_file_sample_counts = get_file_sample_counts(MULTI_CHANNEL_PATH, val_files)
     test_file_sample_counts = get_file_sample_counts(MULTI_CHANNEL_PATH, test_files)
 
     print_class_distribution("Train", y_train_raw, CLASS_LABELS)
     print_class_distribution("Val", y_val_raw, CLASS_LABELS)
     print_class_distribution("Test", y_test_raw, CLASS_LABELS)
+    print_quality_summary("Train", train_quality_weights)
+    print_quality_summary("Val", val_quality_weights)
+    print_quality_summary("Test", test_quality_weights)
 
     X_train_seg = build_segment_feature_matrix(X_train_raw, semantic_segmentation, extract_segment_features)
     X_val_seg = build_segment_feature_matrix(X_val_raw, semantic_segmentation, extract_segment_features)
@@ -608,6 +873,8 @@ def main():
         NUM_CLASSES,
         n1_boost=N1_WEIGHT_BOOST,
     )
+    if QUALITY_WEIGHTING:
+        train_sample_weights = (train_sample_weights * train_quality_weights).astype(np.float32)
     train_indices = build_oversampled_indices(y_train_raw, n1_factor=N1_OVERSAMPLE_FACTOR)
     class_weight_summary = ", ".join(
         f"{label}:{weight:.3f}" for label, weight in zip(CLASS_LABELS, class_weights)
@@ -617,6 +884,13 @@ def main():
         f"N1 balancing: factor={N1_OVERSAMPLE_FACTOR}, "
         f"training samples per epoch={len(train_indices)}, raw={len(y_train_raw)}"
     )
+    transition_log, initial_log, transition_matrix = build_transition_model(
+        y_train_raw,
+        train_file_sample_counts,
+        NUM_CLASSES,
+    )
+    print("Clinical HMM transition matrix:")
+    print(pd.DataFrame(transition_matrix, index=CLASS_LABELS, columns=CLASS_LABELS).round(3))
 
     model = create_hybrid_model_v2(
         raw_shape=X_train_raw.shape[1:],
@@ -624,15 +898,10 @@ def main():
         num_classes=NUM_CLASSES,
         learning_rate=0.001,
         attention_loss_weight=0.01,
+        concept_loss_weight=0.15,
     )
 
     callbacks = [
-        EarlyStopping(
-            monitor="val_main_output_loss",
-            patience=8,
-            restore_best_weights=True,
-            mode="min",
-        ),
         ReduceLROnPlateau(
             monitor="val_main_output_loss",
             factor=0.5,
@@ -650,9 +919,24 @@ def main():
             val_file_sample_counts,
             batch_size=64,
             patience=8,
-            macro_weight=0.20,
+            selector_mode=SELECTOR_MODE,
+            temperature_scaling=TEMPERATURE_SCALING,
+            transition_log=transition_log,
+            initial_log=initial_log,
+            emission_weight=HMM_EMISSION_WEIGHT,
+            use_hmm=USE_HMM_VITERBI,
         )
         callbacks.insert(0, validation_selector)
+    else:
+        callbacks.insert(
+            0,
+            EarlyStopping(
+                monitor="val_main_output_loss",
+                patience=8,
+                restore_best_weights=True,
+                mode="min",
+            ),
+        )
 
     train_gen = SleepDataGenerator(
         X_train_raw,
@@ -687,21 +971,31 @@ def main():
     print("4. Global test inference")
     print("==========================================")
 
+    decoder_mode = "n1_protected_smoothed"
     if validation_selector is not None and validation_selector.best_metrics is not None:
         n1_threshold = validation_selector.best_n1_threshold
+        temperature = validation_selector.best_temperature
+        decoder_mode = validation_selector.best_decoder_mode
         print(
             "Selected validation model: "
             f"epoch={validation_selector.best_epoch} "
             f"score={validation_selector.best_score:.4f} "
-            f"val_smoothed_acc={validation_selector.best_metrics['smoothed_accuracy']:.4f} "
-            f"val_macro_f1={validation_selector.best_metrics['smoothed_macro_f1']:.4f} "
+            f"val_acc={validation_selector.best_metrics['selected_accuracy']:.4f} "
+            f"val_macro_f1={validation_selector.best_metrics['selected_macro_f1']:.4f} "
             f"val_N1_P={validation_selector.best_metrics['n1_precision']:.4f} "
             f"val_N1_R={validation_selector.best_metrics['n1_recall']:.4f} "
+            f"val_N2_R={validation_selector.best_metrics['n2_recall']:.4f} "
+            f"decoder={decoder_mode} "
+            f"T={temperature:.2f} "
             f"thr={n1_threshold:.3f}"
         )
     else:
         val_outputs = model.predict([X_val_raw, X_val_seg], batch_size=64, verbose=0)
         y_val_probs_all = val_outputs[0] if isinstance(val_outputs, list) else val_outputs
+        temperature = 1.0
+        if TEMPERATURE_SCALING:
+            temperature, y_val_probs_all, val_nll = tune_temperature(y_val_raw, y_val_probs_all)
+            print(f"Validation temperature scaling: T={temperature:.2f} val_nll={val_nll:.4f}")
         n1_threshold, threshold_metrics = tune_n1_threshold(y_val_raw, y_val_probs_all)
         print(
             "Validation-calibrated N1 threshold: "
@@ -710,46 +1004,85 @@ def main():
             f"val_macro_f1={threshold_metrics['best_macro_f1']:.4f} "
             f"val_n1_recall={threshold_metrics['n1_recall']:.4f}"
         )
+        val_candidates = build_postprocessor_candidates(
+            y_val_probs_all,
+            val_file_sample_counts,
+            n1_threshold,
+            transition_log=transition_log,
+            initial_log=initial_log,
+            emission_weight=HMM_EMISSION_WEIGHT,
+            include_hmm=USE_HMM_VITERBI,
+        )
+        decoder_mode, decoder_metrics, _ = select_postprocessor_candidate(
+            y_val_raw,
+            val_candidates,
+            SELECTOR_MODE,
+        )
+        print(
+            "Validation-selected decoder: "
+            f"{decoder_mode} | score={decoder_metrics['score']:.4f} "
+            f"acc={decoder_metrics['accuracy']:.4f} "
+            f"macro_f1={decoder_metrics['macro_f1']:.4f} "
+            f"N1_P={decoder_metrics['n1_precision']:.4f} "
+            f"N1_R={decoder_metrics['n1_recall']:.4f} "
+            f"N2_R={decoder_metrics['n2_recall']:.4f}"
+        )
 
     pred_outputs = model.predict([X_test_raw, X_test_seg], batch_size=64, verbose=1)
     y_pred_probs_all = pred_outputs[0] if isinstance(pred_outputs, list) else pred_outputs
+    y_pred_probs_calibrated = temperature_scale_probabilities(y_pred_probs_all, temperature)
     y_true = np.argmax(y_test, axis=1)
     y_pred_argmax = np.argmax(y_pred_probs_all, axis=1)
-    y_pred_final = predict_with_n1_threshold(y_pred_probs_all, n1_threshold)
-    y_pred_smoothed = smooth_predictions_by_recording(
-        y_pred_probs_all,
+    test_candidates = build_postprocessor_candidates(
+        y_pred_probs_calibrated,
         test_file_sample_counts,
-        window_size=5,
-        min_confidence=0.35,
-        base_predictions=y_pred_final,
-        protected_classes={1},
-        protection_thresholds={1: n1_threshold},
+        n1_threshold,
+        transition_log,
+        initial_log,
+        emission_weight=HMM_EMISSION_WEIGHT,
+        include_hmm=USE_HMM_VITERBI,
     )
+    y_pred_temperature_argmax = test_candidates["temperature_argmax"]
+    y_pred_final = test_candidates["n1_calibrated"]
+    y_pred_smoothed = test_candidates["n1_protected_smoothed"]
+    y_pred_viterbi = test_candidates.get("clinical_hmm", y_pred_smoothed)
+    y_pred_report = test_candidates.get(decoder_mode, y_pred_smoothed)
 
     print("\nFinal classification report (argmax raw)")
     print(classification_report(y_true, y_pred_argmax, target_names=CLASS_LABELS, digits=4))
+    print(f"\nFinal classification report (temperature-scaled argmax | T={temperature:.2f})")
+    print(classification_report(y_true, y_pred_temperature_argmax, target_names=CLASS_LABELS, digits=4))
     print("\nFinal classification report (N1-calibrated raw)")
     print(classification_report(y_true, y_pred_final, target_names=CLASS_LABELS, digits=4))
     print("\nFinal classification report (N1-protected smoothed)")
     print(classification_report(y_true, y_pred_smoothed, target_names=CLASS_LABELS, digits=4))
+    if "clinical_hmm" in test_candidates:
+        print("\nFinal classification report (clinical HMM/Viterbi)")
+        print(classification_report(y_true, y_pred_viterbi, target_names=CLASS_LABELS, digits=4))
+    print(f"\nSelected final decoder from validation: {decoder_mode}")
 
     argmax_accuracy = np.mean(y_pred_argmax == y_true)
+    temperature_accuracy = np.mean(y_pred_temperature_argmax == y_true)
     raw_accuracy = np.mean(y_pred_final == y_true)
     smoothed_accuracy = np.mean(y_pred_smoothed == y_true)
+    viterbi_accuracy = np.mean(y_pred_viterbi == y_true)
     print(
         f"\nAccuracy summary | argmax={argmax_accuracy:.4f} "
+        f"temp_argmax={temperature_accuracy:.4f} "
         f"calibrated={raw_accuracy:.4f} "
-        f"smoothed={smoothed_accuracy:.4f} delta={smoothed_accuracy - raw_accuracy:+.4f}"
+        f"smoothed={smoothed_accuracy:.4f} "
+        f"hmm={viterbi_accuracy:.4f} "
+        f"selected={np.mean(y_pred_report == y_true):.4f}"
     )
 
-    save_academic_results(y_true, y_pred_smoothed, CLASS_LABELS, OUTPUT_DIR)
-    save_confusion_matrix(y_true, y_pred_smoothed, CLASS_LABELS, OUTPUT_DIR)
+    save_academic_results(y_true, y_pred_report, CLASS_LABELS, OUTPUT_DIR)
+    save_confusion_matrix(y_true, y_pred_report, CLASS_LABELS, OUTPUT_DIR)
 
     print("\n5. Running representative LIME dashboards")
     lime_wrapper = ModelWrapperForLIME(model)
 
     for stage_idx, stage_name in enumerate(CLASS_LABELS):
-        correct_indices = np.where((y_true == stage_idx) & (y_pred_final == stage_idx))[0]
+        correct_indices = np.where((y_true == stage_idx) & (y_pred_report == stage_idx))[0]
         if len(correct_indices) == 0:
             print(f"Stage {stage_name}: no correctly predicted sample; skipping.")
             continue
@@ -808,7 +1141,7 @@ def main():
     offset = 0
     for file_idx, sample_count in enumerate(test_file_sample_counts):
         file_true = y_true[offset: offset + sample_count]
-        file_pred = y_pred_smoothed[offset: offset + sample_count]
+        file_pred = y_pred_report[offset: offset + sample_count]
         transitions = find_transition_windows(file_true, window_radius=2)
         for _, transition_idx, left, right in transitions:
             if file_pred[transition_idx - 1] != file_true[transition_idx - 1]:
