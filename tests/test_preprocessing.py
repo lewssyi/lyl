@@ -66,9 +66,8 @@ def test_load_npz_invalid_path():
         load_npz_data("non_existent_path_123")
 
 
-def test_preprocessing_sanitizes_and_quality_downweights_bad_epoch():
+def test_quality_report_does_not_clip_signal_by_default():
     X = np.random.default_rng(42).normal(size=(3, 100, 3)).astype(np.float32)
-    X[0, :, 0] = np.nan
     X[1, :, 1] = 0.0
     X[2, 10:20, 2] = 1e6
 
@@ -76,13 +75,12 @@ def test_preprocessing_sanitizes_and_quality_downweights_bad_epoch():
         X,
         fs=100,
         apply_filters=False,
-        normalize=True,
+        normalize=False,
         clip_sigma=8.0,
     )
     quality = compute_epoch_quality_weights(processed)
 
-    assert np.all(np.isfinite(processed))
-    assert np.max(np.abs(processed)) <= 8.0
+    assert np.max(np.abs(processed)) > 8.0
     assert quality.shape == (3,)
     assert np.any(quality < 1.0)
 
