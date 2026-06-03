@@ -1,102 +1,235 @@
-# LIME for Time-Series Explanation in ECG Classification
+# Multimodal LIME for EEG Sleep Stage Classification
 
-<div align="center">
-  <img src="outputs/ECG_Animation.gif" width="500">
-</div>
+This project builds an interpretable sleep staging pipeline for 30-second
+physiological epochs. It classifies five AASM-style sleep stages (`W`, `N1`,
+`N2`, `N3`, `REM`) from three synchronized channels (`EEG`, `EOG`, `EMG`) and
+then explains both individual stage decisions and stage transitions with
+time-series XAI methods.
 
+The repository started from a generic LIME time-series idea, but the current
+implementation is focused on EEG sleep staging, multimodal channel evidence,
+clinical concept priors, and sequence-aware postprocessing.
 
-LIME for TimeSeries is an open-source project dedicated to advancing the interpretability of machine learning models focused on time series data. Utilizing the Local Interpretable Model-agnostic Explanations (LIME) technique, this project aims to demystify the decision-making processes of complex models. By integrating perturbation-based explanations, it provides insights into model predictions, enhancing transparency and trust in AI applications across various domains. Ideal for researchers, data scientists, and anyone invested in explainable AI (XAI), this repository offers tools, documentation, and examples to facilitate the understanding and application of LIME in time series analysis. By employing LIME, we aim to uncover which segments of an electrocardiogram (ECG) signal most influence the model's classification decisions, enhancing the interpretability of time-series models in healthcare.
+## Highlights
 
-## Overview
+- Multichannel Sleep-EDF style input: `.npz` files with `x`, `y`, optional
+  `fs`, and channel labels.
+- Hybrid TensorFlow/Keras model with raw waveform input and segment-level
+  physiological features.
+- Dynamic channel routing for EEG/EOG/EMG attention.
+- Clinical concept branch for sleep-relevant features such as EEG delta,
+  theta, alpha, sigma, beta, EOG movement, and EMG tone.
+- File-level train/validation/test splitting to avoid mixing epochs from the
+  same recording within a split.
+- Quality confidence scoring for noisy, flat, nonfinite, or artifact-heavy
+  epochs.
+- Temperature scaling, N1-aware thresholding, smoothing, and clinical
+  HMM/Viterbi decoding.
+- LIME dashboards with channel contribution scores, temporal segment evidence,
+  clinical concept evidence, and prior alignment.
+- Transition-aware XAI dashboards for stage changes such as `N1 -> N2`,
+  `N2 -> N3`, and `N2 -> REM`.
+- Lightweight tests for preprocessing, postprocessing, LIME segmentation, and
+  transition explanation utilities.
 
-Time-series classification, particularly in the context of ECG signal analysis, plays a crucial role in diagnosing cardiovascular diseases. While deep learning models offer promising results, their "black-box" nature hinders clinical adoption due to the lack of interpretability. This project leverages LIME, a technique for explaining predictions of any classifier in an interpretable and faithful manner, by perturbing the input signal and observing the changes in predictions.
+## Repository Layout
 
-## Dataset
+```text
+.
+|-- run_main.py                 # End-to-end training, evaluation, XAI pipeline
+|-- requirements.txt            # Core Python dependencies
+|-- src/
+|   |-- data_processing.py      # NPZ loading, preprocessing, quality scoring
+|   |-- model_training.py       # Hybrid EEG/EOG/EMG sleep staging model
+|   |-- lime_explanation.py     # Multimodal LIME and concept/DCCS logic
+|   |-- visualization.py        # Diagnosis and transition XAI dashboards
+|   |-- grad_cam.py             # Grad-CAM helper for the hybrid model
+|   `-- eeg_utils.py            # Smaller EEG loading/preprocessing helpers
+|-- tests/                      # Pytest coverage for core utilities
+|-- EEG_data/
+|   |-- prepare_physionet.py    # EDF-to-NPZ extraction script
+|   |-- download_physionet.sh   # Sleep-EDF download helper
+|   `-- eeg_eog_emg/            # Local NPZ recordings, if present
+|-- notebooks/                  # Exploratory notebook and saved notebook models
+|-- models/                     # Saved model artifacts
+`-- outputs/                    # Logs, reports, XAI figures, and generated plots
+```
 
-The dataset utilized in this project is derived from the PhysioNet/Computing in Cardiology Challenge 2020, focusing on the classification of 12-lead ECGs to identify various cardiac abnormalities. Compiled from multiple sources, including the CPSC Database, INCART Database, PTB and PTB-XL Database, the Georgia 12-lead ECG Challenge Database, and an undisclosed database, it encompasses a diverse collection of ECG recordings from different demographics and geographic locations. The data, hosting ECG recordings across four classes (Normal Sinus Rhythm, Atrial Fibrillation, Ventricular Tachycardia or Ventricular Fibrillation, and Myocardial Infarction (Heart Attack)) representing different individuals, aims to advance automatic detection and classification of cardiac abnormalities, contributing significantly to the early and accurate diagnosis of cardiac conditions. For more detailed information: [Classification of 12-lead ECGs: The PhysioNet/Computing in Cardiology Challenge 2020](https://doi.org/10.1088/1361-6579/abc960) by Perez Alday et al., 2020.
+## Data Format
 
+The main pipeline expects one `.npz` file per recording. Each file should contain:
 
+| Key | Shape / Type | Meaning |
+| --- | --- | --- |
+| `x` | `(epochs, samples, channels)` | 30-second epochs, usually `(N, 3000, 3)` at 100 Hz |
+| `y` | `(epochs,)` | Integer labels: `0=W`, `1=N1`, `2=N2`, `3=N3`, `4=REM` |
+| `fs` | scalar, optional | Sampling frequency, defaults to 100 Hz if absent |
+| `ch_label` | list, optional | Channel names, expected order is EEG, EOG, EMG |
 
-## Features
-- **Data Preprocessing:** Techniques for transforming raw ECG signals into a format suitable for model training.
-- **Model Training:** A Convolutional Neural Network (CNN) approach for ECG signal classification.
-- **LIME Explanations:** Implementation of LIME to identify influential signal segments contributing to each classification decision.
-- **Visualization Tools:** Utilities for visualizing ECG signals, their perturbations, and the influence of different segments on the model's predictions.
+The EDF conversion helper in `EEG_data/prepare_physionet.py` extracts:
+
+```text
+EEG Fpz-Cz
+EOG horizontal
+EMG submental
+```
+
+from Sleep-EDF style PSG/Hypnogram pairs and saves them as `.npz` files.
 
 ## Installation
-Clone the repository to your local machine:
 
-git clone https://github.com/mdhabibi/LIME-for-Time-Series.git
+Create a virtual environment and install the core dependencies:
 
-cd LIME-for-Time-Series
+```bash
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-## Usage
+For EDF extraction from raw PhysioNet files, also install `mne`:
 
-- **Data Preparation:** Start by preparing the ECG dataset. The [`data_processing.py`](src/data_processing.py) module provides functions for loading and preprocessing the data.
+```bash
+pip install mne
+```
 
-- **Model Training:** Use the [`model_training.py`](src/model_training.py) module to train a CNN on the prepared ECG data. The module outlines the model architecture and training procedure.
+## Running the Pipeline
 
-- **Applying LIME:** The [`lime_explanation.py`](src/lime_explanation.py) module contains the implementation of LIME for time-series data. It includes functions for generating perturbations, applying perturbations to the signal, and fitting an interpretable model to the perturbed data.
+The main entry point is:
 
-- **Visualization:** The [`visualization.py`](src/visualization.py) module offers visualization utilities to plot the original and perturbed ECG signals, class distribution, and the impact of each segment on the model's predictions.
+```bash
+python run_main.py
+```
 
-A detailed example of using these modules can be found in the [main.ipynb](notebooks/main.ipynb) within the notebooks directory.
+Before running, check the data path near the top of `run_main.py`:
 
-## LIME Recipe for Time-Series Data: ECG Signal Classification
+```python
+MULTI_CHANNEL_PATH = os.path.join(PARENT_DIR, "sleepEDF", "multichannel_extracted")
+```
 
-Explaining time-series predictions, especially in the medical domain, is crucial for trust and interpretability. Here, we detail the recipe for applying Local Interpretable Model-agnostic Explanations (LIME) to time-series data, focusing on ECG signals.
+If your local data is inside this repository, change it to:
 
-### Step 1: Data Preparation and Model Training
+```python
+MULTI_CHANNEL_PATH = os.path.join(PROJECT_DIR, "EEG_data", "eeg_eog_emg")
+```
 
-Before applying LIME, ensure you have a trained model ready. The model should be capable of classifying ECG signals into various categories (e.g., normal, arrhythmia types).
+`run_main.py` performs the full workflow:
 
-- Preprocess your ECG dataset.
-- Train a Convolutional Neural Network (CNN) model, or any suitable classifier, on the processed ECG data.
-- Select an instance from the ECG signals and divide the signal into segments. (Here, we have used a fixed-width segmentation.)
+1. Load `.npz` recordings and split them into train, validation, and test sets.
+2. Preprocess EEG/EOG with band-pass filtering and channel normalization.
+3. Compute epoch quality confidence scores.
+4. Build dynamic semantic segments and segment-level spectral features.
+5. Train the hybrid raw-waveform plus segment-feature model.
+6. Select the best validation checkpoint using calibrated sequence metrics.
+7. Evaluate argmax, temperature-scaled, N1-calibrated, smoothed, clinical HMM,
+   and quality-aware HMM decoders.
+8. Save classification reports and confusion matrices.
+9. Generate representative LIME diagnosis dashboards for each sleep stage.
+10. Generate transition-aware XAI dashboards for correctly predicted stage
+    changes.
 
-<div align="center">
-  <img src="outputs/segmented_ecg_signal_sample.png" width="800">
-</div>
+Logs are written to:
 
-### Step 2: Generating Perturbations
+```text
+outputs/logs/result_YYYYMMDD_HHMMSS.txt
+```
 
-Perturbations simulate small changes in the data to observe how the model's predictions vary. For ECG signals, perturbations can involve modifying segments of the signal to reflect potential variations in the heart's electrical activity.
+## Model Overview
 
-- Generate perturbed versions of a signal by modifying some segments (inactive segments) with perturbation function (here, a mean value of the signal voltage in each specified segment) while leaving others unchanged (active segments).
+The current model is created by `src/model_training.py::create_hybrid_model_v2`.
+It has three main components:
 
-<div align="center">
-  <img src="outputs/perturbed_ecg_signal_sample.png" width="800">
-</div>
+- Raw waveform branch: dynamic channel routing, Conv1D blocks with squeeze and
+  excitation, and BiLSTM temporal aggregation.
+- Segment feature branch: semantic segment statistics plus spectral band-power
+  features, followed by sequence modeling.
+- Clinical concept branch: concept features initialized with sleep-stage priors
+  for EEG/EOG/EMG physiological evidence.
 
-### Step 3: Applying LIME
+The model outputs:
 
-With perturbations ready, LIME can be applied to explain individual predictions:
+1. `main_output`: sleep stage probabilities.
+2. `channel_attention_weights`: EEG/EOG/EMG routing weights.
+3. `concept_output`: concept-prior sleep stage probabilities.
 
-- For each perturbed signal, predict the class probabilities using the trained model.
-- Calculate the similarity between each perturbed signal and the original signal. This typically involves measuring the cosine distance.
-- Fit a simple interpretable model (e.g., linear regression) to the perturbations, using the similarity scores as weights. This model aims to approximate the complex model's behavior around the original signal.
+## Explainability
 
-### Step 4: Visualizing the Explanation
+The XAI layer is centered on multimodal LIME for time series:
 
-The coefficients of the interpretable model indicate the importance of each segment in influencing the model’s prediction:
+- Each epoch is split into 30 dynamic physiological segments.
+- Perturbations are applied per channel and per segment.
+- A local ridge model estimates the effect of each channel-segment feature on
+  the predicted stage.
+- DCCS, or Dynamic Channel Contribution Score, summarizes channel importance.
+- Concept-level DCCS connects segment evidence to clinical concepts such as
+  delta power, sigma/spindle evidence, rapid eye movement, and EMG tone.
+- Transition summaries aggregate several neighboring epochs around a stage
+  boundary and compare observed evidence shifts with clinical transition priors.
 
-- Identify the segments with the highest coefficients as the most influential for the model's prediction.
-- Visualize the original signal, highlighting these influential segments (yellow segments) to provide insight into which parts of the signal were most significant in reaching the classification decision.
+Representative outputs include:
 
-<div align="center">
-  <img src="outputs/lime_explanation.png" width="800">
-</div>
+```text
+outputs/XAI_Diagnosis_W.png
+outputs/XAI_Diagnosis_N1.png
+outputs/XAI_Diagnosis_N2.png
+outputs/XAI_Diagnosis_N3.png
+outputs/XAI_Diagnosis_REM.png
+outputs/XAI_Transition_SC4021E0_N2_to_REM.png
+outputs/XAI_Transition_SC4022E0_N2_to_N3.png
+outputs/classification_report_visual.png
+outputs/confusion_matrix.png
+```
 
-## Contributing
+## Example Results
 
-Contributions to improve the project are welcome. Please follow the standard fork-pull request workflow on GitHub to submit your improvements to the dev branch.
+One complete local run recorded in
+`outputs/logs/result_20260525_201404.txt` used 38 recordings and 5,970 test
+epochs. The selected validation decoder was `quality_aware_hmm`.
+
+| Decoder | Accuracy | Macro F1 | Notes |
+| --- | ---: | ---: | --- |
+| Raw argmax | 0.7915 | 0.7251 | Direct model probabilities |
+| N1-protected smoothing | 0.7943 | 0.7254 | Local sequence smoothing |
+| Clinical HMM/Viterbi | 0.8139 | 0.7276 | Uses transition constraints |
+| Quality-aware HMM/Viterbi | 0.8121 | 0.7210 | Downweights low-quality epochs |
+
+The logs show that N1 remains the hardest class, which is expected for this
+dataset because N1 is rare and physiologically transitional.
+
+## Tests
+
+Run the lightweight test suite with:
+
+```bash
+pytest -q
+```
+
+Current test coverage checks:
+
+- NPZ loading and shape formatting.
+- Quality scoring without destructive amplitude clipping.
+- Temperature scaling and probability blending.
+- Clinical transition masks and Viterbi decoding.
+- Quality-aware adaptive Viterbi behavior.
+- LIME semantic segmentation and transition summary alignment.
+- Clinical concept DCCS decomposition.
+
+## Notes
+
+- Full training is compute-heavy. A single run can take hours depending on CPU,
+  GPU, and dataset size.
+- `outputs/` contains generated artifacts and may become large.
+- `models/` and `notebooks/` contain saved exploratory model artifacts from
+  earlier experiments.
+- The main script is the most current path for reproducible end-to-end runs.
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details or visit [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
-
+This project is licensed under the GNU General Public License v3.0. See
+`LICENSE` for details.
 
 ## Acknowledgments
 
-This project is inspired by the original paper on LIME: ["Why Should I Trust You?" Explaining the Predictions of Any Classifier](https://arxiv.org/abs/1602.04938) by Marco Tulio Ribeiro, Sameer Singh, and Carlos Guestrin.
-f
+This work builds on the original LIME idea from
+["Why Should I Trust You?" Explaining the Predictions of Any Classifier](https://arxiv.org/abs/1602.04938)
+by Marco Tulio Ribeiro, Sameer Singh, and Carlos Guestrin, and uses
+Sleep-EDF-style polysomnography data for sleep staging experiments.

@@ -57,6 +57,175 @@ STAGE_CONCEPT_PRIOR = STAGE_CONCEPT_PRIOR / np.maximum(
     1e-8,
 )
 
+CONCEPT_CHANNEL_INDEX = np.array([0, 0, 0, 0, 0, 1, 1, 2, 2], dtype=np.int32)
+
+STAGE_CHANNEL_PRIOR = np.array(
+    [
+        [0.30, 0.20, 0.50],  # W: alpha/beta with muscle tone.
+        [0.50, 0.40, 0.10],  # N1: theta and slow eye movement.
+        [0.85, 0.05, 0.10],  # N2: spindle/sigma evidence from EEG.
+        [0.90, 0.05, 0.05],  # N3: delta evidence from EEG.
+        [0.20, 0.30, 0.50],  # REM: eye movement plus low EMG tone.
+    ],
+    dtype=np.float32,
+)
+STAGE_CHANNEL_PRIOR = STAGE_CHANNEL_PRIOR / np.maximum(
+    np.sum(STAGE_CHANNEL_PRIOR, axis=1, keepdims=True),
+    1e-8,
+)
+
+
+def _labels_to_indices(labels):
+    labels = np.asarray(labels)
+    if labels.ndim == 2:
+        return np.argmax(labels, axis=1).astype(np.int32)
+    return labels.astype(np.int32).ravel()
+
+
+def _normalize_rows(values, fallback=None):
+    values = np.nan_to_num(np.asarray(values, dtype=np.float32), nan=0.0, posinf=0.0, neginf=0.0)
+    values = np.clip(values, 0.0, None)
+    row_sums = np.sum(values, axis=1, keepdims=True)
+    normalized = values / np.maximum(row_sums, 1e-8)
+    if fallback is not None:
+        fallback = np.asarray(fallback, dtype=np.float32)
+        empty_rows = (row_sums[:, 0] <= 1e-8)
+        normalized[empty_rows] = fallback[empty_rows]
+    return normalized.astype(np.float32)
+
+
+def _scale_rows_to_unit(values):
+    values = np.nan_to_num(np.asarray(values, dtype=np.float32), nan=0.0, posinf=0.0, neginf=0.0)
+    values = np.clip(values, 0.0, None)
+    row_max = np.max(values, axis=1, keepdims=True)
+    return (values / np.maximum(row_max, 1e-8)).astype(np.float32)
+
+
+def _segment_feature(segment_features, feature_idx):
+    if feature_idx >= segment_features.shape[-1]:
+        return np.zeros(segment_features.shape[:2], dtype=np.float32)
+    return segment_features[:, :, feature_idx].astype(np.float32)
+
+
+def extract_clinical_concept_targets_from_segment_features(
+    segment_features,
+    labels=None,
+    concept_prior_weight=0.25,
+):
+    """Build weak clinical concept targets from segment features and stage priors.
+
+    These targets are not manual labels. They are a compact physiology-guided
+    bottleneck signal derived from the same delta/theta/sigma/EOG/EMG evidence
+    later used by DCCS dashboards.
+    """
+    segment_features = np.asarray(segment_features, dtype=np.float32)
+    if segment_features.ndim == 2:
+        segment_features = segment_features[np.newaxis, :, :]
+    if segment_features.ndim != 3:
+        raise ValueError("segment_features must have shape (samples, segments, features)")
+
+    eeg_delta = _segment_feature(segment_features, 13)
+    eog_delta = _segment_feature(segment_features, 14)
+    eeg_theta = _segment_feature(segment_features, 16)
+    eog_theta = _segment_feature(segment_features, 17)
+    eeg_alpha = _segment_feature(segment_features, 19)
+    eeg_sigma = _segment_feature(segment_features, 22)
+    eeg_beta = _segment_feature(segment_features, 25)
+    eog_beta = _segment_feature(segment_features, 26)
+    emg_beta = _segment_feature(segment_features, 27)
+    eog_energy = _segment_feature(segment_features, 11)
+    emg_energy = _segment_feature(segment_features, 12)
+
+    eog_slow = 0.70 * eog_delta + 0.30 * eog_theta
+    eog_rapid = 0.55 * eog_energy + 0.30 * eog_theta + 0.15 * eog_beta
+    emg_activation = 0.70 * emg_energy + 0.30 * emg_beta
+    emg_low_tone = 1.0 / (1.0 + np.maximum(emg_activation, 0.0))
+
+    concept_segments = np.stack(
+        [
+            eeg_delta,
+            eeg_theta,
+            eeg_alpha,
+            eeg_sigma,
+            eeg_beta,
+            eog_slow,
+            eog_rapid,
+            emg_low_tone,
+            emg_activation,
+        ],
+        axis=-1,
+    )
+    concept_profile = np.mean(np.clip(concept_segments, 0.0, None), axis=1)
+    concept_profile = _scale_rows_to_unit(concept_profile)
+
+    if labels is not None and concept_prior_weight > 0:
+        label_indices = np.clip(_labels_to_indices(labels), 0, STAGE_CONCEPT_PRIOR.shape[1] - 1)
+        stage_prior = STAGE_CONCEPT_PRIOR[:, label_indices].T
+        stage_prior = _scale_rows_to_unit(stage_prior)
+        weight = float(np.clip(concept_prior_weight, 0.0, 1.0))
+        concept_profile = (1.0 - weight) * concept_profile + weight * stage_prior
+
+    return np.clip(concept_profile, 0.0, 1.0).astype(np.float32)
+
+
+def build_concept_dccs_attention_targets(
+    segment_features,
+    labels,
+    concept_prior_weight=0.25,
+    channel_prior_weight=0.25,
+):
+    """Approximate DCCS targets from clinical concepts for attention feedback."""
+    label_indices = np.clip(_labels_to_indices(labels), 0, STAGE_CHANNEL_PRIOR.shape[0] - 1)
+    concept_targets = extract_clinical_concept_targets_from_segment_features(
+        segment_features,
+        labels=label_indices,
+        concept_prior_weight=concept_prior_weight,
+    )
+    concept_prior = STAGE_CONCEPT_PRIOR[:, label_indices].T
+    concept_scores = concept_targets * concept_prior
+
+    channel_scores = np.zeros((len(label_indices), STAGE_CHANNEL_PRIOR.shape[1]), dtype=np.float32)
+    for channel_idx in range(channel_scores.shape[1]):
+        channel_scores[:, channel_idx] = np.sum(
+            concept_scores[:, CONCEPT_CHANNEL_INDEX == channel_idx],
+            axis=1,
+        )
+
+    stage_channel_prior = STAGE_CHANNEL_PRIOR[label_indices]
+    channel_scores = _normalize_rows(channel_scores, fallback=stage_channel_prior)
+    weight = float(np.clip(channel_prior_weight, 0.0, 1.0))
+    channel_targets = (1.0 - weight) * channel_scores + weight * stage_channel_prior
+    return _normalize_rows(channel_targets, fallback=stage_channel_prior)
+
+
+def build_explanation_feedback_targets(
+    segment_features,
+    labels,
+    num_classes=5,
+    concept_prior_weight=0.25,
+    channel_prior_weight=0.25,
+):
+    """Return targets for concept bottleneck and concept-DCCS attention losses."""
+    label_indices = np.clip(_labels_to_indices(labels), 0, num_classes - 1)
+    concept_targets = extract_clinical_concept_targets_from_segment_features(
+        segment_features,
+        labels=label_indices,
+        concept_prior_weight=concept_prior_weight,
+    )
+    channel_targets = build_concept_dccs_attention_targets(
+        segment_features,
+        label_indices,
+        concept_prior_weight=concept_prior_weight,
+        channel_prior_weight=channel_prior_weight,
+    )
+    stage_targets = np.eye(num_classes, dtype=np.float32)[label_indices]
+    attention_feedback_targets = np.concatenate([channel_targets, stage_targets], axis=1)
+    return {
+        "concept_targets": concept_targets.astype(np.float32),
+        "channel_targets": channel_targets.astype(np.float32),
+        "attention_feedback_targets": attention_feedback_targets.astype(np.float32),
+    }
+
 
 def se_block_1d(input_tensor, reduction=4):
     channels = int(input_tensor.shape[-1])
@@ -163,8 +332,9 @@ def clinical_concept_branch(input_segments, num_classes):
     concept_gate = GlobalAveragePooling1D(name="clinical_concept_pool")(concepts)
     concept_gate = Dense(32, activation="relu", name="clinical_concept_gate_hidden")(concept_gate)
     concept_gate = Dense(len(CLINICAL_CONCEPT_NAMES), activation="sigmoid", name="clinical_concept_gate")(concept_gate)
+    concept_bottleneck_output = Activation("linear", name="concept_bottleneck_output")(concept_gate)
     concept_weighted = Multiply(name="clinical_concept_weighted")(
-        [concepts, Reshape((1, len(CLINICAL_CONCEPT_NAMES)))(concept_gate)]
+        [concepts, Reshape((1, len(CLINICAL_CONCEPT_NAMES)))(concept_bottleneck_output)]
     )
 
     concept_sequence = Bidirectional(
@@ -187,7 +357,7 @@ def clinical_concept_branch(input_segments, num_classes):
     )(concept_summary)
     concept_output = Activation("softmax", name="concept_output")(concept_logits)
 
-    return concept_features, concept_output
+    return concept_features, concept_output, concept_bottleneck_output
 
 
 def prior_guided_attention_loss(y_true, y_pred):
@@ -214,6 +384,40 @@ def prior_guided_attention_loss(y_true, y_pred):
     deep_penalty = n2_n3_mask * floor_penalty(eeg_weight, 0.40)
 
     return w_penalty + n1_penalty + rem_penalty + deep_penalty
+
+
+def explanation_feedback_attention_loss(y_true, y_pred):
+    """Match attention to concept-DCCS targets while retaining stage priors."""
+    y_pred = tf.clip_by_value(y_pred, 1e-6, 1.0)
+    y_pred = y_pred / tf.maximum(tf.reduce_sum(y_pred, axis=1, keepdims=True), 1e-6)
+
+    if y_true.shape[-1] is not None and y_true.shape[-1] <= 5:
+        return prior_guided_attention_loss(y_true, y_pred)
+
+    target_channels = tf.clip_by_value(y_true[:, :3], 1e-6, 1.0)
+    target_channels = target_channels / tf.maximum(
+        tf.reduce_sum(target_channels, axis=1, keepdims=True),
+        1e-6,
+    )
+    stage_targets = y_true[:, 3:]
+
+    dccs_kl = tf.reduce_sum(target_channels * tf.math.log(target_channels / y_pred), axis=1)
+    cosine_num = tf.reduce_sum(target_channels * y_pred, axis=1)
+    cosine_den = tf.maximum(
+        tf.norm(target_channels, axis=1) * tf.norm(y_pred, axis=1),
+        1e-6,
+    )
+    cosine_loss = 1.0 - cosine_num / cosine_den
+    stage_prior_loss = prior_guided_attention_loss(stage_targets, y_pred)
+    return dccs_kl + 0.25 * cosine_loss + 0.25 * stage_prior_loss
+
+
+def concept_bottleneck_loss(y_true, y_pred):
+    y_true = tf.clip_by_value(y_true, 0.0, 1.0)
+    y_pred = tf.clip_by_value(y_pred, 1e-6, 1.0 - 1e-6)
+    bce = tf.keras.losses.binary_crossentropy(y_true, y_pred)
+    mse = tf.reduce_mean(tf.square(y_true - y_pred), axis=1)
+    return bce + 0.25 * mse
 
 
 def dynamic_channel_routing(input_tensor):
@@ -246,6 +450,7 @@ def create_hybrid_model_v2(
     learning_rate=0.001,
     attention_loss_weight=0.01,
     concept_loss_weight=0.15,
+    concept_bottleneck_loss_weight=0.05,
 ):
     input_raw = tf.keras.Input(shape=raw_shape, name="raw_input")
     routed_raw, attention_weights = dynamic_channel_routing(input_raw)
@@ -264,7 +469,7 @@ def create_hybrid_model_v2(
     segment_features = Dense(64, activation="relu")(x2)
     segment_features = LayerNormalization()(segment_features)
 
-    concept_features, concept_output = clinical_concept_branch(input_segments, num_classes)
+    concept_features, concept_output, concept_bottleneck_output = clinical_concept_branch(input_segments, num_classes)
 
     merged = Concatenate(name="feature_fusion")([cnn_features, segment_features, concept_features])
     merged = se_block_dense(merged, reduction=4)
@@ -275,18 +480,23 @@ def create_hybrid_model_v2(
     main_output = Dense(num_classes, activation="softmax", name="main_output")(dense)
 
     classification_loss = CategoricalFocalCrossentropy(alpha=0.25, gamma=1.5)
-    model = Model(inputs=[input_raw, input_segments], outputs=[main_output, attention_weights, concept_output])
+    model = Model(
+        inputs=[input_raw, input_segments],
+        outputs=[main_output, attention_weights, concept_output, concept_bottleneck_output],
+    )
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
         loss={
             "main_output": classification_loss,
-            "channel_attention_weights": prior_guided_attention_loss,
+            "channel_attention_weights": explanation_feedback_attention_loss,
             "concept_output": classification_loss,
+            "concept_bottleneck_output": concept_bottleneck_loss,
         },
         loss_weights={
             "main_output": 1.0,
             "channel_attention_weights": attention_loss_weight,
             "concept_output": concept_loss_weight,
+            "concept_bottleneck_output": concept_bottleneck_loss_weight,
         },
         metrics={"main_output": "accuracy"},
     )
