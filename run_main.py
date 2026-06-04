@@ -745,7 +745,12 @@ def tune_temperature(y_true, probabilities, temperatures=None):
     return best_temperature, best_probabilities, best_nll
 
 
-def predict_with_n1_threshold(probabilities, n1_threshold, n1_margin=0.03):
+def predict_with_n1_threshold(
+        probabilities,
+        n1_threshold,
+        n1_margin=0.03,
+        transition_context_bonus=0.08,
+):
     predictions = np.argmax(probabilities, axis=1).astype(np.int32)
     if probabilities.shape[1] <= 1:
         return predictions
@@ -756,6 +761,24 @@ def predict_with_n1_threshold(probabilities, n1_threshold, n1_margin=0.03):
             (probabilities[:, 1] >= n1_threshold) &
             (probabilities[:, 1] >= strongest_non_n1 - n1_margin)
     )
+    if len(predictions) >= 3 and transition_context_bonus > 0:
+        previous_stage = np.roll(predictions, 1)
+        next_stage = np.roll(predictions, -1)
+        previous_stage[0] = predictions[0]
+        next_stage[-1] = predictions[-1]
+        plausible_n1_context = (
+                ((previous_stage == 0) & np.isin(next_stage, [1, 2])) |
+                ((previous_stage == 4) & np.isin(next_stage, [1, 0, 2])) |
+                ((next_stage == 2) & np.isin(previous_stage, [0, 1, 4]))
+        )
+        relaxed_threshold = max(0.0, float(n1_threshold) - float(transition_context_bonus))
+        relaxed_margin = float(n1_margin) + float(transition_context_bonus)
+        contextual_n1_mask = (
+                plausible_n1_context &
+                (probabilities[:, 1] >= relaxed_threshold) &
+                (probabilities[:, 1] >= strongest_non_n1 - relaxed_margin)
+        )
+        n1_mask = n1_mask | contextual_n1_mask
     predictions[n1_mask] = 1
     return predictions
 
@@ -819,6 +842,8 @@ def smooth_sequence_predictions(
         base_predictions=None,
         protected_classes=None,
         protection_thresholds=None,
+        n1_enter_threshold=None,
+        n1_hold_threshold=None,
 ):
     if len(probabilities) == 0:
         return np.array([], dtype=np.int32)
@@ -839,8 +864,12 @@ def smooth_sequence_predictions(
         candidate = int(np.argmax(local_probs))
         current = smoothed[idx]
         protection_threshold = protection_thresholds.get(current, min_confidence)
+        if current == 1 and n1_hold_threshold is not None:
+            protection_threshold = min(protection_threshold, float(n1_hold_threshold))
         if current in protected_classes and probabilities[idx, current] >= protection_threshold:
             continue
+        if candidate == 1 and n1_enter_threshold is not None and probabilities[idx, 1] < n1_enter_threshold:
+            candidate = current
         if probabilities[idx, current] < min_confidence:
             smoothed[idx] = candidate
         elif candidate != current and local_probs[candidate] > local_probs[current] * 1.05:
@@ -850,6 +879,8 @@ def smooth_sequence_predictions(
     for idx in range(1, len(cleaned) - 1):
         current = cleaned[idx]
         protection_threshold = protection_thresholds.get(current, min_confidence)
+        if current == 1 and n1_hold_threshold is not None:
+            protection_threshold = min(protection_threshold, float(n1_hold_threshold))
         if current in protected_classes and probabilities[idx, current] >= protection_threshold:
             continue
         if cleaned[idx - 1] == cleaned[idx + 1] and cleaned[idx] != cleaned[idx - 1]:
@@ -866,6 +897,8 @@ def smooth_predictions_by_recording(
         base_predictions=None,
         protected_classes=None,
         protection_thresholds=None,
+        n1_enter_threshold=None,
+        n1_hold_threshold=None,
 ):
     smoothed_parts = []
     start = 0
@@ -880,6 +913,8 @@ def smooth_predictions_by_recording(
                 base_predictions=base_part,
                 protected_classes=protected_classes,
                 protection_thresholds=protection_thresholds,
+                n1_enter_threshold=n1_enter_threshold,
+                n1_hold_threshold=n1_hold_threshold,
             )
         )
         start = end
