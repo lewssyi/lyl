@@ -4,13 +4,21 @@
   "workspace": "/home/b502/wssyi/LIME-for-Time-Series",
   "target_accuracy": 0.85,
   "gpu_policy": {
-    "preferred_gpus": "6,7",
-    "fallback_gpu_sets": ["0,1", "2,3", "4,5"],
+    "preferred_gpus": "4,5",
+    "fallback_gpu_sets": [
+      "0,2",
+      "7",
+      "6,7"
+    ],
     "max_used_memory_mb_per_gpu": 6000,
-    "max_utilization_pct_per_gpu": 10,
-    "max_compute_processes_per_gpu": 0,
+    "max_utilization_pct_per_gpu": 80,
+    "max_compute_processes_per_gpu": 3,
     "poll_seconds": 120,
-    "require_requested_gpus": true
+    "require_requested_gpus": true,
+    "excluded_gpus": [
+      "1",
+      "3"
+    ]
   },
   "default_args": {
     "split_json": "dataset_protocols/ISRUC/split.json",
