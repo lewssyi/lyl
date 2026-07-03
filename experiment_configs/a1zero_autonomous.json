@@ -9,7 +9,7 @@
     "max_used_memory_mb_per_gpu": 6000,
     "max_utilization_pct_per_gpu": 10,
     "max_compute_processes_per_gpu": 0,
-    "poll_seconds": 600,
+    "poll_seconds": 120,
     "require_requested_gpus": true
   },
   "default_args": {
