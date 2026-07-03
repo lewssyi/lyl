@@ -20,9 +20,15 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+LOCAL_DEPS = PROJECT_ROOT / ".deps"
+if LOCAL_DEPS.exists() and str(LOCAL_DEPS) not in sys.path:
+    sys.path.insert(0, str(LOCAL_DEPS))
+
 
 _CLEAN_SEQUENCE_BASE: Dict[str, str] = {
     "LFTS_ALLOW_PROTOCOL_OVERRIDES": "1",
+    "LFTS_SAVE_PREDICTION_PROBS": "1",
+    "LFTS_SAVE_SPLIT_PREDICTION_PROBS": "1",
     "LFTS_SELECTOR_MODE": "accuracy_macro",
     "LFTS_LOSS_NAME": "categorical_crossentropy",
     "LFTS_GENERALIZATION_PRESET": "mixstyle_stage_coral",
@@ -118,6 +124,13 @@ DATASET_PRESETS: Dict[str, Dict[str, str]] = {
         "LFTS_CONCEPT_MODULATION_MODE": "zero",
         "LFTS_RUN_TAG": "A1_concept_film_zero",
     },
+    "A1_concept_film_zero_hard_risk": {
+        **_CLEAN_SEQUENCE_BASE,
+        **_CONCEPT_FILM_MODULATION_BRANCH,
+        "LFTS_CONCEPT_MODULATION_MODE": "zero",
+        "LFTS_LOSS_NAME": "risk_weighted_n1_margin_focal",
+        "LFTS_RUN_TAG": "A1_concept_film_zero_hard_risk",
+    },
     "A1_concept_film_shuffled": {
         **_CLEAN_SEQUENCE_BASE,
         **_CONCEPT_FILM_MODULATION_BRANCH,
@@ -163,6 +176,13 @@ DATASET_PRESETS: Dict[str, Dict[str, str]] = {
         "LFTS_CONCEPT_MODULATION_MODE": "zero",
         "LFTS_RUN_TAG": "edf_A1_concept_film_zero",
     },
+    "edf_A1_concept_film_zero_hard_risk": {
+        **_CLEAN_SEQUENCE_BASE,
+        **_CONCEPT_FILM_MODULATION_BRANCH,
+        "LFTS_CONCEPT_MODULATION_MODE": "zero",
+        "LFTS_LOSS_NAME": "risk_weighted_n1_margin_focal",
+        "LFTS_RUN_TAG": "edf_A1_concept_film_zero_hard_risk",
+    },
     "edf_A1_concept_film_shuffled": {
         **_CLEAN_SEQUENCE_BASE,
         **_CONCEPT_FILM_MODULATION_BRANCH,
@@ -207,6 +227,13 @@ DATASET_PRESETS: Dict[str, Dict[str, str]] = {
         **_CONCEPT_FILM_MODULATION_BRANCH,
         "LFTS_CONCEPT_MODULATION_MODE": "zero",
         "LFTS_RUN_TAG": "isruc_A1_concept_film_zero",
+    },
+    "isruc_A1_concept_film_zero_hard_risk": {
+        **_CLEAN_SEQUENCE_BASE,
+        **_CONCEPT_FILM_MODULATION_BRANCH,
+        "LFTS_CONCEPT_MODULATION_MODE": "zero",
+        "LFTS_LOSS_NAME": "risk_weighted_n1_margin_focal",
+        "LFTS_RUN_TAG": "isruc_A1_concept_film_zero_hard_risk",
     },
     "isruc_A1_concept_film_shuffled": {
         **_CLEAN_SEQUENCE_BASE,
@@ -339,6 +366,13 @@ def parse_args() -> argparse.Namespace:
         help="Set LFTS_ALLOW_PROTOCOL_OVERRIDES=1 before importing run_main.py.",
     )
     parser.add_argument(
+        "--set-env",
+        action="append",
+        default=[],
+        metavar="NAME=VALUE",
+        help="Additional environment override applied after the preset. Repeatable.",
+    )
+    parser.add_argument(
         "--no-preset-batch-clamp",
         action="store_true",
         help="Do not clamp batch sizes for dataset presets.",
@@ -414,6 +448,14 @@ def apply_launch_environment(args: argparse.Namespace, npz_dir: str) -> None:
         os.environ["LFTS_MEMORY_PROFILE"] = str(args.memory_profile)
     if args.allow_protocol_overrides:
         os.environ["LFTS_ALLOW_PROTOCOL_OVERRIDES"] = "1"
+    for item in args.set_env or []:
+        if "=" not in item:
+            raise ValueError(f"--set-env expects NAME=VALUE, got {item!r}")
+        name, value = item.split("=", 1)
+        name = name.strip()
+        if not name:
+            raise ValueError(f"--set-env contains an empty variable name: {item!r}")
+        os.environ[name] = value
 
 
 def build_fixed_split_function(split_files: Mapping[str, List[str]]):
@@ -500,6 +542,8 @@ def main() -> None:
                 f"LFTS_PER_REPLICA_BATCH_SIZE={os.environ.get('LFTS_PER_REPLICA_BATCH_SIZE')}, "
                 f"LFTS_PREDICT_PER_REPLICA_BATCH_SIZE={os.environ.get('LFTS_PREDICT_PER_REPLICA_BATCH_SIZE')}"
             )
+    if args.set_env:
+        print("extra_env=" + ", ".join(str(item) for item in args.set_env))
 
     import run_main  # noqa: WPS433 - import after launch env is intentional.
     import src.data_processing as data_processing  # noqa: WPS433

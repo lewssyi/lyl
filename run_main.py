@@ -80,6 +80,10 @@ import inspect
 import random
 import sys
 
+LOCAL_DEPS_PATH = os.path.join(PROJECT_DIR, ".deps")
+if os.path.isdir(LOCAL_DEPS_PATH) and LOCAL_DEPS_PATH not in sys.path:
+    sys.path.insert(0, LOCAL_DEPS_PATH)
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -166,6 +170,10 @@ PREPROCESS_FILTER_PROFILE = os.environ.get(
     "LFTS_PREPROCESS_FILTER_PROFILE",
     "clinical_canonical",
 )
+PREPROCESS_FILTER_BACKEND = os.environ.get(
+    "LFTS_PREPROCESS_FILTER_BACKEND",
+    "scipy",
+).strip().lower()
 PREPROCESS_NORMALIZATION_MODE = os.environ.get(
     "LFTS_PREPROCESS_NORMALIZATION_MODE",
     "recording_robust_zscore",
@@ -289,6 +297,10 @@ RUN_XAI_DASHBOARDS = parse_bool_env("LFTS_RUN_XAI_DASHBOARDS", False)
 SAVE_PREDICTION_PROBS = parse_bool_env("LFTS_SAVE_PREDICTION_PROBS", True)
 SAVE_SPLIT_PREDICTION_PROBS = parse_bool_env("LFTS_SAVE_SPLIT_PREDICTION_PROBS", False)
 SPLIT_PREDICT_BATCH_SIZE = int(os.environ.get("LFTS_SPLIT_PREDICT_BATCH_SIZE", "0"))
+RISK_WEIGHT_PATH = os.environ.get("LFTS_RISK_WEIGHT_PATH", "").strip()
+RISK_SAMPLE_WEIGHT_STRENGTH = float(os.environ.get("LFTS_RISK_SAMPLE_WEIGHT_STRENGTH", "1.0"))
+RISK_SAMPLE_WEIGHT_MIN = float(os.environ.get("LFTS_RISK_SAMPLE_WEIGHT_MIN", "0.35"))
+RISK_SAMPLE_WEIGHT_MAX = float(os.environ.get("LFTS_RISK_SAMPLE_WEIGHT_MAX", "2.75"))
 N1_OVERSAMPLE_FACTOR = 1
 N1_WEIGHT_BOOST = float(os.environ.get("LFTS_N1_WEIGHT_BOOST", "1.35"))
 USE_N1_SUPCON = parse_bool_env("LFTS_USE_N1_SUPCON", True)
@@ -326,7 +338,7 @@ BATCH_SIZE = PER_REPLICA_BATCH_SIZE
 REFERENCE_BATCH_SIZE = 32
 BASE_LEARNING_RATE = 0.001
 MAX_MULTI_GPU_LEARNING_RATE = 0.0018
-EPOCHS = 40
+EPOCHS = int(os.environ.get("LFTS_EPOCHS", "40"))
 SEED = int(os.environ.get("LFTS_SEED", "42"))
 USE_METRIC_SELECTOR = True
 USE_HMM_VITERBI = parse_bool_env("LFTS_USE_HMM_VITERBI", True)
@@ -1946,6 +1958,49 @@ def compute_main_sample_weights(
     sample_weights = class_weights[y_raw].astype(np.float32)
     sample_weights = sample_weights / (np.mean(sample_weights) + 1e-8)
     return sample_weights, class_weights.astype(np.float32)
+
+
+def resolve_project_path(path_value):
+    path_value = str(path_value or "").strip()
+    if not path_value:
+        return ""
+    if os.path.isabs(path_value):
+        return path_value
+    return os.path.join(PROJECT_DIR, path_value)
+
+
+def load_training_risk_sample_weights(path_value, expected_len):
+    path = resolve_project_path(path_value)
+    if not path:
+        return None
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"LFTS_RISK_WEIGHT_PATH not found: {path}")
+    with np.load(path, allow_pickle=True) as data:
+        for key in ("train_sample_weights", "sample_weights", "risk_weights", "weights"):
+            if key in data.files:
+                weights = np.asarray(data[key], dtype=np.float32).reshape(-1)
+                break
+        else:
+            raise KeyError(
+                "Risk weight file must contain train_sample_weights, sample_weights, "
+                "risk_weights, or weights."
+            )
+    if weights.shape[0] != int(expected_len):
+        raise ValueError(
+            f"Risk weight length mismatch: got {weights.shape[0]}, expected {expected_len}."
+        )
+    weights = np.nan_to_num(weights, nan=1.0, posinf=RISK_SAMPLE_WEIGHT_MAX, neginf=RISK_SAMPLE_WEIGHT_MIN)
+    weights = np.clip(weights, RISK_SAMPLE_WEIGHT_MIN, RISK_SAMPLE_WEIGHT_MAX)
+    weights = 1.0 + float(RISK_SAMPLE_WEIGHT_STRENGTH) * (weights - 1.0)
+    weights = np.clip(weights, RISK_SAMPLE_WEIGHT_MIN, RISK_SAMPLE_WEIGHT_MAX)
+    weights = weights / (np.mean(weights) + 1e-8)
+    print(
+        "Risk-weighted hard-example training: "
+        f"path={path}, strength={RISK_SAMPLE_WEIGHT_STRENGTH:.2f}, "
+        f"min={np.min(weights):.3f}, mean={np.mean(weights):.3f}, "
+        f"max={np.max(weights):.3f}, top10_mean={np.mean(np.sort(weights)[-max(1, len(weights)//10):]):.3f}"
+    )
+    return weights.astype(np.float32)
 
 
 def _record_slices_from_counts(total_len, file_sample_counts=None):
@@ -3946,6 +4001,8 @@ def main():
         f"macro_aux_ramp_epochs={MACRO_AUX_RAMP_EPOCHS}, "
         f"micro_finetune_lr_scale={MICRO_FINETUNE_LR_SCALE:.3f}, "
         f"loss={CLASSIFICATION_LOSS_NAME}, "
+        f"risk_weight_path={RISK_WEIGHT_PATH or 'none'}, "
+        f"risk_weight_strength={RISK_SAMPLE_WEIGHT_STRENGTH:.2f}, "
         f"generalization_preset={GENERALIZATION_PRESET}, "
         f"domain_mixstyle={USE_DOMAIN_MIXSTYLE}, "
         f"mixstyle_p={DOMAIN_MIXSTYLE_P:.2f}, "
@@ -4075,6 +4132,7 @@ def main():
             file_subset=train_files,
             preprocess=PREPROCESS_SIGNALS,
             filter_profile=PREPROCESS_FILTER_PROFILE,
+            filter_backend=PREPROCESS_FILTER_BACKEND,
             normalization_mode=PREPROCESS_NORMALIZATION_MODE,
             clip_sigma=QUALITY_CLIP_SIGMA,
             enable_amplitude_clipping=ENABLE_AMPLITUDE_CLIPPING,
@@ -4089,6 +4147,7 @@ def main():
             file_subset=val_files,
             preprocess=PREPROCESS_SIGNALS,
             filter_profile=PREPROCESS_FILTER_PROFILE,
+            filter_backend=PREPROCESS_FILTER_BACKEND,
             normalization_mode=PREPROCESS_NORMALIZATION_MODE,
             clip_sigma=QUALITY_CLIP_SIGMA,
             enable_amplitude_clipping=ENABLE_AMPLITUDE_CLIPPING,
@@ -4103,6 +4162,7 @@ def main():
             file_subset=test_files,
             preprocess=PREPROCESS_SIGNALS,
             filter_profile=PREPROCESS_FILTER_PROFILE,
+            filter_backend=PREPROCESS_FILTER_BACKEND,
             normalization_mode=PREPROCESS_NORMALIZATION_MODE,
             clip_sigma=QUALITY_CLIP_SIGMA,
             enable_amplitude_clipping=ENABLE_AMPLITUDE_CLIPPING,
@@ -4126,6 +4186,7 @@ def main():
     print(
         "Clinical harmonization protocol: "
         f"filter_profile={PREPROCESS_FILTER_PROFILE}, "
+        f"filter_backend={PREPROCESS_FILTER_BACKEND}, "
         f"normalization={PREPROCESS_NORMALIZATION_MODE}; "
         "no train/val/test population scaler fit."
     )
@@ -4401,6 +4462,16 @@ def main():
         )
     else:
         print("Transition boundary weighting: disabled")
+    risk_sample_weights = load_training_risk_sample_weights(RISK_WEIGHT_PATH, len(y_train_raw))
+    if risk_sample_weights is not None:
+        train_sample_weights = train_sample_weights * risk_sample_weights
+        train_sample_weights = train_sample_weights / (np.mean(train_sample_weights) + 1e-8)
+        print(
+            "Combined class/boundary/risk sample weights: "
+            f"min={np.min(train_sample_weights):.3f}, "
+            f"mean={np.mean(train_sample_weights):.3f}, "
+            f"max={np.max(train_sample_weights):.3f}"
+        )
     transition_boundary_loss_weight = (
         DPCM_BOUNDARY_LOSS_WEIGHT
         if USE_SEQUENCE_MODEL and USE_MPDG

@@ -1,4 +1,6 @@
 
+import os
+
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import (
@@ -1224,8 +1226,40 @@ def se_multi_channel_extractor(input_layer):
     return out
 
 
+def _risk_class_weight_vector(default=None):
+    raw = os.environ.get("LFTS_RISK_CLASS_WEIGHTS", "").strip()
+    if raw:
+        values = [float(item.strip()) for item in raw.split(",") if item.strip()]
+    else:
+        values = list(default or [1.0, 1.0, 1.0, 1.0, 1.0])
+    if not values:
+        values = [1.0]
+    return tf.constant(values, dtype=tf.float32)
+
+
+def _gather_risk_class_weights(y_true, y_pred, default=None):
+    class_weights = _risk_class_weight_vector(default=default)
+    n_classes = tf.shape(y_pred)[-1]
+    class_weights = class_weights[:n_classes]
+    pad_len = tf.maximum(0, n_classes - tf.shape(class_weights)[0])
+    class_weights = tf.concat([class_weights, tf.ones([pad_len], dtype=tf.float32)], axis=0)
+    return tf.reduce_sum(tf.cast(y_true, tf.float32) * class_weights, axis=-1)
+
+
+def risk_weighted_categorical_crossentropy_loss(y_true, y_pred):
+    y_true = tf.cast(y_true, tf.float32)
+    y_pred = tf.clip_by_value(tf.cast(y_pred, tf.float32), 1e-6, 1.0 - 1e-6)
+    y_pred = y_pred / tf.maximum(tf.reduce_sum(y_pred, axis=-1, keepdims=True), 1e-6)
+    ce = -tf.reduce_sum(y_true * tf.math.log(y_pred), axis=-1)
+    return ce * _gather_risk_class_weights(y_true, y_pred)
+
+
 def make_classification_loss(loss_name="focal"):
     loss_key = str(loss_name or "focal").strip().lower().replace("-", "_")
+    if loss_key in {"risk_weighted_ce", "risk_weighted_crossentropy", "risk_weighted_categorical_crossentropy"}:
+        return risk_weighted_categorical_crossentropy_loss
+    if loss_key in {"risk_weighted_n1_margin_focal", "risk_n1_margin_focal", "hard_example_n1_margin_focal"}:
+        return risk_weighted_n1_margin_focal_loss
     if loss_key in {
         "n1_margin_focal",
         "n1_aware_focal",
@@ -1241,7 +1275,6 @@ def make_classification_loss(loss_name="focal"):
         "loss_name must be 'focal' or 'categorical_crossentropy', "
         f"got {loss_name!r}"
     )
-
 
 def n1_margin_focal_loss(
         y_true,
@@ -1286,6 +1319,16 @@ def n1_margin_focal_loss(
         + 0.60 * non_n1_true * n1_false_positive_margin
     )
     return focal + float(hard_negative_weight) * margin_loss
+
+
+def risk_weighted_n1_margin_focal_loss(y_true, y_pred):
+    class_weighted = _gather_risk_class_weights(
+        y_true,
+        y_pred,
+        default=[1.0, 1.25, 1.10, 1.05, 1.15],
+    )
+    base = n1_margin_focal_loss(y_true, y_pred)
+    return base * class_weighted
 
 
 def n1_supervised_contrastive_loss(

@@ -440,12 +440,35 @@ def _clamped_band(low, high, fs):
     return low, high
 
 
-def _apply_bandpass_to_channel(values, low, high, fs):
+def _apply_bandpass_to_channel(values, low, high, fs, backend="scipy"):
     band = _clamped_band(low, high, fs)
     if band is None:
         return values.astype(np.float32)
 
     low, high = band
+    backend_key = str(backend or "scipy").strip().lower()
+    if backend_key == "mne":
+        try:
+            import mne
+        except ImportError as exc:
+            raise ImportError(
+                "LFTS_PREPROCESS_FILTER_BACKEND=mne requires mne. Install it under "
+                "the project-local .deps directory or switch the backend to scipy."
+            ) from exc
+        flat = np.asarray(values, dtype=np.float64).reshape(-1, values.shape[1])
+        filtered = mne.filter.filter_data(
+            flat,
+            sfreq=float(fs),
+            l_freq=float(low),
+            h_freq=float(high),
+            method="fir",
+            fir_design="firwin",
+            verbose=False,
+        )
+        return filtered.reshape(values.shape).astype(np.float32)
+
+    if backend_key not in {"scipy", "sos", "butter"}:
+        raise ValueError(f"Unknown filter backend: {backend!r}")
     sos = signal.butter(4, [low, high], btype="bandpass", fs=float(fs), output="sos")
     try:
         return signal.sosfiltfilt(sos, values, axis=1).astype(np.float32)
@@ -473,6 +496,24 @@ def clinical_filter_bands(filter_profile="clinical_canonical", fs=100):
             1: (0.1, 15.0),  # EOG: preserve slow eye movement, suppress muscle noise.
             2: (10.0, 45.0),  # EMG: muscle tone/activation band.
         }
+    if key in {"spindle_safe", "spindle_safe_0p3_35", "wide_0p3_35", "k_complex_safe"}:
+        return {
+            0: (0.3, 35.0),  # EEG: preserve K-complex slow energy and sigma spindles.
+            1: (0.05, 18.0),
+            2: (8.0, 45.0),
+        }
+    if key in {"sigma_preserve", "sigma_preserve_0p3_40", "wide_0p3_40"}:
+        return {
+            0: (0.3, 40.0),
+            1: (0.05, 18.0),
+            2: (8.0, 45.0),
+        }
+    if key in {"canonical_0p5_35", "eeg_0p5_35"}:
+        return {
+            0: (0.5, 35.0),
+            1: (0.1, 18.0),
+            2: (10.0, 45.0),
+        }
     raise ValueError(
         "filter_profile must be one of 'clinical_canonical', 'legacy', or 'none', "
         f"got {filter_profile!r}"
@@ -486,6 +527,7 @@ def preprocess_multichannel_epochs(
     normalize=True,
     normalization_mode="recording_robust_zscore",
     filter_profile="clinical_canonical",
+    filter_backend="scipy",
     clip_sigma=None,
     enable_amplitude_clipping=False,
 ):
@@ -513,6 +555,7 @@ def preprocess_multichannel_epochs(
                     band[0],
                     band[1],
                     fs,
+                    backend=filter_backend,
                 )
 
         X = processed
@@ -521,14 +564,23 @@ def preprocess_multichannel_epochs(
         mode = str(normalization_mode or "recording_robust_zscore").strip().lower()
         if mode in {"recording_robust_zscore", "robust", "robust_zscore"}:
             X = recording_robust_zscore(X)
-        elif mode in {"recording_zscore", "zscore", "standard"}:
+        elif mode in {"recording_zscore", "zscore", "standard", "channel_zscore"}:
             mean = np.mean(X, axis=(0, 1), keepdims=True)
             std = np.std(X, axis=(0, 1), keepdims=True)
             X = sanitize_signal_epochs((X - mean) / (std + 1e-6))
+        elif mode in {"recording_minmax", "minmax", "channel_minmax"}:
+            data_min = np.min(X, axis=(0, 1), keepdims=True)
+            data_max = np.max(X, axis=(0, 1), keepdims=True)
+            X = sanitize_signal_epochs(2.0 * (X - data_min) / (data_max - data_min + 1e-6) - 1.0)
+        elif mode in {"recording_robust_minmax", "robust_minmax"}:
+            lo = np.percentile(X, 1.0, axis=(0, 1), keepdims=True)
+            hi = np.percentile(X, 99.0, axis=(0, 1), keepdims=True)
+            X = np.clip((X - lo) / (hi - lo + 1e-6), 0.0, 1.0)
+            X = sanitize_signal_epochs(2.0 * X - 1.0)
         else:
             raise ValueError(
-                "normalization_mode must be 'recording_robust_zscore' or "
-                f"'recording_zscore', got {normalization_mode!r}"
+                "normalization_mode must be recording_robust_zscore, recording_zscore, "
+                f"recording_minmax, or recording_robust_minmax; got {normalization_mode!r}"
             )
 
     return X.astype(np.float32)
@@ -778,6 +830,7 @@ def load_npz_data(
     normalize=True,
     normalization_mode="recording_robust_zscore",
     filter_profile="clinical_canonical",
+    filter_backend="scipy",
     clip_sigma=None,
     enable_amplitude_clipping=False,
     return_quality=False,
@@ -848,6 +901,7 @@ def load_npz_data(
                 normalize=normalize,
                 normalization_mode=normalization_mode,
                 filter_profile=filter_profile,
+                filter_backend=filter_backend,
                 clip_sigma=clip_sigma,
                 enable_amplitude_clipping=enable_amplitude_clipping,
             )
