@@ -1,0 +1,704 @@
+{
+  "dataset": "SleepEDF_80_10_10",
+  "npz_dir": "/home/b502/wssyi/SleepEDF/npz_epoch3",
+  "class_names": [
+    "W",
+    "N1",
+    "N2",
+    "N3",
+    "REM"
+  ],
+  "transition_names": [
+    "W_N1",
+    "N1_N2",
+    "N2_N3",
+    "N2_REM",
+    "W_REM",
+    "N1_REM",
+    "other"
+  ],
+  "settings": {
+    "seed": 42,
+    "train_ratio": 0.8,
+    "val_ratio": 0.1,
+    "test_ratio": 0.1,
+    "search_iters": 6000,
+    "sleep_margin_minutes": 30.0,
+    "epoch_seconds": 30.0,
+    "quality_low_threshold": 0.7,
+    "quality_severe_threshold": 0.4
+  },
+  "global_summary": {
+    "subjects": 78,
+    "files": 153,
+    "epochs": 187311,
+    "class_counts": {
+      "W": 65337,
+      "N1": 20768,
+      "N2": 65253,
+      "N3": 11809,
+      "REM": 24144
+    },
+    "class_ratio": [
+      0.348816,
+      0.110874,
+      0.348367,
+      0.063045,
+      0.128898
+    ],
+    "transition_counts": {
+      "W_N1": 5076,
+      "N1_N2": 5001,
+      "N2_N3": 4726,
+      "N2_REM": 1069,
+      "W_REM": 506,
+      "N1_REM": 1212,
+      "other": 1361
+    },
+    "transition_ratio": 0.21909551494573196,
+    "mean_q": 0.9514110969980737,
+    "low_q_ratio": 0.07398390911371996,
+    "severe_q_ratio": 0.04903609505047755,
+    "flagged_ratio": 0.10998820144038524,
+    "sleep_period_ratio": 1.0
+  },
+  "split_score": 0.41486737724101297,
+  "split_subjects": {
+    "train": [
+      "SC401",
+      "SC402",
+      "SC403",
+      "SC404",
+      "SC406",
+      "SC407",
+      "SC409",
+      "SC410",
+      "SC411",
+      "SC412",
+      "SC413",
+      "SC414",
+      "SC415",
+      "SC416",
+      "SC417",
+      "SC418",
+      "SC420",
+      "SC421",
+      "SC422",
+      "SC423",
+      "SC424",
+      "SC425",
+      "SC426",
+      "SC427",
+      "SC428",
+      "SC429",
+      "SC433",
+      "SC434",
+      "SC436",
+      "SC437",
+      "SC440",
+      "SC441",
+      "SC442",
+      "SC443",
+      "SC444",
+      "SC447",
+      "SC448",
+      "SC449",
+      "SC450",
+      "SC451",
+      "SC452",
+      "SC455",
+      "SC456",
+      "SC457",
+      "SC458",
+      "SC459",
+      "SC460",
+      "SC461",
+      "SC462",
+      "SC463",
+      "SC464",
+      "SC465",
+      "SC466",
+      "SC471",
+      "SC472",
+      "SC473",
+      "SC474",
+      "SC475",
+      "SC477",
+      "SC480",
+      "SC481",
+      "SC482"
+    ],
+    "val": [
+      "SC419",
+      "SC432",
+      "SC435",
+      "SC445",
+      "SC446",
+      "SC453",
+      "SC470",
+      "SC476"
+    ],
+    "test": [
+      "SC400",
+      "SC405",
+      "SC408",
+      "SC430",
+      "SC431",
+      "SC438",
+      "SC454",
+      "SC467"
+    ]
+  },
+  "split_files": {
+    "train": [
+      "SC4011E0.npz",
+      "SC4012E0.npz",
+      "SC4021E0.npz",
+      "SC4022E0.npz",
+      "SC4031E0.npz",
+      "SC4032E0.npz",
+      "SC4041E0.npz",
+      "SC4042E0.npz",
+      "SC4061E0.npz",
+      "SC4062E0.npz",
+      "SC4071E0.npz",
+      "SC4072E0.npz",
+      "SC4091E0.npz",
+      "SC4092E0.npz",
+      "SC4101E0.npz",
+      "SC4102E0.npz",
+      "SC4111E0.npz",
+      "SC4112E0.npz",
+      "SC4121E0.npz",
+      "SC4122E0.npz",
+      "SC4131E0.npz",
+      "SC4141E0.npz",
+      "SC4142E0.npz",
+      "SC4151E0.npz",
+      "SC4152E0.npz",
+      "SC4161E0.npz",
+      "SC4162E0.npz",
+      "SC4171E0.npz",
+      "SC4172E0.npz",
+      "SC4181E0.npz",
+      "SC4182E0.npz",
+      "SC4201E0.npz",
+      "SC4202E0.npz",
+      "SC4211E0.npz",
+      "SC4212E0.npz",
+      "SC4221E0.npz",
+      "SC4222E0.npz",
+      "SC4231E0.npz",
+      "SC4232E0.npz",
+      "SC4241E0.npz",
+      "SC4242E0.npz",
+      "SC4251E0.npz",
+      "SC4252E0.npz",
+      "SC4261F0.npz",
+      "SC4262F0.npz",
+      "SC4271F0.npz",
+      "SC4272F0.npz",
+      "SC4281G0.npz",
+      "SC4282G0.npz",
+      "SC4291G0.npz",
+      "SC4292G0.npz",
+      "SC4331F0.npz",
+      "SC4332F0.npz",
+      "SC4341F0.npz",
+      "SC4342F0.npz",
+      "SC4362F0.npz",
+      "SC4371F0.npz",
+      "SC4372F0.npz",
+      "SC4401E0.npz",
+      "SC4402E0.npz",
+      "SC4411E0.npz",
+      "SC4412E0.npz",
+      "SC4421E0.npz",
+      "SC4422E0.npz",
+      "SC4431E0.npz",
+      "SC4432E0.npz",
+      "SC4441E0.npz",
+      "SC4442E0.npz",
+      "SC4471F0.npz",
+      "SC4472F0.npz",
+      "SC4481F0.npz",
+      "SC4482F0.npz",
+      "SC4491G0.npz",
+      "SC4492G0.npz",
+      "SC4501E0.npz",
+      "SC4502E0.npz",
+      "SC4511E0.npz",
+      "SC4512E0.npz",
+      "SC4522E0.npz",
+      "SC4551F0.npz",
+      "SC4552F0.npz",
+      "SC4561F0.npz",
+      "SC4562F0.npz",
+      "SC4571F0.npz",
+      "SC4572F0.npz",
+      "SC4581G0.npz",
+      "SC4582G0.npz",
+      "SC4591G0.npz",
+      "SC4592G0.npz",
+      "SC4601E0.npz",
+      "SC4602E0.npz",
+      "SC4611E0.npz",
+      "SC4612E0.npz",
+      "SC4621E0.npz",
+      "SC4622E0.npz",
+      "SC4631E0.npz",
+      "SC4632E0.npz",
+      "SC4641E0.npz",
+      "SC4642E0.npz",
+      "SC4651E0.npz",
+      "SC4652E0.npz",
+      "SC4661E0.npz",
+      "SC4662E0.npz",
+      "SC4711E0.npz",
+      "SC4712E0.npz",
+      "SC4721E0.npz",
+      "SC4722E0.npz",
+      "SC4731E0.npz",
+      "SC4732E0.npz",
+      "SC4741E0.npz",
+      "SC4742E0.npz",
+      "SC4751E0.npz",
+      "SC4752E0.npz",
+      "SC4771G0.npz",
+      "SC4772G0.npz",
+      "SC4801G0.npz",
+      "SC4802G0.npz",
+      "SC4811G0.npz",
+      "SC4812G0.npz",
+      "SC4821G0.npz",
+      "SC4822G0.npz"
+    ],
+    "val": [
+      "SC4191E0.npz",
+      "SC4192E0.npz",
+      "SC4321E0.npz",
+      "SC4322E0.npz",
+      "SC4351F0.npz",
+      "SC4352F0.npz",
+      "SC4451F0.npz",
+      "SC4452F0.npz",
+      "SC4461F0.npz",
+      "SC4462F0.npz",
+      "SC4531E0.npz",
+      "SC4532E0.npz",
+      "SC4701E0.npz",
+      "SC4702E0.npz",
+      "SC4761E0.npz",
+      "SC4762E0.npz"
+    ],
+    "test": [
+      "SC4001E0.npz",
+      "SC4002E0.npz",
+      "SC4051E0.npz",
+      "SC4052E0.npz",
+      "SC4081E0.npz",
+      "SC4082E0.npz",
+      "SC4301E0.npz",
+      "SC4302E0.npz",
+      "SC4311E0.npz",
+      "SC4312E0.npz",
+      "SC4381F0.npz",
+      "SC4382F0.npz",
+      "SC4541F0.npz",
+      "SC4542F0.npz",
+      "SC4671G0.npz",
+      "SC4672G0.npz"
+    ]
+  },
+  "split_summary": {
+    "train": {
+      "subjects": 62,
+      "files": 121,
+      "epochs": 148395,
+      "class_counts": {
+        "W": 51635,
+        "N1": 16553,
+        "N2": 51669,
+        "N3": 9312,
+        "REM": 19226
+      },
+      "class_ratio": [
+        0.347956,
+        0.111547,
+        0.348186,
+        0.062751,
+        0.12956
+      ],
+      "transition_counts": {
+        "W_N1": 4028,
+        "N1_N2": 3928,
+        "N2_N3": 3680,
+        "N2_REM": 837,
+        "W_REM": 376,
+        "N1_REM": 896,
+        "other": 1070
+      },
+      "transition_ratio": 0.2167054146029179,
+      "mean_q": 0.9505512776438761,
+      "low_q_ratio": 0.07562923279086223,
+      "severe_q_ratio": 0.04981299909026585,
+      "flagged_ratio": 0.11126385659894202,
+      "sleep_period_ratio": 1.0
+    },
+    "val": {
+      "subjects": 8,
+      "files": 16,
+      "epochs": 21437,
+      "class_counts": {
+        "W": 7514,
+        "N1": 2330,
+        "N2": 7498,
+        "N3": 1183,
+        "REM": 2912
+      },
+      "class_ratio": [
+        0.350515,
+        0.108691,
+        0.349769,
+        0.055185,
+        0.13584
+      ],
+      "transition_counts": {
+        "W_N1": 539,
+        "N1_N2": 525,
+        "N2_N3": 574,
+        "N2_REM": 151,
+        "W_REM": 57,
+        "N1_REM": 191,
+        "other": 142
+      },
+      "transition_ratio": 0.2187339646405747,
+      "mean_q": 0.9546389197849452,
+      "low_q_ratio": 0.06791995148574893,
+      "severe_q_ratio": 0.047814526286327375,
+      "flagged_ratio": 0.10099360918038905,
+      "sleep_period_ratio": 1.0
+    },
+    "test": {
+      "subjects": 8,
+      "files": 16,
+      "epochs": 17479,
+      "class_counts": {
+        "W": 6188,
+        "N1": 1885,
+        "N2": 6086,
+        "N3": 1314,
+        "REM": 2006
+      },
+      "class_ratio": [
+        0.354025,
+        0.107844,
+        0.348189,
+        0.075176,
+        0.114766
+      ],
+      "transition_counts": {
+        "W_N1": 509,
+        "N1_N2": 548,
+        "N2_N3": 472,
+        "N2_REM": 81,
+        "W_REM": 73,
+        "N1_REM": 125,
+        "other": 149
+      },
+      "transition_ratio": 0.23983065392757022,
+      "mean_q": 0.9547521380178101,
+      "low_q_ratio": 0.06745237141712912,
+      "severe_q_ratio": 0.04393844041421134,
+      "flagged_ratio": 0.11018937010126438,
+      "sleep_period_ratio": 1.0
+    }
+  },
+  "extreme_subjects_for_review": [
+    {
+      "subject": "SC404",
+      "files": [
+        "SC4041E0.npz",
+        "SC4042E0.npz"
+      ],
+      "epochs": 509,
+      "W_ratio": 1.0,
+      "N1_ratio": 0.0,
+      "REM_ratio": 0.0,
+      "low_q_ratio": 0.0137524557956778,
+      "severe_q_ratio": 0.003929273084479371,
+      "transition_ratio": 0.0
+    },
+    {
+      "subject": "SC408",
+      "files": [
+        "SC4081E0.npz",
+        "SC4082E0.npz"
+      ],
+      "epochs": 75,
+      "W_ratio": 1.0,
+      "N1_ratio": 0.0,
+      "REM_ratio": 0.0,
+      "low_q_ratio": 0.0,
+      "severe_q_ratio": 0.0,
+      "transition_ratio": 0.0
+    },
+    {
+      "subject": "SC472",
+      "files": [
+        "SC4721E0.npz",
+        "SC4722E0.npz"
+      ],
+      "epochs": 2161,
+      "W_ratio": 0.262379,
+      "N1_ratio": 0.230912,
+      "REM_ratio": 0.143452,
+      "low_q_ratio": 0.23276260990282277,
+      "severe_q_ratio": 0.19157797316057382,
+      "transition_ratio": 0.22952336881073576
+    },
+    {
+      "subject": "SC411",
+      "files": [
+        "SC4111E0.npz",
+        "SC4112E0.npz"
+      ],
+      "epochs": 1730,
+      "W_ratio": 0.145665,
+      "N1_ratio": 0.017919,
+      "REM_ratio": 0.178613,
+      "low_q_ratio": 0.16127167630057804,
+      "severe_q_ratio": 0.13699421965317918,
+      "transition_ratio": 0.23583815028901733
+    },
+    {
+      "subject": "SC473",
+      "files": [
+        "SC4731E0.npz",
+        "SC4732E0.npz"
+      ],
+      "epochs": 4985,
+      "W_ratio": 0.639719,
+      "N1_ratio": 0.138816,
+      "REM_ratio": 0.054363,
+      "low_q_ratio": 0.17031093279839518,
+      "severe_q_ratio": 0.079037111334002,
+      "transition_ratio": 0.15727181544633903
+    },
+    {
+      "subject": "SC418",
+      "files": [
+        "SC4181E0.npz",
+        "SC4182E0.npz"
+      ],
+      "epochs": 1884,
+      "W_ratio": 0.151274,
+      "N1_ratio": 0.095541,
+      "REM_ratio": 0.124204,
+      "low_q_ratio": 0.1873673036093418,
+      "severe_q_ratio": 0.1624203821656051,
+      "transition_ratio": 0.2367303609341826
+    },
+    {
+      "subject": "SC446",
+      "files": [
+        "SC4461F0.npz",
+        "SC4462F0.npz"
+      ],
+      "epochs": 2005,
+      "W_ratio": 0.171072,
+      "N1_ratio": 0.157606,
+      "REM_ratio": 0.180549,
+      "low_q_ratio": 0.15860349127182044,
+      "severe_q_ratio": 0.12768079800498752,
+      "transition_ratio": 0.23291770573566084
+    },
+    {
+      "subject": "SC451",
+      "files": [
+        "SC4511E0.npz",
+        "SC4512E0.npz"
+      ],
+      "epochs": 2041,
+      "W_ratio": 0.184713,
+      "N1_ratio": 0.288094,
+      "REM_ratio": 0.11661,
+      "low_q_ratio": 0.10436060754532092,
+      "severe_q_ratio": 0.0583047525722685,
+      "transition_ratio": 0.22586967172954434
+    },
+    {
+      "subject": "SC453",
+      "files": [
+        "SC4531E0.npz",
+        "SC4532E0.npz"
+      ],
+      "epochs": 2152,
+      "W_ratio": 0.193773,
+      "N1_ratio": 0.125929,
+      "REM_ratio": 0.162639,
+      "low_q_ratio": 0.18401486988847585,
+      "severe_q_ratio": 0.14312267657992564,
+      "transition_ratio": 0.31784386617100374
+    },
+    {
+      "subject": "SC475",
+      "files": [
+        "SC4751E0.npz",
+        "SC4752E0.npz"
+      ],
+      "epochs": 3093,
+      "W_ratio": 0.583899,
+      "N1_ratio": 0.079211,
+      "REM_ratio": 0.038474,
+      "low_q_ratio": 0.12188813449725186,
+      "severe_q_ratio": 0.1037827352085354,
+      "transition_ratio": 0.14872292272874232
+    },
+    {
+      "subject": "SC443",
+      "files": [
+        "SC4431E0.npz",
+        "SC4432E0.npz"
+      ],
+      "epochs": 1661,
+      "W_ratio": 0.175798,
+      "N1_ratio": 0.062613,
+      "REM_ratio": 0.167369,
+      "low_q_ratio": 0.15532811559301626,
+      "severe_q_ratio": 0.10234798314268513,
+      "transition_ratio": 0.22275737507525586
+    },
+    {
+      "subject": "SC480",
+      "files": [
+        "SC4801G0.npz",
+        "SC4802G0.npz"
+      ],
+      "epochs": 2470,
+      "W_ratio": 0.255061,
+      "N1_ratio": 0.164777,
+      "REM_ratio": 0.112551,
+      "low_q_ratio": 0.17165991902834007,
+      "severe_q_ratio": 0.1396761133603239,
+      "transition_ratio": 0.2951417004048583
+    },
+    {
+      "subject": "SC476",
+      "files": [
+        "SC4761E0.npz",
+        "SC4762E0.npz"
+      ],
+      "epochs": 4345,
+      "W_ratio": 0.669275,
+      "N1_ratio": 0.066283,
+      "REM_ratio": 0.098734,
+      "low_q_ratio": 0.04672036823935558,
+      "severe_q_ratio": 0.03659378596087457,
+      "transition_ratio": 0.15857307249712313
+    },
+    {
+      "subject": "SC406",
+      "files": [
+        "SC4061E0.npz",
+        "SC4062E0.npz"
+      ],
+      "epochs": 844,
+      "W_ratio": 0.169431,
+      "N1_ratio": 0.066351,
+      "REM_ratio": 0.120853,
+      "low_q_ratio": 0.11966824644549763,
+      "severe_q_ratio": 0.10071090047393365,
+      "transition_ratio": 0.19786729857819904
+    },
+    {
+      "subject": "SC410",
+      "files": [
+        "SC4101E0.npz",
+        "SC4102E0.npz"
+      ],
+      "epochs": 2196,
+      "W_ratio": 0.136157,
+      "N1_ratio": 0.082878,
+      "REM_ratio": 0.184882,
+      "low_q_ratio": 0.11156648451730419,
+      "severe_q_ratio": 0.08561020036429873,
+      "transition_ratio": 0.17941712204007285
+    },
+    {
+      "subject": "SC409",
+      "files": [
+        "SC4091E0.npz",
+        "SC4092E0.npz"
+      ],
+      "epochs": 2237,
+      "W_ratio": 0.129638,
+      "N1_ratio": 0.044703,
+      "REM_ratio": 0.222173,
+      "low_q_ratio": 0.09521680822530175,
+      "severe_q_ratio": 0.05453732677693339,
+      "transition_ratio": 0.20429146177916854
+    },
+    {
+      "subject": "SC413",
+      "files": [
+        "SC4131E0.npz"
+      ],
+      "epochs": 1028,
+      "W_ratio": 0.150778,
+      "N1_ratio": 0.055447,
+      "REM_ratio": 0.167315,
+      "low_q_ratio": 0.10116731517509728,
+      "severe_q_ratio": 0.07295719844357977,
+      "transition_ratio": 0.2169260700389105
+    },
+    {
+      "subject": "SC401",
+      "files": [
+        "SC4011E0.npz",
+        "SC4012E0.npz"
+      ],
+      "epochs": 874,
+      "W_ratio": 0.172769,
+      "N1_ratio": 0.107551,
+      "REM_ratio": 0.107551,
+      "low_q_ratio": 0.13157894736842105,
+      "severe_q_ratio": 0.11556064073226545,
+      "transition_ratio": 0.2219679633867277
+    },
+    {
+      "subject": "SC400",
+      "files": [
+        "SC4001E0.npz",
+        "SC4002E0.npz"
+      ],
+      "epochs": 1968,
+      "W_ratio": 0.188516,
+      "N1_ratio": 0.059451,
+      "REM_ratio": 0.172764,
+      "low_q_ratio": 0.12601626016260162,
+      "severe_q_ratio": 0.08841463414634146,
+      "transition_ratio": 0.25
+    },
+    {
+      "subject": "SC456",
+      "files": [
+        "SC4561F0.npz",
+        "SC4562F0.npz"
+      ],
+      "epochs": 2385,
+      "W_ratio": 0.236478,
+      "N1_ratio": 0.371488,
+      "REM_ratio": 0.104822,
+      "low_q_ratio": 0.030607966457023062,
+      "severe_q_ratio": 0.014255765199161425,
+      "transition_ratio": 0.3387840670859539
+    }
+  ],
+  "recommended_training_notes": [
+    "Use split_files as fixed subject-level train/val/test membership.",
+    "Use sleep_period_mask for a secondary sleep-period protocol; keep full-night protocol for primary clinical reporting.",
+    "Use quality_weight as optional sample-weight multiplier; avoid deleting epochs unless nonfinite/flat across all channels.",
+    "For ISRUC-like data, consider narrowing transition boundary weighting if boundary_epoch ratio exceeds roughly 35%."
+  ]
+}
