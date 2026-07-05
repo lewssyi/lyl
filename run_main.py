@@ -1077,12 +1077,14 @@ class MacroAuxiliaryScheduler(Callback):
 MICRO_EPOCH_ENCODER_PREFIXES = (
     "td_raw_",
     "td_v3_raw_",
+    "td_chan_resid_",
     "td_segment_",
     "td_v3_segment_",
 )
 MICRO_EPOCH_ENCODER_LAYER_NAMES = {
     "sequence_raw_domain_mixstyle",
     "sequence_v3_raw_domain_mixstyle",
+    "sequence_chan_resid_domain_mixstyle",
     "sequence_segment_domain_mixstyle",
     "sequence_v3_segment_domain_mixstyle",
     "raw_feature_dropout",

@@ -1682,6 +1682,181 @@ def _time_distributed_raw_multiscale_features(
     return Dropout(dropout_rate, name="v3_raw_feature_dropout")(x)
 
 
+
+def _epoch_channel_domain_stats(values):
+    mean = tf.reduce_mean(values, axis=2)
+    centered = values - tf.expand_dims(mean, axis=2)
+    std = tf.sqrt(tf.reduce_mean(tf.square(centered), axis=2) + 1e-5)
+    mean_abs = tf.reduce_mean(tf.abs(values), axis=2)
+    max_abs = tf.reduce_max(tf.abs(values), axis=2)
+    return tf.concat([mean, tf.math.log(std + 1e-5), mean_abs, max_abs], axis=-1)
+
+
+def _time_distributed_channel_residual_expert(
+    raw_sequence,
+    channel_index,
+    channel_name,
+    stem_kernel,
+    branch_kernels,
+    stem_filters=24,
+    branch_filters=32,
+    output_units=48,
+):
+    channel = Lambda(
+        lambda x, idx=channel_index: x[:, :, :, idx:idx + 1],
+        name=f"td_chan_resid_{channel_name}_slice",
+    )(raw_sequence)
+    x = TimeDistributed(
+        Conv1D(stem_filters, kernel_size=stem_kernel, strides=2, padding="same"),
+        name=f"td_chan_resid_{channel_name}_stem_conv",
+    )(channel)
+    x = TimeDistributed(BatchNormalization(), name=f"td_chan_resid_{channel_name}_stem_bn")(x)
+    x = Activation("relu", name=f"td_chan_resid_{channel_name}_stem_relu")(x)
+    x = TimeDistributed(
+        MaxPooling1D(pool_size=4, strides=2, padding="same"),
+        name=f"td_chan_resid_{channel_name}_stem_pool",
+    )(x)
+
+    branches = []
+    for kernel_size in branch_kernels:
+        branch = TimeDistributed(
+            Conv1D(branch_filters, kernel_size=kernel_size, padding="same"),
+            name=f"td_chan_resid_{channel_name}_k{kernel_size}_conv1",
+        )(x)
+        branch = TimeDistributed(
+            BatchNormalization(),
+            name=f"td_chan_resid_{channel_name}_k{kernel_size}_bn1",
+        )(branch)
+        branch = Activation("relu", name=f"td_chan_resid_{channel_name}_k{kernel_size}_relu1")(branch)
+        branch = TimeDistributed(
+            Conv1D(branch_filters, kernel_size=3, strides=2, padding="same"),
+            name=f"td_chan_resid_{channel_name}_k{kernel_size}_conv2",
+        )(branch)
+        branch = TimeDistributed(
+            BatchNormalization(),
+            name=f"td_chan_resid_{channel_name}_k{kernel_size}_bn2",
+        )(branch)
+        branch = Activation("relu", name=f"td_chan_resid_{channel_name}_k{kernel_size}_relu2")(branch)
+        branches.append(branch)
+
+    x = Concatenate(name=f"td_chan_resid_{channel_name}_multiscale_concat")(branches)
+    x = TimeDistributed(
+        Conv1D(48, kernel_size=5, strides=2, padding="same"),
+        name=f"td_chan_resid_{channel_name}_fuse_conv",
+    )(x)
+    x = TimeDistributed(BatchNormalization(), name=f"td_chan_resid_{channel_name}_fuse_bn")(x)
+    x = Activation("relu", name=f"td_chan_resid_{channel_name}_fuse_relu")(x)
+    x = TimeDistributed(
+        GlobalAveragePooling1D(),
+        name=f"td_chan_resid_{channel_name}_global_pool",
+    )(x)
+
+    stats = Lambda(
+        _epoch_channel_domain_stats,
+        name=f"td_chan_resid_{channel_name}_domain_stats",
+    )(channel)
+    stats = TimeDistributed(
+        Dense(8, activation="relu"),
+        name=f"td_chan_resid_{channel_name}_domain_stats_dense",
+    )(stats)
+    x = Concatenate(name=f"td_chan_resid_{channel_name}_feature_stats_concat")([x, stats])
+    x = TimeDistributed(
+        Dense(output_units, activation="relu"),
+        name=f"td_chan_resid_{channel_name}_dense",
+    )(x)
+    return TimeDistributed(
+        LayerNormalization(),
+        name=f"td_chan_resid_{channel_name}_norm",
+    )(x)
+
+
+def _scale_channel_residual(values):
+    return 0.10 * values
+
+
+def _time_distributed_channel_specialized_residual_features(
+    raw_sequence,
+    dropout_rate=0.20,
+    use_domain_mixstyle=False,
+    mixstyle_p=0.50,
+    mixstyle_alpha=0.30,
+):
+    """Standard v3 raw encoder plus a small zero-initialized channel-specialist residual."""
+    base_features = _time_distributed_raw_multiscale_features(
+        raw_sequence,
+        dropout_rate=dropout_rate,
+        use_domain_mixstyle=use_domain_mixstyle,
+        mixstyle_p=mixstyle_p,
+        mixstyle_alpha=mixstyle_alpha,
+    )
+    channel_specs = [
+        (0, "eeg", 9, (7, 15, 31)),
+        (1, "eog", 15, (15, 31, 63)),
+        (2, "emg", 5, (3, 7, 15)),
+    ]
+    channel_count = raw_sequence.shape[-1]
+    if channel_count is None:
+        channel_count = 3
+    experts = []
+    for channel_index, channel_name, stem_kernel, branch_kernels in channel_specs[: int(channel_count)]:
+        experts.append(
+            _time_distributed_channel_residual_expert(
+                raw_sequence,
+                channel_index,
+                channel_name,
+                stem_kernel,
+                branch_kernels,
+            )
+        )
+
+    if len(experts) == 1:
+        expert_features = experts[0]
+    else:
+        concat_features = Concatenate(name="td_chan_resid_feature_concat")(experts)
+        gate_hidden = TimeDistributed(
+            Dense(48, activation="relu"),
+            name="td_chan_resid_gate_hidden",
+        )(concat_features)
+        gate_logits = TimeDistributed(
+            Dense(len(experts)),
+            name="td_chan_resid_gate_logits",
+        )(gate_hidden)
+        gate_probs = Activation("softmax", name="td_chan_resid_gate_probs")(gate_logits)
+        weighted_features = []
+        for idx, expert in enumerate(experts):
+            gate_slice = Lambda(
+                lambda x, i=idx: x[:, :, i:i + 1],
+                name=f"td_chan_resid_gate_{idx}_slice",
+            )(gate_probs)
+            weighted_features.append(
+                Multiply(name=f"td_chan_resid_weighted_{idx}")([expert, gate_slice])
+            )
+        weighted_concat = Concatenate(name="td_chan_resid_weighted_concat")(weighted_features)
+        expert_features = Concatenate(name="td_chan_resid_fusion_context")(
+            [concat_features, weighted_concat, gate_probs]
+        )
+
+    if use_domain_mixstyle:
+        expert_features = MixStyle(
+            p=mixstyle_p,
+            alpha=mixstyle_alpha,
+            name="sequence_chan_resid_domain_mixstyle",
+        )(expert_features)
+    expert_features = TimeDistributed(
+        Dense(96, activation="relu"),
+        name="td_chan_resid_fuse_hidden",
+    )(expert_features)
+    expert_features = TimeDistributed(
+        LayerNormalization(),
+        name="td_chan_resid_fuse_norm",
+    )(expert_features)
+    residual = TimeDistributed(
+        Dense(160, kernel_initializer="zeros", bias_initializer="zeros"),
+        name="td_chan_resid_zero_projection",
+    )(expert_features)
+    residual = Lambda(_scale_channel_residual, name="td_chan_resid_scale")(residual)
+    return Add(name="td_chan_resid_raw_feature_add")([base_features, residual])
+
 def _time_distributed_segment_multiscale_features(
     segment_sequence,
     dropout_rate=0.20,
@@ -2147,7 +2322,26 @@ def create_sequence_sleep_model(
     segment_input = tf.keras.Input(shape=(seq_len, *segment_shape), name="segment_input")
 
     epoch_encoder_key = str(epoch_encoder_variant or "v3_multiscale").strip().lower().replace("-", "_")
-    if epoch_encoder_key in {"v3", "v3_multiscale", "multiscale", "multiscale_tcn", "tcn"}:
+    if epoch_encoder_key in {
+        "v3_channel_specialized_residual",
+        "channel_specialized_residual",
+        "chan_spec_residual",
+    }:
+        raw_features = _time_distributed_channel_specialized_residual_features(
+            raw_input,
+            dropout_rate=dropout_rate,
+            use_domain_mixstyle=use_domain_mixstyle,
+            mixstyle_p=mixstyle_p,
+            mixstyle_alpha=mixstyle_alpha,
+        )
+        segment_features = _time_distributed_segment_multiscale_features(
+            segment_input,
+            dropout_rate=dropout_rate,
+            use_domain_mixstyle=use_domain_mixstyle,
+            mixstyle_p=mixstyle_p,
+            mixstyle_alpha=mixstyle_alpha,
+        )
+    elif epoch_encoder_key in {"v3", "v3_multiscale", "multiscale", "multiscale_tcn", "tcn"}:
         raw_features = _time_distributed_raw_multiscale_features(
             raw_input,
             dropout_rate=dropout_rate,
@@ -2179,7 +2373,7 @@ def create_sequence_sleep_model(
         )
     else:
         raise ValueError(
-            "epoch_encoder_variant must be one of 'v3_multiscale' or 'legacy_bilstm', "
+            "epoch_encoder_variant must be one of 'v3_multiscale', 'v3_channel_specialized_residual', or 'legacy_bilstm', "
             f"got {epoch_encoder_variant!r}"
         )
     feature_blocks = [raw_features, segment_features]
