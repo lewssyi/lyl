@@ -1698,9 +1698,9 @@ def _time_distributed_channel_residual_expert(
     channel_name,
     stem_kernel,
     branch_kernels,
-    stem_filters=24,
-    branch_filters=32,
-    output_units=48,
+    stem_filters=12,
+    branch_filters=16,
+    output_units=32,
 ):
     channel = Lambda(
         lambda x, idx=channel_index: x[:, :, :, idx:idx + 1],
@@ -1741,7 +1741,7 @@ def _time_distributed_channel_residual_expert(
 
     x = Concatenate(name=f"td_chan_resid_{channel_name}_multiscale_concat")(branches)
     x = TimeDistributed(
-        Conv1D(48, kernel_size=5, strides=2, padding="same"),
+        Conv1D(24, kernel_size=5, strides=2, padding="same"),
         name=f"td_chan_resid_{channel_name}_fuse_conv",
     )(x)
     x = TimeDistributed(BatchNormalization(), name=f"td_chan_resid_{channel_name}_fuse_bn")(x)
@@ -1756,7 +1756,7 @@ def _time_distributed_channel_residual_expert(
         name=f"td_chan_resid_{channel_name}_domain_stats",
     )(channel)
     stats = TimeDistributed(
-        Dense(8, activation="relu"),
+        Dense(4, activation="relu"),
         name=f"td_chan_resid_{channel_name}_domain_stats_dense",
     )(stats)
     x = Concatenate(name=f"td_chan_resid_{channel_name}_feature_stats_concat")([x, stats])
@@ -1781,7 +1781,7 @@ def _time_distributed_channel_specialized_residual_features(
     mixstyle_p=0.50,
     mixstyle_alpha=0.30,
 ):
-    """Standard v3 raw encoder plus a small zero-initialized channel-specialist residual."""
+    """Standard v3 raw encoder plus a lightweight zero-initialized channel-specialist residual."""
     base_features = _time_distributed_raw_multiscale_features(
         raw_sequence,
         dropout_rate=dropout_rate,
@@ -1790,9 +1790,9 @@ def _time_distributed_channel_specialized_residual_features(
         mixstyle_alpha=mixstyle_alpha,
     )
     channel_specs = [
-        (0, "eeg", 9, (7, 15, 31)),
-        (1, "eog", 15, (15, 31, 63)),
-        (2, "emg", 5, (3, 7, 15)),
+        (0, "eeg", 9, (7, 21)),
+        (1, "eog", 15, (15, 31)),
+        (2, "emg", 5, (3, 7)),
     ]
     channel_count = raw_sequence.shape[-1]
     if channel_count is None:
@@ -1814,7 +1814,7 @@ def _time_distributed_channel_specialized_residual_features(
     else:
         concat_features = Concatenate(name="td_chan_resid_feature_concat")(experts)
         gate_hidden = TimeDistributed(
-            Dense(48, activation="relu"),
+            Dense(24, activation="relu"),
             name="td_chan_resid_gate_hidden",
         )(concat_features)
         gate_logits = TimeDistributed(
@@ -1843,7 +1843,7 @@ def _time_distributed_channel_specialized_residual_features(
             name="sequence_chan_resid_domain_mixstyle",
         )(expert_features)
     expert_features = TimeDistributed(
-        Dense(96, activation="relu"),
+        Dense(48, activation="relu"),
         name="td_chan_resid_fuse_hidden",
     )(expert_features)
     expert_features = TimeDistributed(
@@ -2324,8 +2324,11 @@ def create_sequence_sleep_model(
     epoch_encoder_key = str(epoch_encoder_variant or "v3_multiscale").strip().lower().replace("-", "_")
     if epoch_encoder_key in {
         "v3_channel_specialized_residual",
+        "v3_channel_specialized_residual_lite",
         "channel_specialized_residual",
+        "channel_specialized_residual_lite",
         "chan_spec_residual",
+        "chan_spec_residual_lite",
     }:
         raw_features = _time_distributed_channel_specialized_residual_features(
             raw_input,
@@ -2373,7 +2376,7 @@ def create_sequence_sleep_model(
         )
     else:
         raise ValueError(
-            "epoch_encoder_variant must be one of 'v3_multiscale', 'v3_channel_specialized_residual', or 'legacy_bilstm', "
+            "epoch_encoder_variant must be one of 'v3_multiscale', 'v3_channel_specialized_residual_lite', 'v3_channel_specialized_residual', or 'legacy_bilstm', "
             f"got {epoch_encoder_variant!r}"
         )
     feature_blocks = [raw_features, segment_features]
