@@ -1,8 +1,12 @@
 import unittest
 
 import numpy as np
+import tensorflow as tf
 
-from tools.sequence_lime_paper_evaluation import sequence_target_probabilities
+from tools.sequence_lime_paper_evaluation import (
+    compiled_perturbation_output,
+    sequence_target_probabilities,
+)
 
 
 class RecordingModel:
@@ -18,6 +22,29 @@ class RecordingModel:
 
 
 class SequenceBatchCapTest(unittest.TestCase):
+    def test_compiled_keras_runner_is_reused_across_batch_sizes(self):
+        raw_input = tf.keras.Input(shape=(75, 20, 3), name="raw_input")
+        segment_input = tf.keras.Input(shape=(75, 30, 28), name="segment_input")
+        logits = tf.keras.layers.Lambda(
+            lambda tensors: tf.zeros(
+                (tf.shape(tensors[0])[0], tf.shape(tensors[0])[1], 5),
+                dtype=tf.float32,
+            )
+        )([raw_input, segment_input])
+        model = tf.keras.Model(
+            inputs={"raw_input": raw_input, "segment_input": segment_input},
+            outputs=logits,
+        )
+        raw = np.zeros((8, 75, 20, 3), dtype=np.float32)
+        segment = np.zeros((8, 75, 30, 28), dtype=np.float32)
+
+        first = compiled_perturbation_output(model, raw, segment)
+        second = compiled_perturbation_output(model, raw[:3], segment[:3])
+
+        self.assertEqual(first.shape, (8, 75, 5))
+        self.assertEqual(second.shape, (3, 75, 5))
+        self.assertEqual(len(model._sequence_lime_perturbation_runners), 1)
+
     def test_perturbation_chunk_does_not_multiply_formal_batch(self):
         model = RecordingModel()
         x_raw = np.zeros((80, 20, 3), dtype=np.float32)

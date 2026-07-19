@@ -54,7 +54,7 @@ if str(TOOLS_DIR) not in sys.path:
 CLASS_LABELS = ["W", "N1", "N2", "N3", "REM"]
 CHANNEL_LABELS = ["EEG", "EOG", "EMG"]
 EPS = 1e-8
-EVALUATOR_VERSION = "sequence_lime_v1.1.1"
+EVALUATOR_VERSION = "sequence_lime_v1.1.2"
 STRICT_PROBABILITY_TOLERANCE = 1e-6
 # The frozen classifier endpoint must retain sequence-window batch 16 for exact
 # probability parity. Perturbation evaluation can hold both the original and a
@@ -748,6 +748,60 @@ def model_main_output(outputs) -> np.ndarray:
     return np.asarray(outputs, dtype=np.float32)
 
 
+def compiled_perturbation_output(
+    model: tf.keras.Model,
+    raw_batch: np.ndarray,
+    segment_batch: np.ndarray,
+) -> np.ndarray:
+    """Run repeated perturbation inference through one shape-stable graph.
+
+    Direct eager Keras calls retain a small GPU allocation per forward for this
+    model. A formal LIME sample makes thousands of forwards, so the retained
+    allocations eventually exhaust a 24 GiB device. The fixed signatures keep
+    the batch dimension dynamic while reusing one graph for every microbatch.
+    Non-Keras test doubles retain the simple eager path.
+    """
+    import tensorflow as tf  # noqa: WPS433
+
+    raw_array = np.asarray(raw_batch, dtype=np.float32)
+    segment_array = np.asarray(segment_batch, dtype=np.float32)
+    if not isinstance(model, tf.keras.Model):
+        return model_main_output(
+            model(
+                {"raw_input": raw_array, "segment_input": segment_array},
+                training=False,
+            )
+        )
+
+    signature = (tuple(raw_array.shape[1:]), tuple(segment_array.shape[1:]))
+    runners = getattr(model, "_sequence_lime_perturbation_runners", None)
+    if runners is None:
+        runners = {}
+        setattr(model, "_sequence_lime_perturbation_runners", runners)
+    runner = runners.get(signature)
+    if runner is None:
+        raw_spec = tf.TensorSpec((None,) + signature[0], tf.float32)
+        segment_spec = tf.TensorSpec((None,) + signature[1], tf.float32)
+
+        @tf.function(
+            input_signature=(raw_spec, segment_spec),
+            reduce_retracing=True,
+        )
+        def runner(raw_input, segment_input):
+            return model(
+                {"raw_input": raw_input, "segment_input": segment_input},
+                training=False,
+            )
+
+        runners[signature] = runner
+    return model_main_output(
+        runner(
+            tf.convert_to_tensor(raw_array, dtype=tf.float32),
+            tf.convert_to_tensor(segment_array, dtype=tf.float32),
+        )
+    )
+
+
 def predict_sequence_probs(model: tf.keras.Model, x_raw: np.ndarray, x_seg: np.ndarray, counts: np.ndarray, batch_windows: int = 16) -> np.ndarray:
     windows = build_sequence_windows(len(x_raw), counts, seq_len=75, stride=5)
     sums = None
@@ -1262,6 +1316,7 @@ def sequence_aggregation_config_hash(batch_windows: int) -> str:
             batch_windows
         ),
         "padding": "none",
+        "perturbation_inference_execution": "tf_function_fixed_signature_v1",
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
 
@@ -1342,7 +1397,7 @@ def infer_precomputed_epochs_for_target(
         raw_batch = np.asarray([item[0] for item in chunk], dtype=np.float32)
         seg_batch = np.asarray([item[1] for item in chunk], dtype=np.float32)
         gpu0 = time.perf_counter()
-        probs = model_main_output(model({"raw_input": raw_batch, "segment_input": seg_batch}, training=False))
+        probs = compiled_perturbation_output(model, raw_batch, seg_batch)
         t_gpu += time.perf_counter() - gpu0
         for row_idx, (_rw, _sg, mask_idx, rel_pos) in enumerate(chunk):
             sums[int(mask_idx)] += probs[int(row_idx), int(rel_pos)].astype(np.float64)
