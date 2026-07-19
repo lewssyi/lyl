@@ -34,6 +34,10 @@ external, hash-verified backup and a reference scan.
 
 Clinical expert validation is pending.
 
+The current guarded formal result, validation counts, scientific decision, and
+failure/recovery provenance are recorded in
+`docs/XAI_FULL_EVALUATION_RESULTS.md`.
+
 ## Canonical commands
 
 Run prediction/wrapper parity:

@@ -95,6 +95,12 @@ result index is written to:
 outputs/sequence_lime_paper_evaluation/isruc_seed42/CURRENT_RESULTS_MANIFEST.json
 ```
 
+The completed formal result is documented in
+[`docs/XAI_FULL_EVALUATION_RESULTS.md`](docs/XAI_FULL_EVALUATION_RESULTS.md).
+Its implementation/measurement chain passed, but the paper-level reliability
+decision failed the project fidelity and randomization criteria; no universal
+reliability or superiority claim is made.
+
 Run parity before XAI:
 
 ```bash

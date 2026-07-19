@@ -8,7 +8,7 @@ This register is code-evidence driven. “Resolved” means the repository has a
 - Code evidence: `tools/sequence_lime_paper_evaluation.py` now has a version, deterministic checkpoint loader, strict parity guard, and per-run provenance. `docs/A1_ZERO_MAINLINE_MANIFEST.md` records artifact hashes and the executable parity command.
 - Measure: version the evaluator/docs/configs/tests; keep large artifacts out of Git and refer to paths plus SHA256.
 - Tests: clean historical commit `e5fdba0` and the current implementation both reproduce the frozen probability cache exactly.
-- Status: resolved for the A1-zero/XAI mainline. Output cleanup and the final `CURRENT_RESULTS_MANIFEST.json` are completed in the guarded-evaluation commit.
+- Status: resolved for the A1-zero/XAI mainline. The current guarded result is indexed by `outputs/sequence_lime_paper_evaluation/isruc_seed42/CURRENT_RESULTS_MANIFEST.json`; full provenance and outcome are in `docs/XAI_FULL_EVALUATION_RESULTS.md`.
 
 ## 2. Branch/mainline conflict
 
@@ -22,21 +22,23 @@ This register is code-evidence driven. “Resolved” means the repository has a
 - Risk: old parity-fail and later pass reports could be treated as equally current.
 - Evidence/measure: every formal run records UTC generation time, Git state, checkpoint/split/cache hashes, evaluator version, resolved configuration, and result files. Runs use independent IDs/manifests. `CURRENT_RESULTS_MANIFEST.json` is the sole current-output index.
 - Tests: provenance fields and manifest isolation tests.
-- Status: resolved by the guarded evaluator; obsolete output files are backed up externally before removal.
+- Status: resolved by the guarded evaluator. The sole current index points to run `full_evaluation_v113_merged_guarded`; failed v1.1.1 partial runs are retained only as diagnostic history and are not merged.
 
 ## 4. Incomplete full pipeline
 
 - Risk: empty one-byte CSVs were previously mistaken for completion.
 - Evidence: pre-audit files `sample_level_metrics.csv`, `surrogate_fidelity.csv`, `stability_stage_summary.csv`, `model_randomization_sanity.csv`, and `paper_main_table.csv` were one byte because the general pipeline had never completed; specialized confirmation files did not populate them.
 - Measure: empty required outputs are fatal; smoke, functional, confirmation, and full profiles have isolated manifests and resume fingerprints. Required outputs include fidelity, stability, randomization, deletion/insertion, stage/correctness summaries, runtime/query accounting, and the paper table.
-- Tests: 2-sample smoke, 5-sample functional run, stage-stratified confirmation, then full evaluation.
-- Status: code-resolved; completed empirical runs are listed in `CURRENT_RESULTS_MANIFEST.json`.
+- Tests: 2-sample smoke, 5-sample functional run, stage-stratified confirmation, and an eight-shard formal evaluation followed by guarded merge.
+- Result: all 36 unique selected samples completed. All nine required formal result files and seven raw merged tables are nonempty; the guarded merge reports zero sample overlap. The paper-level conclusion is `PAPER_LEVEL_INTERPRETABILITY_FAIL`, because local surrogate fidelity and model-randomization sanity did not both pass the project thresholds.
+- Status: pipeline completion is resolved. Explanation reliability is not supported by the current empirical result and is not claimed.
 
 ## 5. Sample-selection bias
 
 - Risk: the previous correct-only stage-balanced N=40 set could be read as population performance.
 - Measure: retain that specialist result, but formal sampling distinguishes random population, correct, incorrect, true-stage, predicted-stage, transition/stable, and N1 strata. Outputs label `faithfulness on correctly predicted cases`, `faithfulness on misclassified cases`, `population-weighted estimate`, and `stage-balanced estimate` separately.
 - Tests: manifest stratum counts and weighting tests.
+- Result: the deduplicated formal set contains 36 epochs: 24 correct, 12 incorrect, 17 transition-boundary, and 19 stable; all five true and predicted stages are represented.
 - Status: resolved for reporting. Small/empty strata remain marked not estimable rather than silently pooled.
 
 ## 6. Estimand boundary
@@ -86,7 +88,8 @@ This register is code-evidence driven. “Resolved” means the repository has a
 
 - Risk: local sensitivity was described as global causal reasoning.
 - Measure: code/manifests/docs use `local attribution`, `perturbation sensitivity`, `derived concept evidence`, and `interventional faithfulness under a specified replacement rule`. They forbid `global causal contribution`, `causal channel importance`, and `model reasoning ground truth`. Random/head randomization, reverse/random/energy ranking, and replacement sensitivity are reported as sanity/faithfulness checks only.
-- Status: terminological/code control resolved; causal validity is not claimed.
+- Result: within-checkpoint stability passed, but model-randomization sanity failed the project rule. This prevents a paper-level explanation-reliability claim even though faithfulness was directionally better than random under the evaluated rules.
+- Status: terminological/code control resolved; causal validity and explanation reliability are not claimed.
 
 ## 13. HMM wording
 
@@ -113,3 +116,7 @@ This register is code-evidence driven. “Resolved” means the repository has a
 1. Cross-seed model stability needs additional frozen seed checkpoints; current results are `within-checkpoint perturbation stability` only.
 2. Deployment-safe normalization performance needs separately trained/evaluated checkpoints.
 3. Clinical expert validation requires qualified human reviewers and an approved secure review environment.
+
+## Current formal evaluation
+
+The authoritative empirical summary is `docs/XAI_FULL_EVALUATION_RESULTS.md`. Run `full_evaluation_v113_merged_guarded` contains 36 unique samples and was produced from eight completed v1.1.2 shards using the v1.1.3 guarded merger. Final validation passed 24 maintained tests and exact canonical batch-16 probability parity (`max_abs_diff=0.0`, `argmax_agreement=1.0`).

@@ -90,6 +90,19 @@ The raw argmax and validation-selected temperature-argmax labels are identical f
 - GPU parity reconstruction: NVIDIA GeForce RTX 3090, cuDNN 8.9.4.
 - Full environment snapshot: `/home/b502/wssyi/project_backups/LIME-for-Time-Series_20260719_022132/pip_freeze.txt`.
 
+## Current formal Sequence-XAI evaluation
+
+- Result run: `full_evaluation_v113_merged_guarded`.
+- Result directory: `outputs/sequence_lime_paper_evaluation/isruc_seed42/runs/full_evaluation_v113_merged_guarded`.
+- Current index: `outputs/sequence_lime_paper_evaluation/isruc_seed42/CURRENT_RESULTS_MANIFEST.json`.
+- Formal source shards: evaluator v1.1.2 at Git `96c4fcb6926a32ca540d6370e7427c1d0f228b11`.
+- Guarded merge: evaluator v1.1.3 at Git `f241202e8deeb49d0ba524ac4d9f3d7ef6976f5f`.
+- Merge validation: eight completed shards, 36 unique samples, zero overlap, no failed samples, and every required output nonempty.
+- Final verification: 24 tests passed; canonical batch-16 probability max absolute difference `0.0`; argmax agreement `1.0`; sequence-wrapper max absolute difference `5.960464477539063e-08`.
+- Scientific decision: implementation and measurement chain valid, but `PAPER_LEVEL_INTERPRETABILITY_FAIL`; explanation reliability and universal superiority are not supported.
+
+See `docs/XAI_FULL_EVALUATION_RESULTS.md` for the metric-level result and failure/recovery provenance.
+
 ## Acceptance guard
 
 Every mainline change must pass checkpoint loading, argmax agreement `1.0`, zero difference in Accuracy/Macro-F1/Kappa, maximum absolute probability difference `<=1e-6`, and sequence-wrapper maximum difference `<=1e-6`. Failure blocks cleanup and training.
