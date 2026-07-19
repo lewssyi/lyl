@@ -26,77 +26,37 @@ from tensorflow.keras.losses import CategoricalCrossentropy, CategoricalFocalCro
 from tensorflow.keras.models import Model
 from tensorflow.keras.initializers import Constant
 
+try:
+    from .clinical_concepts import (
+        BASE_STAGE_CHANNEL_PRIOR,
+        BASE_STAGE_CONCEPT_PRIOR,
+        CONCEPT_CHANNEL_INDEX,
+        CONCEPT_NAMES_V1,
+        CONCEPT_NAMES_V2,
+        concepts_from_segment_features,
+        concepts_from_segment_tensor,
+        normalize_concept_version,
+    )
+except ImportError:  # run_main.py also supports importing src modules by path
+    from clinical_concepts import (
+        BASE_STAGE_CHANNEL_PRIOR,
+        BASE_STAGE_CONCEPT_PRIOR,
+        CONCEPT_CHANNEL_INDEX,
+        CONCEPT_NAMES_V1,
+        CONCEPT_NAMES_V2,
+        concepts_from_segment_features,
+        concepts_from_segment_tensor,
+        normalize_concept_version,
+    )
 
-CLINICAL_CONCEPT_NAMES = [
-    "EEG Delta",
-    "EEG Theta",
-    "EEG Alpha",
-    "EEG Sigma",
-    "EEG Beta",
-    "EOG Slow Eye",
-    "EOG Rapid Eye",
-    "EMG Low Tone",
-    "EMG Muscle Activation",
-]
-
-CLINICAL_CONCEPT_NAMES_V2 = [
-    "Slow-wave dominance",
-    "Theta light sleep",
-    "Alpha wake",
-    "Sigma spindle",
-    "Beta arousal",
-    "EOG slow eye",
-    "EOG rapid eye",
-    "EMG atonia",
-    "EMG active tone",
-]
-
-BASE_STAGE_CONCEPT_PRIOR = np.array(
-    [
-        [0.04, 0.12, 0.18, 0.62, 0.04],  # EEG Delta
-        [0.08, 0.32, 0.20, 0.16, 0.18],  # EEG Theta
-        [0.34, 0.18, 0.04, 0.02, 0.08],  # EEG Alpha
-        [0.03, 0.04, 0.36, 0.10, 0.02],  # EEG Sigma
-        [0.18, 0.04, 0.02, 0.02, 0.10],  # EEG Beta
-        [0.10, 0.26, 0.12, 0.05, 0.04],  # EOG Slow Eye
-        [0.02, 0.02, 0.02, 0.01, 0.34],  # EOG Rapid Eye
-        [0.02, 0.02, 0.02, 0.07, 0.30],  # EMG Low Tone
-        [0.30, 0.12, 0.14, 0.05, 0.02],  # EMG Muscle Activation
-    ],
-    dtype=np.float32,
-)
-
-BASE_STAGE_CONCEPT_PRIOR = BASE_STAGE_CONCEPT_PRIOR / np.maximum(
-    np.sum(BASE_STAGE_CONCEPT_PRIOR, axis=0, keepdims=True),
-    1e-8,
-)
-
-CONCEPT_CHANNEL_INDEX = np.array([0, 0, 0, 0, 0, 1, 1, 2, 2], dtype=np.int32)
-
-BASE_STAGE_CHANNEL_PRIOR = np.array(
-    [
-        [0.30, 0.20, 0.50],  # W: alpha/beta with muscle tone.
-        [0.50, 0.40, 0.10],  # N1: theta and slow eye movement.
-        [0.85, 0.05, 0.10],  # N2: spindle/sigma evidence from EEG.
-        [0.90, 0.05, 0.05],  # N3: delta evidence from EEG.
-        [0.20, 0.30, 0.50],  # REM: eye movement plus low EMG tone.
-    ],
-    dtype=np.float32,
-)
-BASE_STAGE_CHANNEL_PRIOR = BASE_STAGE_CHANNEL_PRIOR / np.maximum(
-    np.sum(BASE_STAGE_CHANNEL_PRIOR, axis=1, keepdims=True),
-    1e-8,
-)
-
+CLINICAL_CONCEPT_NAMES = list(CONCEPT_NAMES_V1)
+CLINICAL_CONCEPT_NAMES_V2 = list(CONCEPT_NAMES_V2)
 STAGE_CONCEPT_PRIOR = BASE_STAGE_CONCEPT_PRIOR.copy()
 STAGE_CHANNEL_PRIOR = BASE_STAGE_CHANNEL_PRIOR.copy()
 
 
 def _normalize_clinical_concept_version(concept_version):
-    version = str(concept_version or "v1").strip().lower().replace("-", "_")
-    if version in {"v2", "clinical_v2"}:
-        return "v2"
-    return "v1"
+    return "v2" if normalize_concept_version(concept_version).endswith("_v2") else "v1"
 
 
 def get_clinical_concept_names(concept_version="v1"):
@@ -694,7 +654,7 @@ def _segment_feature(segment_features, feature_idx):
 def extract_clinical_concept_targets_from_segment_features(
     segment_features,
     labels=None,
-    concept_prior_weight=0.25,
+    concept_prior_weight=0.0,
     concept_version="v1",
 ):
     if _normalize_clinical_concept_version(concept_version) == "v2":
@@ -713,53 +673,14 @@ def extract_clinical_concept_targets_from_segment_features(
 def extract_clinical_concept_targets_v1_from_segment_features(
     segment_features,
     labels=None,
-    concept_prior_weight=0.25,
+    concept_prior_weight=0.0,
 ):
-    """Build weak clinical concept targets from segment features and stage priors.
-
-    These targets are not manual labels. They are a compact physiology-guided
-    bottleneck signal derived from the same delta/theta/sigma/EOG/EMG evidence
-    later used by DCCS dashboards.
-    """
-    segment_features = np.asarray(segment_features, dtype=np.float32)
-    if segment_features.ndim == 2:
-        segment_features = segment_features[np.newaxis, :, :]
-    if segment_features.ndim != 3:
-        raise ValueError("segment_features must have shape (samples, segments, features)")
-
-    eeg_delta = _segment_feature(segment_features, 13)
-    eog_delta = _segment_feature(segment_features, 14)
-    eeg_theta = _segment_feature(segment_features, 16)
-    eog_theta = _segment_feature(segment_features, 17)
-    eeg_alpha = _segment_feature(segment_features, 19)
-    eeg_sigma = _segment_feature(segment_features, 22)
-    eeg_beta = _segment_feature(segment_features, 25)
-    eog_beta = _segment_feature(segment_features, 26)
-    emg_beta = _segment_feature(segment_features, 27)
-    eog_energy = _segment_feature(segment_features, 11)
-    emg_energy = _segment_feature(segment_features, 12)
-
-    eog_slow = 0.70 * eog_delta + 0.30 * eog_theta
-    eog_rapid = 0.55 * eog_energy + 0.30 * eog_theta + 0.15 * eog_beta
-    emg_activation = 0.70 * emg_energy + 0.30 * emg_beta
-    emg_low_tone = 1.0 / (1.0 + np.maximum(emg_activation, 0.0))
-
-    concept_segments = np.stack(
-        [
-            eeg_delta,
-            eeg_theta,
-            eeg_alpha,
-            eeg_sigma,
-            eeg_beta,
-            eog_slow,
-            eog_rapid,
-            emg_low_tone,
-            emg_activation,
-        ],
-        axis=-1,
+    """Build segment-proxy targets; label conditioning is an explicit ablation."""
+    concept_profile = concepts_from_segment_features(
+        segment_features,
+        version="segment_proxy_v1",
+        reduce_segments=True,
     )
-    concept_profile = np.mean(np.clip(concept_segments, 0.0, None), axis=1)
-    concept_profile = _scale_rows_to_unit(concept_profile)
 
     if labels is not None and concept_prior_weight > 0:
         stage_concept_prior = get_stage_concept_prior(num_concepts=concept_profile.shape[1])
@@ -775,79 +696,14 @@ def extract_clinical_concept_targets_v1_from_segment_features(
 def extract_clinical_concept_targets_v2_from_segment_features(
     segment_features,
     labels=None,
-    concept_prior_weight=0.25,
+    concept_prior_weight=0.0,
 ):
-    """Build V2 concept targets from relative sleep-stage physiology evidence."""
-    segment_features = np.asarray(segment_features, dtype=np.float32)
-    if segment_features.ndim == 2:
-        segment_features = segment_features[np.newaxis, :, :]
-    if segment_features.ndim != 3:
-        raise ValueError("segment_features must have shape (samples, segments, features)")
-
-    eps = 1e-6
-    eeg_delta = _segment_feature(segment_features, 13)
-    eog_delta = _segment_feature(segment_features, 14)
-    eeg_theta = _segment_feature(segment_features, 16)
-    eog_theta = _segment_feature(segment_features, 17)
-    eeg_alpha = _segment_feature(segment_features, 19)
-    eeg_sigma = _segment_feature(segment_features, 22)
-    eeg_beta = _segment_feature(segment_features, 25)
-    eog_beta = _segment_feature(segment_features, 26)
-    emg_beta = _segment_feature(segment_features, 27)
-    eog_energy = _segment_feature(segment_features, 11)
-    emg_energy = _segment_feature(segment_features, 12)
-
-    eeg_total = eeg_delta + eeg_theta + eeg_alpha + eeg_sigma + eeg_beta + eps
-    slow_wave_dominance = eeg_delta / eeg_total
-    theta_light_sleep = eeg_theta / eeg_total
-    alpha_wake = eeg_alpha / eeg_total
-
-    sigma_relative = eeg_sigma / eeg_total
-    sigma_median = np.median(eeg_sigma, axis=1, keepdims=True)
-    sigma_p90 = np.percentile(eeg_sigma, 90, axis=1, keepdims=True)
-    sigma_burstiness = (sigma_p90 - sigma_median) / (sigma_median + eps)
-    sigma_spindle = sigma_relative * (1.0 + 0.5 * sigma_burstiness)
-
-    beta_arousal = eeg_beta / eeg_total
-    eog_slow = 0.70 * eog_delta + 0.30 * eog_theta
-
-    if eog_energy.shape[1] > 1:
-        eog_variation = np.abs(np.diff(eog_energy, axis=1))
-        eog_rapid = np.pad(
-            eog_variation,
-            ((0, 0), (0, 1)),
-            mode="edge",
-        )
-        eog_rapid = 0.60 * eog_rapid + 0.25 * eog_energy + 0.15 * eog_beta
-    else:
-        eog_rapid = 0.70 * eog_energy + 0.30 * eog_beta
-
-    emg_activation = 0.70 * emg_energy + 0.30 * emg_beta
-    emg_center = np.median(emg_activation, axis=1, keepdims=True)
-    emg_iqr = (
-        np.percentile(emg_activation, 75, axis=1, keepdims=True)
-        - np.percentile(emg_activation, 25, axis=1, keepdims=True)
+    """Build the versioned V2 segment proxy through the canonical module."""
+    concept_profile = concepts_from_segment_features(
+        segment_features,
+        version="segment_proxy_v2",
+        reduce_segments=True,
     )
-    emg_z = np.clip((emg_activation - emg_center) / (emg_iqr + eps), -60.0, 60.0)
-    emg_atonia = 1.0 / (1.0 + np.exp(emg_z))
-    emg_active = 1.0 / (1.0 + np.exp(-emg_z))
-
-    concept_segments = np.stack(
-        [
-            slow_wave_dominance,
-            theta_light_sleep,
-            alpha_wake,
-            sigma_spindle,
-            beta_arousal,
-            eog_slow,
-            eog_rapid,
-            emg_atonia,
-            emg_active,
-        ],
-        axis=-1,
-    )
-    concept_profile = np.mean(np.clip(concept_segments, 0.0, None), axis=1)
-    concept_profile = _scale_rows_to_unit(concept_profile)
 
     if labels is not None and concept_prior_weight > 0:
         stage_concept_prior = get_stage_concept_prior(num_concepts=concept_profile.shape[1])
@@ -1276,6 +1132,80 @@ def make_classification_loss(loss_name="focal"):
         f"got {loss_name!r}"
     )
 
+
+def make_xai_alignment_loss(loss_name="normalized_mse"):
+    """Build a loss over [B,T,30,3] local-importance logits."""
+    key = str(loss_name or "normalized_mse").strip().lower().replace("-", "_")
+
+    def distributions(y_true, logits):
+        target = tf.nn.relu(tf.cast(y_true, tf.float32))
+        shape = tf.shape(target)
+        target_flat = tf.reshape(target, (-1, shape[-2] * shape[-1]))
+        target_flat /= tf.maximum(tf.reduce_sum(target_flat, axis=-1, keepdims=True), 1e-8)
+        logit_flat = tf.reshape(tf.cast(logits, tf.float32), (-1, shape[-2] * shape[-1]))
+        return target_flat, tf.nn.softmax(logit_flat, axis=-1), logit_flat, shape
+
+    def normalized_mse(y_true, y_pred):
+        target, predicted, _logits, shape = distributions(y_true, y_pred)
+        return tf.reshape(tf.reduce_mean(tf.square(target - predicted), axis=-1), shape[:-2])
+
+    def kl_divergence(y_true, y_pred):
+        target, predicted, _logits, shape = distributions(y_true, y_pred)
+        loss = tf.reduce_sum(target * tf.math.log((target + 1e-8) / (predicted + 1e-8)), axis=-1)
+        return tf.reshape(loss, shape[:-2])
+
+    def js_divergence(y_true, y_pred):
+        target, predicted, _logits, shape = distributions(y_true, y_pred)
+        middle = 0.5 * (target + predicted)
+        loss = 0.5 * tf.reduce_sum(target * tf.math.log((target + 1e-8) / (middle + 1e-8)), axis=-1)
+        loss += 0.5 * tf.reduce_sum(predicted * tf.math.log((predicted + 1e-8) / (middle + 1e-8)), axis=-1)
+        return tf.reshape(loss, shape[:-2])
+
+    def rank_correlation_surrogate(y_true, y_pred):
+        target, predicted, _logits, shape = distributions(y_true, y_pred)
+        target -= tf.reduce_mean(target, axis=-1, keepdims=True)
+        predicted -= tf.reduce_mean(predicted, axis=-1, keepdims=True)
+        correlation = tf.reduce_sum(target * predicted, axis=-1) / tf.maximum(
+            tf.norm(target, axis=-1) * tf.norm(predicted, axis=-1), 1e-8
+        )
+        return tf.reshape(1.0 - correlation, shape[:-2])
+
+    def top_k_bce(y_true, y_pred):
+        target, _predicted, logits, shape = distributions(y_true, y_pred)
+        top_indices = tf.math.top_k(target, k=tf.minimum(10, tf.shape(target)[-1])).indices
+        labels = tf.reduce_sum(tf.one_hot(top_indices, tf.shape(target)[-1]), axis=1)
+        loss = tf.reduce_mean(
+            tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=logits), axis=-1
+        )
+        return tf.reshape(loss, shape[:-2])
+
+    losses = {
+        "normalized_mse": normalized_mse,
+        "mse": normalized_mse,
+        "kl": kl_divergence,
+        "kl_divergence": kl_divergence,
+        "js": js_divergence,
+        "js_divergence": js_divergence,
+        "rank_correlation_surrogate": rank_correlation_surrogate,
+        "top_k_bce": top_k_bce,
+    }
+    if key not in losses:
+        raise ValueError(f"Unknown XAI alignment loss: {loss_name!r}")
+    return losses[key]
+
+
+def scheduled_xai_loss_weight(epoch, target_weight, warmup_epochs=3, ramp_epochs=5):
+    """Return the prescribed zero-warmup then linear XAI-loss ramp."""
+    epoch = int(epoch)
+    target_weight = max(0.0, float(target_weight))
+    warmup_epochs = max(0, int(warmup_epochs))
+    ramp_epochs = max(1, int(ramp_epochs))
+    if epoch < warmup_epochs:
+        return 0.0
+    progress = min(1.0, (epoch - warmup_epochs + 1) / float(ramp_epochs))
+    return target_weight * progress
+
+
 def n1_margin_focal_loss(
         y_true,
         y_pred,
@@ -1390,6 +1320,227 @@ def n1_supervised_contrastive_loss(
         tf.zeros_like(anchor_loss),
     )
     return tf.reshape(anchor_loss, output_shape)
+
+
+def n1_n2_pair_supervised_contrastive_loss(
+        y_true,
+        y_pred,
+        temperature=0.12,
+        eps=1e-8,
+):
+    """Pair-only supervised contrastive loss on the 128-d temporal representation.
+
+    Only true N1/N2 epochs are eligible anchors. Same-stage samples are
+    positives and the other target stage is the negative class. The returned
+    tensor keeps the sequence shape so the existing per-epoch sample-weight
+    path can mask padded epochs and disable the loss by phase.
+    """
+    y_true = tf.cast(y_true, tf.float32)
+    y_pred = tf.cast(y_pred, tf.float32)
+    output_shape = tf.shape(y_true)[:-1]
+    labels = tf.argmax(y_true, axis=-1, output_type=tf.int32)
+    valid = tf.reduce_sum(y_true, axis=-1) > 0.5
+
+    flat_labels = tf.reshape(labels, [-1])
+    flat_valid = tf.reshape(valid, [-1])
+    features = tf.reshape(y_pred, [-1, tf.shape(y_pred)[-1]])
+    features = tf.math.l2_normalize(tf.cast(features, tf.float32), axis=-1)
+
+    target_mask = tf.logical_and(
+        flat_valid,
+        tf.logical_or(tf.equal(flat_labels, 1), tf.equal(flat_labels, 2)),
+    )
+    n_items = tf.shape(features)[0]
+    not_self = tf.logical_not(tf.eye(n_items, dtype=tf.bool))
+    anchor_mask = target_mask[:, tf.newaxis]
+    candidate_mask = tf.logical_and(anchor_mask, target_mask[tf.newaxis, :])
+    candidate_mask = tf.logical_and(candidate_mask, not_self)
+    positive_mask = tf.logical_and(
+        candidate_mask,
+        tf.equal(flat_labels[:, tf.newaxis], flat_labels[tf.newaxis, :]),
+    )
+
+    logits = tf.matmul(features, features, transpose_b=True) / float(temperature)
+    row_max = tf.reduce_max(tf.where(candidate_mask, logits, -1e9), axis=1, keepdims=True)
+    logits = logits - tf.stop_gradient(row_max)
+    masked_logits = tf.where(candidate_mask, logits, -1e9)
+    log_denominator = tf.reduce_logsumexp(masked_logits, axis=1, keepdims=True)
+    log_prob = logits - log_denominator
+
+    positive_mask_f = tf.cast(positive_mask, tf.float32)
+    positive_count = tf.reduce_sum(positive_mask_f, axis=1)
+    anchor_loss = -tf.reduce_sum(log_prob * positive_mask_f, axis=1) / tf.maximum(positive_count, float(eps))
+    anchor_loss = tf.where(
+        tf.logical_and(target_mask, positive_count > 0.0),
+        anchor_loss,
+        tf.zeros_like(anchor_loss),
+    )
+    return tf.reshape(anchor_loss, output_shape)
+
+
+def n1_context_subtype_masks(y_true):
+    """Return train-time N1 boundary subtype masks from within-window labels."""
+    y_true = tf.cast(y_true, tf.float32)
+    labels = tf.argmax(y_true, axis=-1, output_type=tf.int32)
+    valid = tf.reduce_sum(y_true, axis=-1) > 0.5
+    seq_len = tf.shape(labels)[1]
+    center_valid = tf.logical_and(
+        tf.greater(seq_len, 2),
+        tf.ones_like(labels, dtype=tf.bool),
+    )
+    internal = tf.concat(
+        [
+            tf.zeros_like(labels[:, :1], dtype=tf.bool),
+            tf.ones_like(labels[:, 1:-1], dtype=tf.bool),
+            tf.zeros_like(labels[:, -1:], dtype=tf.bool),
+        ],
+        axis=1,
+    )
+    prev_labels = tf.concat([labels[:, :1], labels[:, :-1]], axis=1)
+    next_labels = tf.concat([labels[:, 1:], labels[:, -1:]], axis=1)
+    prev_valid = tf.concat([tf.zeros_like(valid[:, :1], dtype=tf.bool), valid[:, :-1]], axis=1)
+    next_valid = tf.concat([valid[:, 1:], tf.zeros_like(valid[:, -1:], dtype=tf.bool)], axis=1)
+    context_valid = tf.logical_and(tf.logical_and(valid, prev_valid), tf.logical_and(next_valid, internal))
+    context_valid = tf.logical_and(context_valid, center_valid)
+    is_n1 = tf.equal(labels, 1)
+
+    prev_w = tf.equal(prev_labels, 0)
+    next_w = tf.equal(next_labels, 0)
+    prev_n1 = tf.equal(prev_labels, 1)
+    next_n1 = tf.equal(next_labels, 1)
+    prev_n2 = tf.equal(prev_labels, 2)
+    next_n2 = tf.equal(next_labels, 2)
+    prev_rem = tf.equal(prev_labels, 4)
+    next_rem = tf.equal(next_labels, 4)
+
+    w_adjacent = tf.logical_and(
+        tf.logical_and(context_valid, is_n1),
+        tf.logical_and(
+            tf.logical_or(prev_w, next_w),
+            tf.logical_and(tf.logical_or(prev_w, prev_n1), tf.logical_or(next_w, next_n1)),
+        ),
+    )
+    n2_adjacent = tf.logical_and(
+        tf.logical_and(context_valid, is_n1),
+        tf.logical_and(
+            tf.logical_or(prev_n2, next_n2),
+            tf.logical_and(tf.logical_or(prev_n2, prev_n1), tf.logical_or(next_n2, next_n1)),
+        ),
+    )
+    rem_adjacent = tf.logical_and(
+        tf.logical_and(context_valid, is_n1),
+        tf.logical_and(
+            tf.logical_or(prev_rem, next_rem),
+            tf.logical_and(tf.logical_or(prev_rem, prev_n1), tf.logical_or(next_rem, next_n1)),
+        ),
+    )
+    return {
+        "labels": labels,
+        "valid": valid,
+        "W_ADJACENT_N1": w_adjacent,
+        "N2_ADJACENT_N1": n2_adjacent,
+        "REM_ADJACENT_N1": rem_adjacent,
+    }
+
+
+def n1_context_subtype_local_contrastive_components(
+        y_true,
+        y_pred,
+        temperature=0.12,
+        eps=1e-8,
+):
+    """Subtype-balanced local InfoNCE for directed N1 boundary subtypes."""
+    masks = n1_context_subtype_masks(y_true)
+    labels = masks["labels"]
+    valid = masks["valid"]
+    features = tf.reshape(tf.cast(y_pred, tf.float32), [-1, tf.shape(y_pred)[-1]])
+    features = tf.math.l2_normalize(features, axis=-1)
+    flat_labels = tf.reshape(labels, [-1])
+    flat_valid = tf.reshape(valid, [-1])
+    n_items = tf.shape(features)[0]
+    not_self = tf.logical_not(tf.eye(n_items, dtype=tf.bool))
+
+    logits_pos = tf.matmul(features, features, transpose_b=True) / float(temperature)
+    logits_neg = tf.matmul(features, tf.stop_gradient(features), transpose_b=True) / float(temperature)
+
+    def subtype_loss(subtype_mask, negative_stage):
+        anchor = tf.reshape(subtype_mask, [-1])
+        negative = tf.logical_and(flat_valid, tf.equal(flat_labels, int(negative_stage)))
+        anchor_col = anchor[:, tf.newaxis]
+        positive_mask = tf.logical_and(anchor_col, anchor[tf.newaxis, :])
+        positive_mask = tf.logical_and(positive_mask, not_self)
+        negative_mask = tf.logical_and(anchor_col, negative[tf.newaxis, :])
+        candidate_mask = tf.logical_or(positive_mask, negative_mask)
+        candidate_logits = tf.where(
+            positive_mask,
+            logits_pos,
+            tf.where(negative_mask, logits_neg, tf.fill(tf.shape(logits_pos), tf.constant(-1e9, tf.float32))),
+        )
+        row_max = tf.reduce_max(candidate_logits, axis=1, keepdims=True)
+        candidate_logits = candidate_logits - tf.stop_gradient(row_max)
+        positive_logits = tf.where(
+            positive_mask,
+            logits_pos - tf.stop_gradient(row_max),
+            tf.fill(tf.shape(logits_pos), tf.constant(-1e9, tf.float32)),
+        )
+        log_num = tf.reduce_logsumexp(positive_logits, axis=1)
+        log_den = tf.reduce_logsumexp(candidate_logits, axis=1)
+        positive_count = tf.reduce_sum(tf.cast(positive_mask, tf.float32), axis=1)
+        negative_count = tf.reduce_sum(tf.cast(negative_mask, tf.float32), axis=1)
+        valid_anchor = tf.logical_and(anchor, tf.logical_and(positive_count >= 1.0, negative_count >= 1.0))
+        per_anchor = -(log_num - log_den)
+        per_anchor = tf.where(valid_anchor, per_anchor, tf.zeros_like(per_anchor))
+        valid_count = tf.reduce_sum(tf.cast(valid_anchor, tf.float32))
+        loss = tf.reduce_sum(per_anchor) / tf.maximum(valid_count, float(eps))
+        loss = tf.where(valid_count > 0.0, loss, tf.zeros_like(loss))
+        return loss, valid_count, tf.reduce_sum(tf.cast(anchor, tf.float32)), tf.reduce_sum(tf.cast(negative, tf.float32))
+
+    w_loss, w_valid, w_anchor, w_negative = subtype_loss(masks["W_ADJACENT_N1"], 0)
+    n2_loss, n2_valid, n2_anchor, n2_negative = subtype_loss(masks["N2_ADJACENT_N1"], 2)
+    rem_loss, rem_valid, rem_anchor, rem_negative = subtype_loss(masks["REM_ADJACENT_N1"], 4)
+    subtype_losses = tf.stack([w_loss, n2_loss, rem_loss])
+    subtype_valid = tf.cast(tf.stack([w_valid, n2_valid, rem_valid]) > 0.0, tf.float32)
+    valid_subtype_count = tf.reduce_sum(subtype_valid)
+    context_loss = tf.reduce_sum(subtype_losses * subtype_valid) / tf.maximum(valid_subtype_count, 1.0)
+    context_loss = tf.where(valid_subtype_count > 0.0, context_loss, tf.zeros_like(context_loss))
+    return {
+        "L_W": w_loss,
+        "L_N2": n2_loss,
+        "L_REM": rem_loss,
+        "L_context": context_loss,
+        "valid_subtype_count": valid_subtype_count,
+        "W_valid_anchor_count": w_valid,
+        "N2_valid_anchor_count": n2_valid,
+        "REM_valid_anchor_count": rem_valid,
+        "W_anchor_count": w_anchor,
+        "N2_anchor_count": n2_anchor,
+        "REM_anchor_count": rem_anchor,
+        "W_negative_count": w_negative,
+        "N2_negative_count": n2_negative,
+        "REM_negative_count": rem_negative,
+    }
+
+
+def n1_context_subtype_local_contrastive_loss(
+        y_true,
+        y_pred,
+        temperature=0.12,
+        eps=1e-8,
+):
+    """Auxiliary loss preserving directed N1 context subtypes.
+
+    W/N2/REM adjacent N1 anchors use same-subtype N1 positives and only the
+    corresponding adjacent stage as stop-gradient negatives. Other N1
+    subtypes, other N1 boundary modes, N3-adjacent N1, and padding are ignored.
+    """
+    output_shape = tf.shape(y_true)[:-1]
+    components = n1_context_subtype_local_contrastive_components(
+        y_true,
+        y_pred,
+        temperature=temperature,
+        eps=eps,
+    )
+    return tf.fill(output_shape, components["L_context"])
 
 
 def make_domain_alignment_loss(mode="coral"):
@@ -1889,6 +2040,276 @@ def _time_distributed_segment_multiscale_features(
     return Dropout(dropout_rate, name="v3_segment_feature_dropout")(x)
 
 
+class EpochLevelTFInteraction(tf.keras.layers.Layer):
+    """Lightweight epoch-level interaction between raw and segment features."""
+
+    def __init__(
+        self,
+        interaction_dim=128,
+        num_heads=4,
+        dropout_rate=0.10,
+        seed=2024,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.interaction_dim = int(interaction_dim)
+        self.num_heads = int(num_heads)
+        self.dropout_rate = float(dropout_rate)
+        self.seed = int(seed)
+        self.raw_projection = Dense(
+            self.interaction_dim,
+            kernel_initializer=tf.keras.initializers.GlorotUniform(seed=self.seed + 1),
+            name="raw_epoch_token_projection",
+        )
+        self.segment_projection = Dense(
+            self.interaction_dim,
+            kernel_initializer=tf.keras.initializers.GlorotUniform(seed=self.seed + 2),
+            name="segment_epoch_token_projection",
+        )
+        self.attention = MultiHeadAttention(
+            num_heads=self.num_heads,
+            key_dim=max(1, self.interaction_dim // max(1, self.num_heads)),
+            dropout=self.dropout_rate,
+            kernel_initializer=tf.keras.initializers.GlorotUniform(seed=self.seed + 3),
+            bias_initializer="zeros",
+            name="epoch_domain_self_attention",
+        )
+        self.attention_dropout = Dropout(self.dropout_rate, name="epoch_domain_attention_dropout")
+        self.attention_norm = LayerNormalization(name="epoch_domain_attention_norm")
+        self.raw_delta_projection = None
+        self.segment_delta_projection = None
+
+    def build(self, input_shape):
+        if not isinstance(input_shape, (list, tuple)) or len(input_shape) != 2:
+            raise ValueError("EpochLevelTFInteraction expects [raw_features, segment_features].")
+        raw_dim = int(input_shape[0][-1])
+        segment_dim = int(input_shape[1][-1])
+        self.raw_delta_projection = Dense(
+            raw_dim,
+            kernel_initializer=tf.keras.initializers.GlorotUniform(seed=self.seed + 4),
+            name="raw_epoch_delta_projection",
+        )
+        self.segment_delta_projection = Dense(
+            segment_dim,
+            kernel_initializer=tf.keras.initializers.GlorotUniform(seed=self.seed + 5),
+            name="segment_epoch_delta_projection",
+        )
+        self.domain_embedding = self.add_weight(
+            name="epoch_domain_embedding",
+            shape=(2, self.interaction_dim),
+            initializer=tf.keras.initializers.RandomNormal(mean=0.0, stddev=0.02, seed=self.seed + 6),
+            trainable=True,
+        )
+        self.gate_raw = self.add_weight(
+            name="gate_raw",
+            shape=(),
+            initializer="zeros",
+            trainable=True,
+        )
+        self.gate_segment = self.add_weight(
+            name="gate_segment",
+            shape=(),
+            initializer="zeros",
+            trainable=True,
+        )
+        super().build(input_shape)
+
+    def call(self, inputs, training=None):
+        raw_features, segment_features = inputs
+        raw_token = self.raw_projection(raw_features)
+        segment_token = self.segment_projection(segment_features)
+        tokens = tf.stack([raw_token, segment_token], axis=2)
+        tokens = tokens + tf.reshape(self.domain_embedding, (1, 1, 2, self.interaction_dim))
+
+        token_shape = tf.shape(tokens)
+        batch_size = token_shape[0]
+        seq_len = token_shape[1]
+        flat_tokens = tf.reshape(tokens, (-1, 2, self.interaction_dim))
+        attended = self.attention(flat_tokens, flat_tokens, training=training)
+        attended = self.attention_dropout(attended, training=training)
+        interacted = self.attention_norm(flat_tokens + attended)
+        interacted = tf.reshape(interacted, (batch_size, seq_len, 2, self.interaction_dim))
+
+        raw_interacted = interacted[:, :, 0, :]
+        segment_interacted = interacted[:, :, 1, :]
+        raw_delta = self.raw_delta_projection(raw_interacted)
+        segment_delta = self.segment_delta_projection(segment_interacted)
+        raw_new = raw_features + tf.tanh(self.gate_raw) * raw_delta
+        segment_new = segment_features + tf.tanh(self.gate_segment) * segment_delta
+        return raw_new, segment_new
+
+    def get_config(self):
+        config = super().get_config()
+        config.update(
+            {
+                "interaction_dim": self.interaction_dim,
+                "num_heads": self.num_heads,
+                "dropout_rate": self.dropout_rate,
+                "seed": self.seed,
+            }
+        )
+        return config
+
+
+def apply_epoch_utf_lite_interaction(
+    raw_features,
+    segment_features,
+    interaction_dim=128,
+    num_heads=4,
+    dropout_rate=0.10,
+    seed=2024,
+):
+    return EpochLevelTFInteraction(
+        interaction_dim=interaction_dim,
+        num_heads=num_heads,
+        dropout_rate=dropout_rate,
+        seed=seed,
+        name="epoch_utf_lite_interaction",
+    )([raw_features, segment_features])
+
+
+class StageSpecificConceptRouter(tf.keras.layers.Layer):
+    """Add bounded stage-specific clinical concept evidence to stage logits."""
+
+    def __init__(
+            self,
+            clinical_prior,
+            prior_delta_scale=0.10,
+            expose_diagnostics=False,
+            **kwargs,
+    ):
+        super().__init__(**kwargs)
+        clinical_prior = np.asarray(clinical_prior, dtype=np.float32)
+        if clinical_prior.ndim != 2:
+            raise ValueError(f"clinical_prior must be 2D, got {clinical_prior.shape}")
+        self.clinical_prior_value = clinical_prior
+        self.num_classes = int(clinical_prior.shape[0])
+        self.num_concepts = int(clinical_prior.shape[1])
+        self.prior_delta_scale = float(prior_delta_scale)
+        self.expose_diagnostics = bool(expose_diagnostics)
+
+    def build(self, input_shape):
+        if not isinstance(input_shape, (list, tuple)) or len(input_shape) != 2:
+            raise ValueError("StageSpecificConceptRouter expects [base_logits, clinical_concepts].")
+        concept_dim = int(input_shape[1][-1])
+        logit_dim = int(input_shape[0][-1])
+        if concept_dim != self.num_concepts:
+            raise ValueError(
+                "clinical_concepts dimension must match clinical_prior columns: "
+                f"got {concept_dim}, expected {self.num_concepts}"
+            )
+        if logit_dim != self.num_classes:
+            raise ValueError(
+                "base_logits dimension must match clinical_prior rows: "
+                f"got {logit_dim}, expected {self.num_classes}"
+            )
+        self.clinical_prior = self.add_weight(
+            name="clinical_prior",
+            shape=(self.num_classes, self.num_concepts),
+            initializer=Constant(self.clinical_prior_value),
+            trainable=False,
+        )
+        self.prior_delta = self.add_weight(
+            name="prior_delta",
+            shape=(self.num_classes, self.num_concepts),
+            initializer="zeros",
+            trainable=True,
+        )
+        self.concept_logit_gate = self.add_weight(
+            name="concept_logit_gate",
+            shape=(),
+            initializer="zeros",
+            trainable=True,
+        )
+        super().build(input_shape)
+
+    def call(self, inputs):
+        base_logits, clinical_concepts = inputs
+        p_effective = self.clinical_prior + self.prior_delta_scale * tf.tanh(self.prior_delta)
+        stage_evidence = tf.linalg.matmul(clinical_concepts, p_effective, transpose_b=True)
+        stage_evidence = tf.tanh(stage_evidence)
+        router_contribution = tf.tanh(self.concept_logit_gate) * stage_evidence
+        final_logits = base_logits + router_contribution
+        if self.expose_diagnostics:
+            return tf.concat(
+                [final_logits, base_logits, stage_evidence, router_contribution],
+                axis=-1,
+            )
+        return final_logits
+
+    def get_config(self):
+        config = super().get_config()
+        config.update(
+            {
+                "clinical_prior": self.clinical_prior_value.tolist(),
+                "prior_delta_scale": self.prior_delta_scale,
+                "expose_diagnostics": self.expose_diagnostics,
+            }
+        )
+        return config
+
+
+def apply_stage_specific_concept_router(
+        base_logits,
+        segment_sequence,
+        num_classes=5,
+        clinical_concept_version="v1",
+        prior_delta_scale=0.10,
+        expose_diagnostics=False,
+):
+    raw_concepts = TimeDistributed(
+        Lambda(
+            lambda x: extract_clinical_concepts_from_segments(
+                x,
+                concept_version=clinical_concept_version,
+            )
+        ),
+        name="scr_td_clinical_concepts",
+    )(segment_sequence)
+    concepts = LayerNormalization(
+        name="scr_td_clinical_concept_norm",
+        trainable=False,
+    )(raw_concepts)
+    concept_summary = TimeDistributed(
+        GlobalAveragePooling1D(),
+        name="scr_td_clinical_concept_summary",
+    )(concepts)
+    clinical_prior = get_stage_concept_prior(
+        num_concepts=len(CLINICAL_CONCEPT_NAMES),
+        num_classes=num_classes,
+    ).T
+    router_output = StageSpecificConceptRouter(
+        clinical_prior=clinical_prior,
+        prior_delta_scale=prior_delta_scale,
+        expose_diagnostics=expose_diagnostics,
+        name="stage_specific_concept_router",
+    )([base_logits, concept_summary])
+    if not expose_diagnostics:
+        return router_output
+    final_logits = Lambda(
+        lambda x: x[..., :num_classes],
+        name="scr_final_logits_probe",
+    )(router_output)
+    base_logits_probe = Lambda(
+        lambda x: x[..., num_classes:2 * num_classes],
+        name="scr_base_logits_probe",
+    )(router_output)
+    stage_evidence_probe = Lambda(
+        lambda x: x[..., 2 * num_classes:3 * num_classes],
+        name="scr_stage_evidence_probe",
+    )(router_output)
+    router_contribution_probe = Lambda(
+        lambda x: x[..., 3 * num_classes:4 * num_classes],
+        name="scr_router_contribution_probe",
+    )(router_output)
+    return final_logits, {
+        "base_logits": base_logits_probe,
+        "stage_evidence": stage_evidence_probe,
+        "router_contribution": router_contribution_probe,
+        "final_logits": final_logits,
+    }
+
+
 def _temporal_residual_tcn_block(
         inputs,
         filters,
@@ -2099,6 +2520,47 @@ def _shuffle_batch_concepts(concept_sequence):
     return tf.gather(concept_sequence, permutation, axis=0)
 
 
+class EOGSlowEvidenceResidual(tf.keras.layers.Layer):
+    """Per-segment EOG delta/theta residual for the existing FiLM hidden."""
+
+    def __init__(self, conditioning_dim, hidden_dim=8, dropout=0.1, gate_init=0.0, **kwargs):
+        super().__init__(**kwargs)
+        self.conditioning_dim = int(conditioning_dim)
+        self.hidden_dim = int(hidden_dim)
+        self.dropout_rate = float(dropout)
+        self.gate_init = float(gate_init)
+        self.hidden = Dense(self.hidden_dim, activation=tf.nn.gelu, name="view_hidden")
+        self.dropout = Dropout(self.dropout_rate, name="view_dropout")
+        self.projection = Dense(self.conditioning_dim, name="view_projection")
+
+    def build(self, input_shape):
+        self.gate_parameter = self.add_weight(
+            name="gate_parameter", shape=(), initializer=Constant(self.gate_init), trainable=True
+        )
+        super().build(input_shape)
+
+    def call(self, inputs, training=None):
+        evidence, scalar_hidden = inputs
+        delta = self.projection(self.dropout(self.hidden(evidence), training=training))
+        effective_gate = tf.tanh(self.gate_parameter)
+        hidden_segments = tf.expand_dims(scalar_hidden, axis=-2) + effective_gate * delta
+        conditioned_hidden = tf.reduce_mean(hidden_segments, axis=-2)
+        ratio = tf.norm(effective_gate * delta) / (tf.norm(scalar_hidden) + tf.keras.backend.epsilon())
+        if training is not False:
+            self.add_metric(self.gate_parameter, name="eog_slow_gate_parameter", aggregation="mean")
+            self.add_metric(effective_gate, name="eog_slow_effective_gate", aggregation="mean")
+            self.add_metric(tf.reduce_mean(tf.norm(scalar_hidden, axis=-1)), name="eog_slow_scalar_hidden_norm", aggregation="mean")
+            self.add_metric(tf.reduce_mean(tf.norm(delta, axis=-1)), name="eog_slow_residual_hidden_norm", aggregation="mean")
+            self.add_metric(ratio, name="eog_slow_injection_ratio", aggregation="mean")
+        return conditioned_hidden
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({"conditioning_dim": self.conditioning_dim, "hidden_dim": self.hidden_dim,
+                       "dropout": self.dropout_rate, "gate_init": self.gate_init})
+        return config
+
+
 def _time_distributed_concept_film_modulation(
     feature_sequence,
     segment_sequence,
@@ -2107,6 +2569,11 @@ def _time_distributed_concept_film_modulation(
     stop_gradient=True,
     concept_mode="real",
     hidden_units=64,
+    enable_eog_slow_evidence_residual=False,
+    eog_slow_evidence_source="raw",
+    eog_slow_residual_hidden_dim=8,
+    eog_slow_residual_dropout=0.1,
+    eog_slow_residual_gate_init=0.0,
 ):
     feature_dim = feature_sequence.shape[-1]
     if feature_dim is None:
@@ -2172,6 +2639,22 @@ def _time_distributed_concept_film_modulation(
         activation="relu",
         name="pfm_concept_modulation_hidden",
     )(concept_summary)
+    if enable_eog_slow_evidence_residual:
+        source = str(eog_slow_evidence_source or "raw").strip().lower()
+        if source == "raw":
+            evidence = tf.concat([segment_sequence[..., 14:15], segment_sequence[..., 17:18]], axis=-1)
+        elif source == "matched_scalar":
+            slow_scalar = raw_concepts[..., 5:6]
+            evidence = tf.concat([slow_scalar, slow_scalar], axis=-1)
+        else:
+            raise ValueError("eog_slow_evidence_source must be raw or matched_scalar")
+        hidden = EOGSlowEvidenceResidual(
+            conditioning_dim=int(hidden_units),
+            hidden_dim=eog_slow_residual_hidden_dim,
+            dropout=eog_slow_residual_dropout,
+            gate_init=eog_slow_residual_gate_init,
+            name="eog_slow_evidence_residual",
+        )([evidence, hidden])
     gamma = Dense(
         feature_dim,
         kernel_initializer="zeros",
@@ -2317,7 +2800,49 @@ def create_sequence_sleep_model(
     use_n1_supervised_contrastive=False,
     n1_contrastive_loss_weight=0.04,
     n1_contrastive_projection_dim=64,
+    enable_n1_n2_pair_supcon=False,
+    n1_n2_pair_supcon_loss_weight=0.01,
+    enable_n1_context_local_contrast=False,
+    n1_context_local_contrast_loss_weight=0.01,
+    enable_epoch_utf_lite=False,
+    epoch_utf_lite_dim=128,
+    epoch_utf_lite_heads=4,
+    epoch_utf_lite_dropout=0.10,
+    epoch_utf_lite_seed=2024,
+    enable_stage_concept_router=False,
+    stage_concept_prior_delta_scale=0.10,
+    instrument_stage_concept_router=False,
+    enable_eog_slow_evidence_residual=False,
+    eog_slow_evidence_source="raw",
+    eog_slow_residual_hidden_dim=8,
+    eog_slow_residual_dropout=0.1,
+    eog_slow_residual_gate_init=0.0,
+    enable_xai_feedback_head=False,
+    xai_feedback_loss_weight=0.0,
+    xai_alignment_loss_name="normalized_mse",
+    xai_gradient_scope="head_only",
 ):
+    xai_feedback_loss_weight = float(xai_feedback_loss_weight)
+    if xai_feedback_loss_weight < 0.0:
+        raise ValueError("xai_feedback_loss_weight must be non-negative")
+    if xai_feedback_loss_weight > 0.0 and not enable_xai_feedback_head:
+        raise ValueError("A positive XAI loss weight requires enable_xai_feedback_head=True")
+    xai_gradient_scope = str(xai_gradient_scope or "head_only").strip().lower()
+    if xai_gradient_scope not in {"head_only", "fusion_and_head", "full_backbone"}:
+        raise ValueError(
+            "xai_gradient_scope must be head_only, fusion_and_head, or full_backbone"
+        )
+    if enable_stage_concept_router:
+        concept_mode = str(concept_modulation_mode or "real").strip().lower().replace("-", "_")
+        if concept_mode not in {"zero", "zeros", "without", "no_concept", "no_concepts"}:
+            raise ValueError(
+                "enable_stage_concept_router=True requires concept_modulation_mode='zero' "
+                f"to preserve the A1-zero backbone; got {concept_modulation_mode!r}."
+            )
+        if use_late_clinical_concept_residual:
+            raise ValueError(
+                "enable_stage_concept_router=True cannot be combined with late clinical concept residuals."
+            )
     raw_input = tf.keras.Input(shape=(seq_len, *raw_shape), name="raw_input")
     segment_input = tf.keras.Input(shape=(seq_len, *segment_shape), name="segment_input")
 
@@ -2379,6 +2904,17 @@ def create_sequence_sleep_model(
             "epoch_encoder_variant must be one of 'v3_multiscale', 'v3_channel_specialized_residual_lite', 'v3_channel_specialized_residual', or 'legacy_bilstm', "
             f"got {epoch_encoder_variant!r}"
         )
+
+    if enable_epoch_utf_lite:
+        raw_features, segment_features = apply_epoch_utf_lite_interaction(
+            raw_features,
+            segment_features,
+            interaction_dim=epoch_utf_lite_dim,
+            num_heads=epoch_utf_lite_heads,
+            dropout_rate=epoch_utf_lite_dropout,
+            seed=epoch_utf_lite_seed,
+        )
+
     feature_blocks = [raw_features, segment_features]
     concept_output = None
     concept_bottleneck_output = None
@@ -2464,6 +3000,11 @@ def create_sequence_sleep_model(
             modulation_strength=concept_modulation_strength,
             stop_gradient=concept_modulation_stop_gradient,
             concept_mode=concept_modulation_mode,
+            enable_eog_slow_evidence_residual=enable_eog_slow_evidence_residual,
+            eog_slow_evidence_source=eog_slow_evidence_source,
+            eog_slow_residual_hidden_dim=eog_slow_residual_hidden_dim,
+            eog_slow_residual_dropout=eog_slow_residual_dropout,
+            eog_slow_residual_gate_init=eog_slow_residual_gate_init,
         )
 
     sequence_backbone_key = str(sequence_backbone or "v3_tcn").strip().lower().replace("-", "_")
@@ -2498,7 +3039,20 @@ def create_sequence_sleep_model(
         )
 
     temporal = TimeDistributed(Dense(128, activation="relu"), name="td_temporal_dense")(temporal)
+    pair_supcon_features = None
+    if enable_n1_n2_pair_supcon:
+        pair_supcon_features = Activation(
+            "linear",
+            name="n1_n2_pair_supcon_features",
+        )(temporal)
+    n1_context_local_contrast_features = None
+    if enable_n1_context_local_contrast:
+        n1_context_local_contrast_features = Activation(
+            "linear",
+            name="n1_context_local_contrast_features",
+        )(temporal)
     temporal = Dropout(dropout_rate, name="temporal_dropout")(temporal)
+    scr_diagnostic_tensors = None
     if use_late_clinical_concept_residual:
         main_logits = Dense(num_classes, name="main_output_logits")(temporal)
         concept_residual_logits = _time_distributed_late_clinical_concept_residual_logits(
@@ -2526,13 +3080,76 @@ def create_sequence_sleep_model(
             [main_logits, concept_residual_logits]
         )
         main_output = Activation("softmax", name="main_output")(main_logits)
+    elif enable_stage_concept_router:
+        main_logits = Dense(num_classes, name="main_output_logits")(temporal)
+        router_result = apply_stage_specific_concept_router(
+            main_logits,
+            segment_input,
+            num_classes=num_classes,
+            clinical_concept_version=clinical_concept_version,
+            prior_delta_scale=stage_concept_prior_delta_scale,
+            expose_diagnostics=instrument_stage_concept_router,
+        )
+        if instrument_stage_concept_router:
+            main_logits, scr_diagnostic_tensors = router_result
+        else:
+            main_logits = router_result
+        main_output = Activation("softmax", name="main_output")(main_logits)
     else:
         main_output = Dense(num_classes, activation="softmax", name="main_output")(temporal)
+
+    xai_importance_logits = None
+    if enable_xai_feedback_head:
+        # Construct the optional head only after the canonical classifier path.
+        # This preserves main-path RNG/initialization order when comparing E0
+        # with a lambda=0 feedback-head control.
+        local_source = segment_input
+        if xai_gradient_scope in {"head_only", "fusion_and_head"}:
+            local_source = Lambda(
+                lambda value: tf.stop_gradient(value),
+                name="xai_local_stop_gradient",
+            )(local_source)
+        xai_local = TimeDistributed(
+            TimeDistributed(Dense(16, activation="relu")),
+            name="xai_local_pre_pool_projection",
+        )(local_source)
+        if xai_gradient_scope in {"fusion_and_head", "full_backbone"}:
+            context_source = fused_features
+            if xai_gradient_scope == "fusion_and_head":
+                context_source = Lambda(
+                    lambda value: tf.stop_gradient(value),
+                    name="xai_fusion_stop_gradient",
+                )(context_source)
+            context = Lambda(
+                lambda value: tf.repeat(
+                    tf.expand_dims(value, axis=2),
+                    repeats=int(segment_shape[0]),
+                    axis=2,
+                ),
+                name="xai_repeat_epoch_context",
+            )(context_source)
+            xai_local = Concatenate(name="xai_local_context_fusion")(
+                [xai_local, context]
+            )
+        xai_hidden = TimeDistributed(
+            TimeDistributed(Dense(16, activation="relu")),
+            name="xai_importance_hidden",
+        )(xai_local)
+        xai_importance_logits = TimeDistributed(
+            TimeDistributed(Dense(3)),
+            name="xai_importance_logits",
+        )(xai_hidden)
 
     outputs = [main_output]
     main_loss_name = "focal" if (use_ot_tacb or use_mpdg) else loss_name
     losses = {"main_output": make_classification_loss(main_loss_name)}
     loss_weights = {"main_output": 1.0}
+    if enable_xai_feedback_head:
+        outputs.append(xai_importance_logits)
+        losses["xai_importance_logits"] = make_xai_alignment_loss(
+            xai_alignment_loss_name
+        )
+        loss_weights["xai_importance_logits"] = xai_feedback_loss_weight
     if use_concept_language and concept_output is not None and concept_bottleneck_output is not None:
         outputs.append(concept_output)
         losses["concept_output"] = CategoricalCrossentropy(label_smoothing=0.03)
@@ -2593,6 +3210,14 @@ def create_sequence_sleep_model(
         outputs.append(contrastive_features)
         losses["n1_contrastive_features"] = n1_supervised_contrastive_loss
         loss_weights["n1_contrastive_features"] = float(n1_contrastive_loss_weight)
+    if enable_n1_n2_pair_supcon:
+        outputs.append(pair_supcon_features)
+        losses["n1_n2_pair_supcon_features"] = n1_n2_pair_supervised_contrastive_loss
+        loss_weights["n1_n2_pair_supcon_features"] = float(n1_n2_pair_supcon_loss_weight)
+    if enable_n1_context_local_contrast:
+        outputs.append(n1_context_local_contrast_features)
+        losses["n1_context_local_contrast_features"] = n1_context_subtype_local_contrastive_loss
+        loss_weights["n1_context_local_contrast_features"] = float(n1_context_local_contrast_loss_weight)
     if use_domain_alignment:
         domain_features = Activation("linear", name="domain_alignment_features")(temporal)
         outputs.append(domain_features)
@@ -2600,6 +3225,13 @@ def create_sequence_sleep_model(
         loss_weights["domain_alignment_features"] = float(domain_alignment_loss_weight)
 
     model = Model(inputs=[raw_input, segment_input], outputs=outputs[0] if len(outputs) == 1 else outputs)
+    if enable_stage_concept_router and instrument_stage_concept_router:
+        if scr_diagnostic_tensors is None:
+            raise RuntimeError("SCR diagnostics requested but diagnostic tensors were not created.")
+        model._scr_base_logits_tensor = scr_diagnostic_tensors["base_logits"]
+        model._scr_stage_evidence_tensor = scr_diagnostic_tensors["stage_evidence"]
+        model._scr_router_contribution_tensor = scr_diagnostic_tensors["router_contribution"]
+        model._scr_final_logits_tensor = scr_diagnostic_tensors["final_logits"]
     return _compile_sleep_model(model, learning_rate, losses, loss_weights)
 
 
@@ -2618,108 +3250,11 @@ def transformer_encoder_block(inputs, head_size=64, num_heads=4, ff_dim=128, dro
 
 
 def _extract_clinical_concepts_v1_from_segments(segment_tensor):
-    eeg_delta = segment_tensor[:, :, 13:14]
-    eog_delta = segment_tensor[:, :, 14:15]
-    eeg_theta = segment_tensor[:, :, 16:17]
-    eog_theta = segment_tensor[:, :, 17:18]
-    eeg_alpha = segment_tensor[:, :, 19:20]
-    eeg_sigma = segment_tensor[:, :, 22:23]
-    eeg_beta = segment_tensor[:, :, 25:26]
-    eog_beta = segment_tensor[:, :, 26:27]
-    emg_beta = segment_tensor[:, :, 27:28]
-    eog_energy = segment_tensor[:, :, 11:12]
-    emg_energy = segment_tensor[:, :, 12:13]
-
-    eog_slow = 0.70 * eog_delta + 0.30 * eog_theta
-    eog_rapid = 0.55 * eog_energy + 0.30 * eog_theta + 0.15 * eog_beta
-    emg_activation = 0.70 * emg_energy + 0.30 * emg_beta
-    emg_low_tone = 1.0 / (1.0 + tf.nn.relu(emg_activation))
-
-    return tf.concat(
-        [
-            eeg_delta,
-            eeg_theta,
-            eeg_alpha,
-            eeg_sigma,
-            eeg_beta,
-            eog_slow,
-            eog_rapid,
-            emg_low_tone,
-            emg_activation,
-        ],
-        axis=-1,
-    )
-
-
-def _time_axis_percentile(values, percentile):
-    sorted_values = tf.sort(values, axis=1)
-    n_steps = tf.shape(sorted_values)[1]
-    position = (float(percentile) / 100.0) * tf.cast(tf.maximum(n_steps - 1, 0), tf.float32)
-    index = tf.cast(tf.round(position), tf.int32)
-    return tf.expand_dims(tf.gather(sorted_values, index, axis=1), axis=1)
+    return concepts_from_segment_tensor(segment_tensor, version="segment_proxy_v1")
 
 
 def _extract_clinical_concepts_v2_from_segments(segment_tensor):
-    eps = tf.constant(1e-6, dtype=segment_tensor.dtype)
-    eeg_delta = segment_tensor[:, :, 13:14]
-    eog_delta = segment_tensor[:, :, 14:15]
-    eeg_theta = segment_tensor[:, :, 16:17]
-    eog_theta = segment_tensor[:, :, 17:18]
-    eeg_alpha = segment_tensor[:, :, 19:20]
-    eeg_sigma = segment_tensor[:, :, 22:23]
-    eeg_beta = segment_tensor[:, :, 25:26]
-    eog_beta = segment_tensor[:, :, 26:27]
-    emg_beta = segment_tensor[:, :, 27:28]
-    eog_energy = segment_tensor[:, :, 11:12]
-    emg_energy = segment_tensor[:, :, 12:13]
-
-    eeg_total = eeg_delta + eeg_theta + eeg_alpha + eeg_sigma + eeg_beta + eps
-    slow_wave_dominance = eeg_delta / eeg_total
-    theta_light_sleep = eeg_theta / eeg_total
-    alpha_wake = eeg_alpha / eeg_total
-
-    sigma_relative = eeg_sigma / eeg_total
-    sigma_median = _time_axis_percentile(eeg_sigma, 50.0)
-    sigma_p90 = _time_axis_percentile(eeg_sigma, 90.0)
-    sigma_burstiness = (sigma_p90 - sigma_median) / (sigma_median + eps)
-    sigma_spindle = sigma_relative * (1.0 + 0.5 * sigma_burstiness)
-
-    beta_arousal = eeg_beta / eeg_total
-    eog_slow = 0.70 * eog_delta + 0.30 * eog_theta
-
-    def rapid_multi():
-        eog_variation = tf.abs(eog_energy[:, 1:, :] - eog_energy[:, :-1, :])
-        eog_variation = tf.concat([eog_variation, eog_variation[:, -1:, :]], axis=1)
-        return 0.60 * eog_variation + 0.25 * eog_energy + 0.15 * eog_beta
-
-    def rapid_single():
-        return 0.70 * eog_energy + 0.30 * eog_beta
-
-    eog_rapid = tf.cond(tf.shape(eog_energy)[1] > 1, rapid_multi, rapid_single)
-    emg_activation = 0.70 * emg_energy + 0.30 * emg_beta
-    emg_center = _time_axis_percentile(emg_activation, 50.0)
-    emg_iqr = (
-        _time_axis_percentile(emg_activation, 75.0)
-        - _time_axis_percentile(emg_activation, 25.0)
-    )
-    emg_z = tf.clip_by_value((emg_activation - emg_center) / (emg_iqr + eps), -60.0, 60.0)
-    emg_atonia = tf.sigmoid(-emg_z)
-    emg_active = tf.sigmoid(emg_z)
-
-    return tf.concat(
-        [
-            slow_wave_dominance,
-            theta_light_sleep,
-            alpha_wake,
-            sigma_spindle,
-            beta_arousal,
-            eog_slow,
-            eog_rapid,
-            emg_atonia,
-            emg_active,
-        ],
-        axis=-1,
-    )
+    return concepts_from_segment_tensor(segment_tensor, version="segment_proxy_v2")
 
 
 def extract_clinical_concepts_from_segments(segment_tensor, concept_version="v1"):

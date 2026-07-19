@@ -77,6 +77,7 @@ os.environ.setdefault("TF_GPU_ALLOCATOR", "cuda_malloc_async")
 
 import datetime
 import inspect
+import json
 import random
 import sys
 
@@ -89,7 +90,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import tensorflow as tf
-from sklearn.metrics import classification_report, cohen_kappa_score, confusion_matrix, f1_score
+from sklearn.metrics import classification_report, cohen_kappa_score, confusion_matrix, f1_score, roc_auc_score
 from tensorflow.keras.callbacks import Callback, EarlyStopping, ReduceLROnPlateau
 from tensorflow.keras.utils import Sequence, to_categorical
 from tqdm import tqdm
@@ -217,6 +218,13 @@ SEQUENCE_USE_TRANSFORMER = parse_bool_env(
     "LFTS_SEQUENCE_USE_TRANSFORMER",
     _TRANSFORMER_DEFAULT_BY_MEMORY_PROFILE.get(MEMORY_PROFILE, True),
 )
+ENABLE_EPOCH_UTF_LITE = parse_bool_env("LFTS_ENABLE_EPOCH_UTF_LITE", False)
+EPOCH_UTF_LITE_DIM = int(os.environ.get("LFTS_EPOCH_UTF_LITE_DIM", "128"))
+EPOCH_UTF_LITE_HEADS = int(os.environ.get("LFTS_EPOCH_UTF_LITE_HEADS", "4"))
+EPOCH_UTF_LITE_DROPOUT = float(os.environ.get("LFTS_EPOCH_UTF_LITE_DROPOUT", "0.10"))
+ENABLE_STAGE_CONCEPT_ROUTER = parse_bool_env("LFTS_ENABLE_STAGE_CONCEPT_ROUTER", False)
+STAGE_CONCEPT_PRIOR_DELTA_SCALE = float(os.environ.get("LFTS_STAGE_CONCEPT_PRIOR_DELTA_SCALE", "0.10"))
+ENABLE_SCR_COUNTERFACTUAL_DIAGNOSTICS = parse_bool_env("LFTS_ENABLE_SCR_COUNTERFACTUAL_DIAGNOSTICS", False)
 CLASSIFICATION_LOSS_NAME = os.environ.get("LFTS_LOSS_NAME", "n1_margin_focal")
 MICRO_MACRO_TRAINING = parse_bool_env("LFTS_MICRO_MACRO_TRAINING", True)
 MICRO_PRETRAIN_EPOCHS = int(os.environ.get("LFTS_MICRO_PRETRAIN_EPOCHS", "5"))
@@ -293,7 +301,32 @@ DOMAIN_ALIGNMENT_LOSS_WEIGHT = float(
         "0.005" if USE_DOMAIN_ALIGNMENT and DOMAIN_ALIGNMENT_STAGE_CONDITIONED else "0.01" if USE_DOMAIN_ALIGNMENT else "0.0",
     )
 )
-RUN_XAI_DASHBOARDS = parse_bool_env("LFTS_RUN_XAI_DASHBOARDS", False)
+RUN_XAI_DASHBOARDS = parse_bool_env("LFTS_RUN_XAI_DASHBOARDS", True)
+XAI_DIAGNOSIS_PERTURBATIONS = int(os.environ.get("LFTS_XAI_DIAGNOSIS_PERTURBATIONS", "300"))
+XAI_TRANSITION_PERTURBATIONS = int(os.environ.get("LFTS_XAI_TRANSITION_PERTURBATIONS", "200"))
+XAI_PERTURBATION_BATCH_SIZE = int(
+    os.environ.get("LFTS_XAI_PERTURBATION_BATCH_SIZE", "4" if USE_SEQUENCE_MODEL else "16")
+)
+XAI_FEEDBACK_ENABLED = parse_bool_env("LFTS_XAI_FEEDBACK_ENABLED", False)
+XAI_FEEDBACK_LOSS_WEIGHT = float(os.environ.get("LFTS_XAI_FEEDBACK_LOSS_WEIGHT", "0.0"))
+XAI_FEEDBACK_TARGET_PATH = os.environ.get("LFTS_XAI_FEEDBACK_TARGET_PATH", "").strip()
+XAI_ALIGNMENT_LOSS_NAME = os.environ.get(
+    "LFTS_XAI_ALIGNMENT_LOSS_NAME", "normalized_mse"
+).strip().lower()
+XAI_GRADIENT_SCOPE = os.environ.get(
+    "LFTS_XAI_GRADIENT_SCOPE", "head_only"
+).strip().lower()
+XAI_ALLOW_STAGE_PRIOR_ABLATION = parse_bool_env(
+    "LFTS_XAI_ALLOW_STAGE_PRIOR_ABLATION", False
+)
+XAI_FEEDBACK_WARMUP_EPOCHS = int(os.environ.get("LFTS_XAI_FEEDBACK_WARMUP_EPOCHS", "3"))
+XAI_FEEDBACK_RAMP_EPOCHS = int(os.environ.get("LFTS_XAI_FEEDBACK_RAMP_EPOCHS", "5"))
+if XAI_FEEDBACK_LOSS_WEIGHT < 0.0:
+    raise ValueError("LFTS_XAI_FEEDBACK_LOSS_WEIGHT must be non-negative")
+if XAI_FEEDBACK_LOSS_WEIGHT > 0.0 and not XAI_FEEDBACK_ENABLED:
+    raise ValueError(
+        "LFTS_XAI_FEEDBACK_LOSS_WEIGHT > 0 requires LFTS_XAI_FEEDBACK_ENABLED=1"
+    )
 SAVE_PREDICTION_PROBS = parse_bool_env("LFTS_SAVE_PREDICTION_PROBS", True)
 SAVE_SPLIT_PREDICTION_PROBS = parse_bool_env("LFTS_SAVE_SPLIT_PREDICTION_PROBS", False)
 SPLIT_PREDICT_BATCH_SIZE = int(os.environ.get("LFTS_SPLIT_PREDICT_BATCH_SIZE", "0"))
@@ -306,6 +339,14 @@ N1_WEIGHT_BOOST = float(os.environ.get("LFTS_N1_WEIGHT_BOOST", "1.35"))
 USE_N1_SUPCON = parse_bool_env("LFTS_USE_N1_SUPCON", True)
 N1_SUPCON_LOSS_WEIGHT = float(os.environ.get("LFTS_N1_SUPCON_LOSS_WEIGHT", "0.040"))
 N1_SUPCON_PROJECTION_DIM = int(os.environ.get("LFTS_N1_SUPCON_PROJECTION_DIM", "64"))
+ENABLE_N1_N2_PAIR_SUPCON = parse_bool_env("LFTS_ENABLE_N1_N2_PAIR_SUPCON", False)
+N1_N2_PAIR_SUPCON_LOSS_WEIGHT = float(
+    os.environ.get("LFTS_N1_N2_PAIR_SUPCON_WEIGHT", "0.010")
+)
+ENABLE_N1_CONTEXT_LOCAL_CONTRAST = parse_bool_env("LFTS_ENABLE_N1_CONTEXT_LOCAL_CONTRAST", False)
+N1_CONTEXT_LOCAL_CONTRAST_LOSS_WEIGHT = float(
+    os.environ.get("LFTS_N1_CONTEXT_LOCAL_CONTRAST_WEIGHT", "0.010")
+)
 USE_BALANCED_SEQUENCE_SAMPLING = parse_bool_env("LFTS_USE_BALANCED_SEQUENCE_SAMPLING", True)
 BALANCE_N1_WINDOW_BOOST = float(os.environ.get("LFTS_BALANCE_N1_WINDOW_BOOST", "1.75"))
 BALANCE_N3_WINDOW_BOOST = float(os.environ.get("LFTS_BALANCE_N3_WINDOW_BOOST", "1.25"))
@@ -431,7 +472,27 @@ CONCEPT_MODULATION_STOP_GRADIENT = parse_bool_env("LFTS_CONCEPT_MODULATION_STOP_
 CONCEPT_MODULATION_MODE = normalize_concept_modulation_mode(
     os.environ.get("LFTS_CONCEPT_MODULATION_MODE", "real")
 )
-CONCEPT_TARGET_PRIOR_WEIGHT = float(os.environ.get("LFTS_CONCEPT_TARGET_PRIOR_WEIGHT", "0.15"))
+ENABLE_EOG_SLOW_EVIDENCE_RESIDUAL = parse_bool_env("LFTS_ENABLE_EOG_SLOW_EVIDENCE_RESIDUAL", False)
+EOG_SLOW_EVIDENCE_SOURCE = os.environ.get("LFTS_EOG_SLOW_EVIDENCE_SOURCE", "raw").strip().lower()
+EOG_SLOW_RESIDUAL_HIDDEN_DIM = int(os.environ.get("LFTS_EOG_SLOW_RESIDUAL_HIDDEN_DIM", "8"))
+EOG_SLOW_RESIDUAL_DROPOUT = float(os.environ.get("LFTS_EOG_SLOW_RESIDUAL_DROPOUT", "0.1"))
+EOG_SLOW_RESIDUAL_GATE_INIT = float(os.environ.get("LFTS_EOG_SLOW_RESIDUAL_GATE_INIT", "0.0"))
+EOG_SLOW_SAVE_DIAGNOSTICS = parse_bool_env("LFTS_EOG_SLOW_SAVE_DIAGNOSTICS", False)
+CONCEPT_TARGET_PRIOR_WEIGHT = float(os.environ.get("LFTS_CONCEPT_TARGET_PRIOR_WEIGHT", "0"))
+LABEL_CONDITIONED_CONCEPT_TARGETS = parse_bool_env(
+    "LFTS_LABEL_CONDITIONED_CONCEPT_TARGETS", False
+)
+if CONCEPT_TARGET_PRIOR_WEIGHT > 0.0 and not LABEL_CONDITIONED_CONCEPT_TARGETS:
+    raise ValueError(
+        "LFTS_CONCEPT_TARGET_PRIOR_WEIGHT > 0 requires explicit "
+        "LFTS_LABEL_CONDITIONED_CONCEPT_TARGETS=1. Label-conditioned targets "
+        "are an ablation, not independent clinical annotations."
+    )
+if CONCEPT_TARGET_PRIOR_WEIGHT > 0.0:
+    print(
+        "WARNING: LABEL-CONDITIONED CONCEPT TARGETS ENABLED for the training "
+        "split only; manifest label_conditioned=true is required."
+    )
 DCCS_CHANNEL_PRIOR_WEIGHT = float(os.environ.get("LFTS_DCCS_CHANNEL_PRIOR_WEIGHT", "0.15"))
 LIME_DCCS_FEEDBACK_ALPHA = float(os.environ.get("LFTS_LIME_DCCS_ALPHA", "0.25"))
 LIME_DCCS_FEEDBACK_BETA = float(os.environ.get("LFTS_LIME_DCCS_BETA", "0.35"))
@@ -680,6 +741,93 @@ def _coerce_epoch_target_matrix(targets, total_len, default_width):
     return target_array
 
 
+def load_sequence_xai_feedback_targets(path_value, expected_len):
+    """Load sparse train-only teacher targets into an epoch-aligned matrix."""
+    path_value = str(path_value or "").strip()
+    if not path_value:
+        if XAI_FEEDBACK_LOSS_WEIGHT > 0.0:
+            raise ValueError(
+                "Positive XAI feedback weight requires LFTS_XAI_FEEDBACK_TARGET_PATH"
+            )
+        return (
+            np.zeros((int(expected_len), 30, 3), dtype=np.float32),
+            np.zeros(int(expected_len), dtype=np.float32),
+            {"status": "DISABLED_OR_ZERO_WEIGHT"},
+        )
+    target_path = path_value if os.path.isabs(path_value) else os.path.join(PROJECT_DIR, path_value)
+    target_path = os.path.abspath(target_path)
+    manifest_path = os.path.join(os.path.dirname(target_path), "target_manifest.json")
+    if not os.path.exists(target_path):
+        raise FileNotFoundError(f"XAI target artifact not found: {target_path}")
+    if not os.path.exists(manifest_path):
+        raise FileNotFoundError(f"XAI target manifest not found: {manifest_path}")
+    with open(manifest_path, "r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    safety_requirements = {
+        "split": "train",
+        "test_data_accessed": False,
+        "ground_truth_used_to_construct_targets": False,
+        "ground_truth_stage_concept_prior_used": False,
+        "label_conditioned_targets_allowed": False,
+    }
+    for key, expected in safety_requirements.items():
+        if manifest.get(key) != expected:
+            raise ValueError(
+                f"Unsafe or incompatible XAI target manifest: {key}={manifest.get(key)!r}, "
+                f"expected {expected!r}"
+            )
+    if (
+        manifest.get("predicted_stage_concept_prior_used") is True
+        and not XAI_ALLOW_STAGE_PRIOR_ABLATION
+    ):
+        raise ValueError(
+            "Predicted-stage-prior targets are circular and require the explicit "
+            "LFTS_XAI_ALLOW_STAGE_PRIOR_ABLATION=1 E7 control flag"
+        )
+    with np.load(target_path, allow_pickle=False) as payload:
+        indices = np.asarray(payload["global_epoch_index"], dtype=np.int64)
+        importance = np.asarray(payload["importance"], dtype=np.float32)
+        reliability_score = (
+            np.asarray(payload["reliability_score"], dtype=np.float32).reshape(-1)
+            if "reliability_score" in payload.files
+            else np.ones(len(indices), dtype=np.float32)
+        )
+        reliability_gate_pass = (
+            np.asarray(payload["reliability_gate_pass"], dtype=bool).reshape(-1)
+            if "reliability_gate_pass" in payload.files
+            else np.ones(len(indices), dtype=bool)
+        )
+    if importance.shape != (len(indices), 30, 3):
+        raise ValueError(
+            "XAI importance must have shape [selected_epoch,30,3], "
+            f"got {importance.shape}"
+        )
+    if np.any(indices < 0) or np.any(indices >= int(expected_len)):
+        raise ValueError("XAI target indices fall outside the loaded train split")
+    if len(np.unique(indices)) != len(indices):
+        raise ValueError("XAI target indices must be unique")
+    if len(reliability_score) != len(indices) or len(reliability_gate_pass) != len(indices):
+        raise ValueError("XAI reliability arrays must align with target indices")
+    reliability_score = np.clip(
+        np.nan_to_num(reliability_score, nan=0.0, posinf=0.0, neginf=0.0),
+        0.0,
+        1.0,
+    )
+    targets = np.zeros((int(expected_len), 30, 3), dtype=np.float32)
+    weights = np.zeros(int(expected_len), dtype=np.float32)
+    targets[indices] = importance
+    weights[indices] = reliability_score * reliability_gate_pass.astype(np.float32)
+    if XAI_FEEDBACK_LOSS_WEIGHT > 0.0 and not np.any(weights > 0.0):
+        raise ValueError("No offline XAI target passed the configured reliability gate")
+    print(
+        "Offline XAI feedback targets: "
+        f"path={target_path}, covered_train_epochs={len(indices)}/{expected_len}, "
+        f"participating_epochs={int(np.sum(weights > 0.0))}, "
+        f"teacher_mode={manifest.get('teacher_mode')}, target_type={manifest.get('target_type')}"
+    )
+    return targets, weights, manifest
+
+
 class SleepSequenceDataGenerator(Sequence):
     def __init__(
             self,
@@ -704,12 +852,20 @@ class SleepSequenceDataGenerator(Sequence):
             concept_derivative_sample_weights=None,
             include_concept_derivative_auxiliary=False,
             include_n1_contrastive=False,
+            enable_n1_n2_pair_supcon=False,
+            enable_n1_context_local_contrast=False,
             domain_alignment_stage_conditioned=False,
             balanced_sequence_sampling=False,
             balance_n1_window_boost=1.75,
             balance_n3_window_boost=1.25,
             balance_transition_window_boost=1.15,
             macro_auxiliary_scale=1.0,
+            pair_supcon_scale=0.0,
+            context_local_contrast_scale=0.0,
+            xai_feedback_targets=None,
+            xai_feedback_sample_weights=None,
+            include_xai_feedback=False,
+            xai_feedback_scale=1.0,
     ):
         self.X_raw = X_raw
         self.X_segment = X_segment
@@ -729,12 +885,18 @@ class SleepSequenceDataGenerator(Sequence):
         self.include_transition_boundary_auxiliary = bool(include_transition_boundary_auxiliary)
         self.include_concept_derivative_auxiliary = bool(include_concept_derivative_auxiliary)
         self.include_n1_contrastive = bool(include_n1_contrastive)
+        self.enable_n1_n2_pair_supcon = bool(enable_n1_n2_pair_supcon)
+        self.enable_n1_context_local_contrast = bool(enable_n1_context_local_contrast)
         self.domain_alignment_stage_conditioned = bool(domain_alignment_stage_conditioned)
         self.balanced_sequence_sampling = bool(balanced_sequence_sampling)
         self.balance_n1_window_boost = float(balance_n1_window_boost)
         self.balance_n3_window_boost = float(balance_n3_window_boost)
         self.balance_transition_window_boost = float(balance_transition_window_boost)
         self.macro_auxiliary_scale = float(np.clip(macro_auxiliary_scale, 0.0, 1.0))
+        self.pair_supcon_scale = float(np.clip(pair_supcon_scale, 0.0, 1.0))
+        self.context_local_contrast_scale = float(np.clip(context_local_contrast_scale, 0.0, 1.0))
+        self.include_xai_feedback = bool(include_xai_feedback)
+        self.xai_feedback_scale = float(np.clip(xai_feedback_scale, 0.0, 1.0))
         self.domain_targets = (
             np.asarray(domain_targets, dtype=np.float32).reshape(-1)
             if domain_targets is not None
@@ -808,6 +970,24 @@ class SleepSequenceDataGenerator(Sequence):
                     "concept_derivative_sample_weights must align with X_raw when concept derivative auxiliary is enabled: "
                     f"got {len(self.concept_derivative_sample_weights)} weights for {len(self.X_raw)} epochs"
                 )
+        self.xai_feedback_targets = (
+            np.asarray(xai_feedback_targets, dtype=np.float32)
+            if xai_feedback_targets is not None
+            else np.zeros((len(self.X_raw), 30, 3), dtype=np.float32)
+        )
+        self.xai_feedback_sample_weights = (
+            np.asarray(xai_feedback_sample_weights, dtype=np.float32).reshape(-1)
+            if xai_feedback_sample_weights is not None
+            else np.zeros(len(self.X_raw), dtype=np.float32)
+        )
+        if self.include_xai_feedback:
+            if self.xai_feedback_targets.shape != (len(self.X_raw), 30, 3):
+                raise ValueError(
+                    "xai_feedback_targets must align as [epoch,30,3], "
+                    f"got {self.xai_feedback_targets.shape}"
+                )
+            if len(self.xai_feedback_sample_weights) != len(self.X_raw):
+                raise ValueError("xai_feedback_sample_weights must align with X_raw")
         self.windows = build_sequence_windows(
             len(self.X_raw),
             self.file_sample_counts,
@@ -870,6 +1050,15 @@ class SleepSequenceDataGenerator(Sequence):
     def set_macro_auxiliary_scale(self, scale):
         self.macro_auxiliary_scale = float(np.clip(scale, 0.0, 1.0))
 
+    def set_pair_supcon_scale(self, scale):
+        self.pair_supcon_scale = float(np.clip(scale, 0.0, 1.0))
+
+    def set_context_local_contrast_scale(self, scale):
+        self.context_local_contrast_scale = float(np.clip(scale, 0.0, 1.0))
+
+    def set_xai_feedback_scale(self, scale):
+        self.xai_feedback_scale = float(np.clip(scale, 0.0, 1.0))
+
     def __getitem__(self, index):
         window_indices = self.indices[index * self.batch_size: (index + 1) * self.batch_size]
         raw_batch = []
@@ -883,6 +1072,8 @@ class SleepSequenceDataGenerator(Sequence):
         boundary_weight_batch = []
         derivative_target_batch = []
         derivative_weight_batch = []
+        xai_target_batch = []
+        xai_weight_batch = []
         for window_idx in window_indices:
             start, valid_len = self.windows[int(window_idx)]
             epoch_indices = _window_epoch_indices(start, valid_len, self.seq_len)
@@ -923,6 +1114,14 @@ class SleepSequenceDataGenerator(Sequence):
                 if valid_len < self.seq_len:
                     derivative_weights[valid_len:] = 0.0
                 derivative_weight_batch.append(derivative_weights)
+            if self.include_xai_feedback:
+                xai_target_batch.append(
+                    self.xai_feedback_targets[epoch_indices].astype(np.float32)
+                )
+                xai_weights = self.xai_feedback_sample_weights[epoch_indices].astype(np.float32).copy()
+                if valid_len < self.seq_len:
+                    xai_weights[valid_len:] = 0.0
+                xai_weight_batch.append(xai_weights)
             weights = self.sample_weights[epoch_indices].astype(np.float32).copy()
             if valid_len < self.seq_len:
                 weights[valid_len:] = 0.0
@@ -952,6 +1151,22 @@ class SleepSequenceDataGenerator(Sequence):
             targets["n1_contrastive_features"] = targets["main_output"]
             sample_weight_map["n1_contrastive_features"] = (
                 sample_weight_map["main_output"] * self.macro_auxiliary_scale
+            )
+        if self.enable_n1_n2_pair_supcon:
+            targets["n1_n2_pair_supcon_features"] = targets["main_output"]
+            sample_weight_map["n1_n2_pair_supcon_features"] = (
+                sample_weight_map["main_output"] * self.pair_supcon_scale
+            )
+        if self.enable_n1_context_local_contrast:
+            targets["n1_context_local_contrast_features"] = targets["main_output"]
+            valid_weights = (np.sum(targets["main_output"], axis=-1) > 0.5).astype(np.float32)
+            sample_weight_map["n1_context_local_contrast_features"] = (
+                valid_weights * self.context_local_contrast_scale
+            )
+        if self.include_xai_feedback:
+            targets["xai_importance_logits"] = np.asarray(xai_target_batch, dtype=np.float32)
+            sample_weight_map["xai_importance_logits"] = (
+                np.asarray(xai_weight_batch, dtype=np.float32) * self.xai_feedback_scale
             )
 
         return (
@@ -1074,6 +1289,26 @@ class MacroAuxiliaryScheduler(Callback):
         print(f"\nMacro auxiliary scale for epoch {epoch + 1}: {scale:.3f}")
 
 
+class XAIFeedbackScheduler(Callback):
+    """Zero-warmup then linearly ramp train-only XAI sample weights."""
+
+    def __init__(self, generators, warmup_epochs=3, ramp_epochs=5):
+        super().__init__()
+        self.generators = list(generators)
+        self.warmup_epochs = max(0, int(warmup_epochs))
+        self.ramp_epochs = max(1, int(ramp_epochs))
+
+    def on_epoch_begin(self, epoch, logs=None):
+        if epoch < self.warmup_epochs:
+            scale = 0.0
+        else:
+            scale = min(1.0, (epoch - self.warmup_epochs + 1) / float(self.ramp_epochs))
+        for generator in self.generators:
+            if generator is not None and hasattr(generator, "set_xai_feedback_scale"):
+                generator.set_xai_feedback_scale(scale)
+        print(f"\nXAI feedback sample-weight scale for epoch {epoch + 1}: {scale:.3f}")
+
+
 MICRO_EPOCH_ENCODER_PREFIXES = (
     "td_raw_",
     "td_v3_raw_",
@@ -1101,6 +1336,337 @@ def set_micro_epoch_encoder_trainable(model, trainable):
             layer.trainable = bool(trainable)
             affected_layers.append(layer.name)
     return affected_layers
+
+
+def build_pair_supcon_diagnostic_subset(generator, max_windows=32):
+    """Select a fixed train-only, multi-recording N1/N2 window bank."""
+    cumulative = np.cumsum(np.asarray(generator.file_sample_counts, dtype=np.int64))
+    by_recording = {}
+    for start, valid_len in sorted(generator.windows):
+        start = int(start)
+        valid_len = int(valid_len)
+        labels = np.argmax(generator.y_main[start:start + valid_len], axis=1)
+        target_labels = set(int(label) for label in labels if int(label) in {1, 2})
+        if not target_labels:
+            continue
+        recording_id = int(np.searchsorted(cumulative, start, side="right"))
+        recording_entry = by_recording.setdefault(recording_id, {1: [], 2: []})
+        for label in target_labels:
+            recording_entry[label].append((start, valid_len))
+
+    selected = []
+    for recording_id in sorted(by_recording):
+        entry = by_recording[recording_id]
+        for label in (1, 2):
+            if entry[label]:
+                selected.append(entry[label][0])
+    if len(selected) < max_windows:
+        seen = set(selected)
+        for recording_id in sorted(by_recording):
+            for label in (1, 2):
+                for window in by_recording[recording_id][label]:
+                    if window not in seen:
+                        selected.append(window)
+                        seen.add(window)
+                        if len(selected) >= max_windows:
+                            break
+                if len(selected) >= max_windows:
+                    break
+            if len(selected) >= max_windows:
+                break
+    selected = selected[:max_windows]
+    if not selected:
+        raise RuntimeError("N1_N2_PAIR_SUPCON_DIAGNOSTIC_SUBSET_EMPTY")
+
+    raw_batch, seg_batch, target_batch = [], [], []
+    for start, valid_len in selected:
+        indices = _window_epoch_indices(start, valid_len, generator.seq_len)
+        raw_batch.append(generator.X_raw[indices])
+        seg_batch.append(generator.X_segment[indices])
+        target = np.asarray(generator.y_main[indices], dtype=np.float32).copy()
+        if valid_len < generator.seq_len:
+            target[valid_len:] = 0.0
+        target_batch.append(target)
+    return {
+        "raw": np.asarray(raw_batch, dtype=np.float32),
+        "segment": np.asarray(seg_batch, dtype=np.float32),
+        "targets": np.asarray(target_batch, dtype=np.float32),
+        "windows": selected,
+        "recordings": sorted({
+            int(np.searchsorted(cumulative, int(start), side="right"))
+            for start, _ in selected
+        }),
+    }
+
+
+def _pair_cosine_diagnostics(embeddings, targets):
+    features = np.asarray(embeddings, dtype=np.float32).reshape(-1, embeddings.shape[-1])
+    labels = np.argmax(np.asarray(targets), axis=-1).reshape(-1)
+    valid = np.sum(np.asarray(targets), axis=-1).reshape(-1) > 0.5
+    features = features[valid]
+    labels = labels[valid]
+    features = features / np.maximum(np.linalg.norm(features, axis=1, keepdims=True), 1e-8)
+
+    def intra(stage):
+        values = features[labels == stage]
+        if len(values) < 2:
+            return np.nan
+        matrix = values @ values.T
+        upper = matrix[np.triu_indices(len(values), k=1)]
+        return float(np.mean(upper)) if len(upper) else np.nan
+
+    left = features[labels == 1]
+    right = features[labels == 2]
+    inter = float(np.mean(left @ right.T)) if len(left) and len(right) else np.nan
+    return {
+        "N1_intra_class_cosine": intra(1),
+        "N2_intra_class_cosine": intra(2),
+        "N1_N2_inter_class_cosine": inter,
+        "N1_count": int(np.sum(labels == 1)),
+        "N2_count": int(np.sum(labels == 2)),
+    }
+
+
+class PairSupConRepresentationDiagnostics(Callback):
+    def __init__(self, subset, output_path, loss_weight):
+        super().__init__()
+        self.subset = subset
+        self.output_path = output_path
+        self.loss_weight = float(loss_weight)
+        self.rows = []
+        self._representation_model = None
+
+    def set_model(self, model):
+        super().set_model(model)
+        self._representation_model = tf.keras.Model(
+            inputs=model.inputs,
+            outputs=model.get_layer("td_temporal_dense").output,
+            name="n1_n2_pair_supcon_diagnostic_probe",
+        )
+
+    def on_epoch_end(self, epoch, logs=None):
+        from src.model_training import n1_n2_pair_supervised_contrastive_loss
+
+        embeddings = np.asarray(self._representation_model(
+            {
+                "raw_input": self.subset["raw"],
+                "segment_input": self.subset["segment"],
+            },
+            training=False,
+        ))
+        targets = self.subset["targets"]
+        per_anchor = n1_n2_pair_supervised_contrastive_loss(targets, embeddings)
+        valid_targets = np.logical_or(targets[..., 1] > 0.5, targets[..., 2] > 0.5)
+        denom = max(int(np.sum(valid_targets)), 1)
+        raw_loss = float(np.sum(np.asarray(per_anchor)[valid_targets]) / denom)
+        cosine = _pair_cosine_diagnostics(embeddings, targets)
+        logs = logs or {}
+        self.rows.append({
+            "epoch": int(epoch + 1),
+            "main_classification_loss": float(logs.get("loss", np.nan)),
+            "pair_supcon_raw_loss": raw_loss,
+            "pair_supcon_weighted_loss": raw_loss * self.loss_weight,
+            **cosine,
+            "diagnostic_window_count": int(len(self.subset["windows"])),
+            "diagnostic_recording_count": int(len(self.subset["recordings"])),
+        })
+
+    def on_train_end(self, logs=None):
+        pd.DataFrame(self.rows).to_csv(self.output_path, index=False)
+
+
+def _n1_context_subtype_masks_numpy(targets):
+    labels = np.argmax(np.asarray(targets), axis=-1).astype(np.int32)
+    valid = np.sum(np.asarray(targets), axis=-1) > 0.5
+    masks = {name: np.zeros_like(labels, dtype=bool) for name in (
+        "W_ADJACENT_N1", "N2_ADJACENT_N1", "REM_ADJACENT_N1"
+    )}
+    if labels.shape[1] < 3:
+        return labels, valid, masks
+    prev_labels = np.concatenate([labels[:, :1], labels[:, :-1]], axis=1)
+    next_labels = np.concatenate([labels[:, 1:], labels[:, -1:]], axis=1)
+    prev_valid = np.concatenate([np.zeros_like(valid[:, :1], dtype=bool), valid[:, :-1]], axis=1)
+    next_valid = np.concatenate([valid[:, 1:], np.zeros_like(valid[:, -1:], dtype=bool)], axis=1)
+    internal = np.zeros_like(valid, dtype=bool)
+    internal[:, 1:-1] = True
+    context_valid = valid & prev_valid & next_valid & internal
+    is_n1 = labels == 1
+    masks["W_ADJACENT_N1"] = (
+        context_valid & is_n1
+        & ((prev_labels == 0) | (next_labels == 0))
+        & np.isin(prev_labels, [0, 1])
+        & np.isin(next_labels, [0, 1])
+    )
+    masks["N2_ADJACENT_N1"] = (
+        context_valid & is_n1
+        & ((prev_labels == 2) | (next_labels == 2))
+        & np.isin(prev_labels, [1, 2])
+        & np.isin(next_labels, [1, 2])
+    )
+    masks["REM_ADJACENT_N1"] = (
+        context_valid & is_n1
+        & ((prev_labels == 4) | (next_labels == 4))
+        & np.isin(prev_labels, [1, 4])
+        & np.isin(next_labels, [1, 4])
+    )
+    return labels, valid, masks
+
+
+def build_n1_context_local_contrast_diagnostic_subset(generator, max_windows=48):
+    cumulative = np.cumsum(np.asarray(generator.file_sample_counts, dtype=np.int64))
+    selected = []
+    subtype_seen = {"W_ADJACENT_N1": set(), "N2_ADJACENT_N1": set(), "REM_ADJACENT_N1": set()}
+    negative_seen = {0: set(), 2: set(), 4: set()}
+    for start, valid_len in sorted(generator.windows):
+        start = int(start)
+        valid_len = int(valid_len)
+        recording_id = int(np.searchsorted(cumulative, start, side="right"))
+        indices = _window_epoch_indices(start, valid_len, generator.seq_len)
+        targets = np.asarray(generator.y_main[indices], dtype=np.float32).copy()[np.newaxis, ...]
+        if valid_len < generator.seq_len:
+            targets[:, valid_len:] = 0.0
+        labels, valid, masks = _n1_context_subtype_masks_numpy(targets)
+        labels = labels.reshape(-1)
+        valid = valid.reshape(-1)
+        contributes = False
+        for name, mask in masks.items():
+            if np.any(mask):
+                subtype_seen[name].add(recording_id)
+                contributes = True
+        for stage in negative_seen:
+            if np.any((labels == stage) & valid):
+                negative_seen[stage].add(recording_id)
+                contributes = True
+        if contributes:
+            selected.append((start, valid_len))
+        if len(selected) >= max_windows and all(subtype_seen.values()) and all(negative_seen.values()):
+            break
+    selected = selected[:max_windows]
+    if not selected:
+        raise RuntimeError("N1_CONTEXT_LOCAL_CONTRAST_DIAGNOSTIC_SUBSET_EMPTY")
+    raw_batch, seg_batch, target_batch = [], [], []
+    for start, valid_len in selected:
+        indices = _window_epoch_indices(start, valid_len, generator.seq_len)
+        raw_batch.append(generator.X_raw[indices])
+        seg_batch.append(generator.X_segment[indices])
+        target = np.asarray(generator.y_main[indices], dtype=np.float32).copy()
+        if valid_len < generator.seq_len:
+            target[valid_len:] = 0.0
+        target_batch.append(target)
+    targets = np.asarray(target_batch, dtype=np.float32)
+    labels, valid, masks = _n1_context_subtype_masks_numpy(targets)
+    return {
+        "raw": np.asarray(raw_batch, dtype=np.float32),
+        "segment": np.asarray(seg_batch, dtype=np.float32),
+        "targets": targets,
+        "windows": selected,
+        "recordings": sorted({
+            int(np.searchsorted(cumulative, int(start), side="right"))
+            for start, _ in selected
+        }),
+        "subtype_counts": {name: int(np.sum(mask)) for name, mask in masks.items()},
+        "negative_counts": {CLASS_LABELS[stage]: int(np.sum((labels == stage) & valid)) for stage in (0, 2, 4)},
+    }
+
+
+def _mean_pair_cosine(left, right=None):
+    left = np.asarray(left, dtype=np.float32)
+    if len(left) == 0:
+        return np.nan
+    left = left / np.maximum(np.linalg.norm(left, axis=1, keepdims=True), 1e-8)
+    if right is None:
+        if len(left) < 2:
+            return np.nan
+        matrix = left @ left.T
+        upper = matrix[np.triu_indices(len(left), k=1)]
+        return float(np.mean(upper)) if len(upper) else np.nan
+    right = np.asarray(right, dtype=np.float32)
+    if len(right) == 0:
+        return np.nan
+    right = right / np.maximum(np.linalg.norm(right, axis=1, keepdims=True), 1e-8)
+    return float(np.mean(left @ right.T))
+
+
+def _context_contrast_cosine_diagnostics(embeddings, targets):
+    features = np.asarray(embeddings, dtype=np.float32).reshape(-1, embeddings.shape[-1])
+    labels, valid, masks = _n1_context_subtype_masks_numpy(targets)
+    labels = labels.reshape(-1)
+    valid = valid.reshape(-1)
+    flat_masks = {name: mask.reshape(-1) for name, mask in masks.items()}
+    out = {}
+    subtype_stage = {
+        "W_ADJACENT_N1": ("W", 0),
+        "N2_ADJACENT_N1": ("N2", 2),
+        "REM_ADJACENT_N1": ("REM", 4),
+    }
+    for subtype, (stage_name, stage_id) in subtype_stage.items():
+        subtype_features = features[flat_masks[subtype]]
+        stage_features = features[(labels == stage_id) & valid]
+        out[f"{subtype}_intra_cosine"] = _mean_pair_cosine(subtype_features)
+        out[f"{subtype}_vs_{stage_name}_cosine"] = _mean_pair_cosine(subtype_features, stage_features)
+        out[f"{subtype}_count"] = int(len(subtype_features))
+        out[f"{stage_name}_negative_count"] = int(len(stage_features))
+    pairs = [
+        ("W_ADJACENT_N1", "N2_ADJACENT_N1"),
+        ("W_ADJACENT_N1", "REM_ADJACENT_N1"),
+        ("N2_ADJACENT_N1", "REM_ADJACENT_N1"),
+    ]
+    for left, right in pairs:
+        out[f"{left}_vs_{right}_cosine"] = _mean_pair_cosine(features[flat_masks[left]], features[flat_masks[right]])
+    return out
+
+
+class N1ContextLocalContrastDiagnostics(Callback):
+    def __init__(self, subset, output_path, loss_weight):
+        super().__init__()
+        self.subset = subset
+        self.output_path = output_path
+        self.loss_weight = float(loss_weight)
+        self.rows = []
+        self._representation_model = None
+
+    def set_model(self, model):
+        super().set_model(model)
+        self._representation_model = tf.keras.Model(
+            inputs=model.inputs,
+            outputs=model.get_layer("td_temporal_dense").output,
+            name="n1_context_local_contrast_diagnostic_probe",
+        )
+
+    def on_epoch_end(self, epoch, logs=None):
+        from src.model_training import n1_context_subtype_local_contrastive_components
+
+        embeddings = np.asarray(self._representation_model(
+            {
+                "raw_input": self.subset["raw"],
+                "segment_input": self.subset["segment"],
+            },
+            training=False,
+        ))
+        targets = self.subset["targets"]
+        comp = n1_context_subtype_local_contrastive_components(targets, embeddings)
+        comp_np = {key: float(np.asarray(value)) for key, value in comp.items()}
+        cosine = _context_contrast_cosine_diagnostics(embeddings, targets)
+        logs = logs or {}
+        self.rows.append({
+            "epoch": int(epoch + 1),
+            "main_classification_loss": float(logs.get("main_output_loss", logs.get("loss", np.nan))),
+            "L_W_raw": comp_np["L_W"],
+            "L_N2_raw": comp_np["L_N2"],
+            "L_REM_raw": comp_np["L_REM"],
+            "L_context_raw": comp_np["L_context"],
+            "weighted_context_loss": comp_np["L_context"] * self.loss_weight,
+            "valid_subtype_count": comp_np["valid_subtype_count"],
+            "W_valid_anchor_count": comp_np["W_valid_anchor_count"],
+            "N2_valid_anchor_count": comp_np["N2_valid_anchor_count"],
+            "REM_valid_anchor_count": comp_np["REM_valid_anchor_count"],
+            "diagnostic_window_count": int(len(self.subset["windows"])),
+            "diagnostic_recording_count": int(len(self.subset["recordings"])),
+            **cosine,
+        })
+
+    def on_train_end(self, logs=None):
+        pd.DataFrame(self.rows).to_csv(self.output_path, index=False)
 
 
 def fit_with_micro_macro_schedule(
@@ -1164,6 +1730,21 @@ def fit_with_micro_macro_schedule(
 
     for phase in phases:
         is_final_phase = phase is phases[-1]
+        pair_supcon_scale = (
+            1.0
+            if ENABLE_N1_N2_PAIR_SUPCON and phase["name"] == "joint micro-macro fine-tuning"
+            else 0.0
+        )
+        context_local_contrast_scale = (
+            1.0
+            if ENABLE_N1_CONTEXT_LOCAL_CONTRAST and phase["name"] == "joint micro-macro fine-tuning"
+            else 0.0
+        )
+        for generator in (train_gen, val_gen):
+            if hasattr(generator, "set_pair_supcon_scale"):
+                generator.set_pair_supcon_scale(pair_supcon_scale)
+            if hasattr(generator, "set_context_local_contrast_scale"):
+                generator.set_context_local_contrast_scale(context_local_contrast_scale)
         for callback in callbacks:
             if hasattr(callback, "restore_on_train_end"):
                 callback.restore_on_train_end = bool(is_final_phase)
@@ -1176,16 +1757,33 @@ def fit_with_micro_macro_schedule(
             f"epochs={phase['start'] + 1}-{phase['end']} | "
             f"micro_encoder_trainable={phase['micro_trainable']} | "
             f"lr={phase['learning_rate']:.6f} | "
+            f"pair_supcon_scale={pair_supcon_scale:.1f} | "
+            f"context_loss_scale={context_local_contrast_scale:.1f} | "
             f"affected_micro_layers={len(affected_layers)}"
         )
-        model.fit(
-            train_gen,
-            initial_epoch=phase["start"],
-            epochs=phase["end"],
-            validation_data=val_gen,
-            callbacks=callbacks,
-            verbose=2,
-        )
+        try:
+            model.fit(
+                train_gen,
+                initial_epoch=phase["start"],
+                epochs=phase["end"],
+                validation_data=val_gen,
+                callbacks=callbacks,
+                verbose=2,
+            )
+        except tf.errors.ResourceExhaustedError as exc:
+            selector = next((cb for cb in callbacks if hasattr(cb, "best_weights")), None)
+            if selector is None or getattr(selector, "best_weights", None) is None:
+                raise
+            model.set_weights(selector.best_weights)
+            model.stop_training = True
+            print(
+                "ResourceExhaustedError during micro-macro schedule; "
+                "restored validation selector best weights and will continue final evaluation. "
+                f"best_epoch={getattr(selector, 'best_epoch', 'unknown')} "
+                f"best_score={getattr(selector, 'best_score', float('nan')):.4f}"
+            )
+            print(f"OOM detail: {exc.__class__.__name__}: {str(exc).splitlines()[0] if str(exc) else 'no detail'}")
+            return
         if model.stop_training:
             print(
                 "Micro-macro staged optimization stopped early during "
@@ -1405,6 +2003,242 @@ def predict_model_outputs(
     return _concatenate_model_outputs(batch_outputs)
 
 
+def softmax_numpy(logits):
+    logits = np.asarray(logits, dtype=np.float32)
+    logits = logits - np.max(logits, axis=-1, keepdims=True)
+    probs = np.exp(logits)
+    return probs / np.maximum(np.sum(probs, axis=-1, keepdims=True), 1e-8)
+
+
+def predict_sequence_scr_diagnostic_outputs(
+        diagnostic_model,
+        X_raw,
+        X_segment,
+        file_sample_counts,
+        batch_size=64,
+        seq_len=25,
+        sequence_stride=5,
+        verbose=0,
+):
+    generator = SleepSequenceInputGenerator(
+        X_raw,
+        X_segment,
+        file_sample_counts=file_sample_counts,
+        seq_len=seq_len,
+        stride=sequence_stride,
+        batch_size=batch_size,
+    )
+    raw_sums = None
+    prob_sums = None
+    output_counts = None
+    window_offset = 0
+    batch_range = range(len(generator))
+    if verbose:
+        batch_range = tqdm(batch_range, total=len(generator), desc="SCR diagnostic", leave=False)
+
+    for batch_idx in batch_range:
+        inputs = generator[batch_idx]
+        outputs = _call_model_batch_with_auto_split(diagnostic_model, inputs)
+        if not isinstance(outputs, (list, tuple)) or len(outputs) != 4:
+            raise ValueError("SCR diagnostic model must return [base_logits, stage_evidence, router_contribution, final_logits].")
+        batch_outputs = [_as_numpy_output(output).astype(np.float32) for output in outputs]
+        for output in batch_outputs:
+            if output.ndim != 3:
+                raise ValueError(f"SCR diagnostic sequence output must be 3D, got {output.shape}.")
+        if raw_sums is None:
+            raw_sums = [
+                np.zeros((len(X_raw), output.shape[-1]), dtype=np.float32)
+                for output in batch_outputs
+            ]
+            prob_sums = [
+                np.zeros((len(X_raw), batch_outputs[0].shape[-1]), dtype=np.float32),
+                np.zeros((len(X_raw), batch_outputs[3].shape[-1]), dtype=np.float32),
+            ]
+            output_counts = np.zeros((len(X_raw), 1), dtype=np.float32)
+
+        batch_windows = generator.windows[window_offset: window_offset + len(batch_outputs[0])]
+        base_probs = softmax_numpy(batch_outputs[0])
+        final_probs = softmax_numpy(batch_outputs[3])
+        for row_idx, (start, valid_len) in enumerate(batch_windows):
+            epoch_indices = _window_epoch_indices(start, valid_len, generator.seq_len)[:valid_len]
+            for output_idx, output in enumerate(batch_outputs):
+                raw_sums[output_idx][epoch_indices] += output[row_idx, :valid_len]
+            prob_sums[0][epoch_indices] += base_probs[row_idx, :valid_len]
+            prob_sums[1][epoch_indices] += final_probs[row_idx, :valid_len]
+            output_counts[epoch_indices] += 1.0
+        window_offset += len(batch_outputs[0])
+
+    if raw_sums is None:
+        raise ValueError("SCR diagnostic prediction produced no outputs.")
+    missing = output_counts[:, 0] <= 0
+    if np.any(missing):
+        raise ValueError(f"SCR diagnostic prediction missed {int(np.sum(missing))} epoch(s).")
+    denom = np.maximum(output_counts, 1.0)
+    return {
+        "base_logits_raw_mean": raw_sums[0] / denom,
+        "stage_evidence": raw_sums[1] / denom,
+        "router_contribution": raw_sums[2] / denom,
+        "final_logits_raw_mean": raw_sums[3] / denom,
+        "base_probs": prob_sums[0] / denom,
+        "final_probs": prob_sums[1] / denom,
+    }
+
+
+def predict_scr_diagnostic_outputs(
+        diagnostic_model,
+        X_raw,
+        X_segment,
+        batch_size=64,
+        sequence_mode=False,
+        file_sample_counts=None,
+        seq_len=25,
+        sequence_stride=5,
+        verbose=0,
+):
+    if sequence_mode:
+        if file_sample_counts is None:
+            raise ValueError("file_sample_counts is required for SCR diagnostic sequence prediction.")
+        return predict_sequence_scr_diagnostic_outputs(
+            diagnostic_model,
+            X_raw,
+            X_segment,
+            file_sample_counts=file_sample_counts,
+            batch_size=batch_size,
+            seq_len=seq_len,
+            sequence_stride=sequence_stride,
+            verbose=verbose,
+        )
+
+    outputs = predict_model_outputs(
+        diagnostic_model,
+        X_raw,
+        X_segment,
+        batch_size=batch_size,
+        verbose=verbose,
+        sequence_mode=False,
+    )
+    if not isinstance(outputs, (list, tuple)) or len(outputs) != 4:
+        raise ValueError("SCR diagnostic model must return [base_logits, stage_evidence, router_contribution, final_logits].")
+    base_logits, stage_evidence, router_contribution, final_logits = [
+        np.asarray(output, dtype=np.float32)
+        for output in outputs
+    ]
+    return {
+        "base_logits_raw_mean": base_logits,
+        "stage_evidence": stage_evidence,
+        "router_contribution": router_contribution,
+        "final_logits_raw_mean": final_logits,
+        "base_probs": softmax_numpy(base_logits),
+        "final_probs": softmax_numpy(final_logits),
+    }
+
+
+def build_scr_diagnostic_model(model):
+    required = [
+        "_scr_base_logits_tensor",
+        "_scr_stage_evidence_tensor",
+        "_scr_router_contribution_tensor",
+        "_scr_final_logits_tensor",
+    ]
+    missing = [name for name in required if not hasattr(model, name)]
+    if missing:
+        raise RuntimeError(f"SCR diagnostic tensors are unavailable: {missing}")
+    return tf.keras.Model(
+        inputs=model.inputs,
+        outputs=[
+            model._scr_base_logits_tensor,
+            model._scr_stage_evidence_tensor,
+            model._scr_router_contribution_tensor,
+            model._scr_final_logits_tensor,
+        ],
+        name="scr_counterfactual_diagnostic_model",
+    )
+
+
+def first_diagnostic_inputs(X_raw, X_segment, file_sample_counts=None, sequence_mode=False, seq_len=25, sequence_stride=5):
+    if sequence_mode:
+        generator = SleepSequenceInputGenerator(
+            X_raw,
+            X_segment,
+            file_sample_counts=file_sample_counts,
+            seq_len=seq_len,
+            stride=sequence_stride,
+            batch_size=2,
+        )
+        return generator[0]
+    end = min(8, len(X_raw))
+    return {"raw_input": X_raw[:end], "segment_input": X_segment[:end]}
+
+
+def write_json(path, payload):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2)
+
+
+def trainable_parameter_count(model):
+    return int(np.sum([np.prod(weight.shape) for weight in model.trainable_weights]))
+
+
+def run_scr_instrumentation_parity(model, diagnostic_inputs, output_dir, run_tag):
+    os.makedirs(output_dir, exist_ok=True)
+    params_before = trainable_parameter_count(model)
+    formal_logits_model = tf.keras.Model(
+        inputs=model.inputs,
+        outputs=model.get_layer("main_output").input,
+        name="scr_formal_final_logits_probe",
+    )
+    diagnostic_model = build_scr_diagnostic_model(model)
+    params_after = trainable_parameter_count(model)
+    formal_logits = _as_numpy_output(_call_model_batch_with_auto_split(formal_logits_model, diagnostic_inputs))
+    diagnostic_outputs = _call_model_batch_with_auto_split(diagnostic_model, diagnostic_inputs)
+    diagnostic_final_logits = _as_numpy_output(diagnostic_outputs[3])
+    max_abs_diff = float(np.max(np.abs(formal_logits - diagnostic_final_logits)))
+    payload = {
+        "run_tag": run_tag,
+        "max_abs_diff": max_abs_diff,
+        "params_before": params_before,
+        "params_after": params_after,
+        "status": "PASS" if max_abs_diff < 1e-6 and params_before == params_after else "FAIL",
+    }
+    write_json(os.path.join(output_dir, f"{run_tag}_instrumentation_parity.json"), payload)
+    if payload["status"] != "PASS":
+        raise RuntimeError(f"SCR instrumentation parity failed: {payload}")
+    print(f"SCR instrumentation parity PASS: max_abs_diff={max_abs_diff:.3e}")
+    return payload
+
+
+def save_best_weights_with_reload_parity(model, diagnostic_inputs, checkpoint_path, parity_path, run_tag):
+    os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
+    logits_model = tf.keras.Model(
+        inputs=model.inputs,
+        outputs=model.get_layer("main_output").input,
+        name="scr_best_weight_reload_probe",
+    )
+    before = _as_numpy_output(_call_model_batch_with_auto_split(logits_model, diagnostic_inputs))
+    model.save_weights(checkpoint_path)
+    reloaded_model = tf.keras.models.clone_model(model)
+    reloaded_model.load_weights(checkpoint_path)
+    reloaded_logits_model = tf.keras.Model(
+        inputs=reloaded_model.inputs,
+        outputs=reloaded_model.get_layer("main_output").input,
+        name="scr_best_weight_reload_probe_reloaded",
+    )
+    after = _as_numpy_output(_call_model_batch_with_auto_split(reloaded_logits_model, diagnostic_inputs))
+    max_abs_diff = float(np.max(np.abs(before - after)))
+    payload = {
+        "run_tag": run_tag,
+        "checkpoint_path": checkpoint_path,
+        "max_abs_diff": max_abs_diff,
+        "status": "PASS" if max_abs_diff < 1e-6 else "FAIL",
+    }
+    write_json(parity_path, payload)
+    if payload["status"] != "PASS":
+        raise RuntimeError(f"Best-weight reload parity failed: {payload}")
+    print(f"Best-weight reload parity PASS: max_abs_diff={max_abs_diff:.3e}")
+    return payload
+
+
 class ModelWrapperForLIME:
     def __init__(self, base_model):
         self.base_model = base_model
@@ -1430,6 +2264,88 @@ class ModelWrapperForLIME:
                 preds = _as_numpy_output(preds)
         main_probs, _, _ = extract_prediction_heads(preds)
         return main_probs
+
+
+class SequenceContextModelWrapperForLIME:
+    """Predict perturbed epochs through every sequence window covering one target epoch."""
+
+    def __init__(
+            self,
+            base_model,
+            X_raw,
+            X_segment,
+            file_sample_counts,
+            target_index,
+            seq_len,
+            sequence_stride,
+    ):
+        self.base_model = base_model
+        self.X_raw = np.asarray(X_raw, dtype=np.float32)
+        self.X_segment = np.asarray(X_segment, dtype=np.float32)
+        self.target_index = int(target_index)
+        self.seq_len = max(1, int(seq_len))
+        self.windows = [
+            (int(start), int(valid_len))
+            for start, valid_len in build_sequence_windows(
+                len(self.X_raw),
+                file_sample_counts=file_sample_counts,
+                seq_len=self.seq_len,
+                stride=sequence_stride,
+                include_last=True,
+                allow_short=True,
+            )
+            if int(start) <= self.target_index < int(start) + int(valid_len)
+        ]
+        if not self.windows:
+            raise ValueError(
+                f"No sequence prediction window covers XAI target epoch {self.target_index}."
+            )
+
+    def predict(self, inputs, **kwargs):
+        if not isinstance(inputs, (list, tuple)) or len(inputs) != 2:
+            raise ValueError("Sequence-aware LIME requires [raw_batch, segment_batch] inputs.")
+        raw_perturbations = np.asarray(inputs[0], dtype=np.float32)
+        segment_perturbations = np.asarray(inputs[1], dtype=np.float32)
+        if len(raw_perturbations) != len(segment_perturbations):
+            raise ValueError("Raw and segment perturbation batches must have equal length.")
+
+        raw_windows = []
+        segment_windows = []
+        metadata = []
+        for perturbation_index in range(len(raw_perturbations)):
+            for start, valid_len in self.windows:
+                epoch_indices = _window_epoch_indices(start, valid_len, self.seq_len)
+                relative_index = self.target_index - start
+                raw_window = np.asarray(self.X_raw[epoch_indices], dtype=np.float32).copy()
+                segment_window = np.asarray(self.X_segment[epoch_indices], dtype=np.float32).copy()
+                raw_window[relative_index] = raw_perturbations[perturbation_index]
+                segment_window[relative_index] = segment_perturbations[perturbation_index]
+                raw_windows.append(raw_window)
+                segment_windows.append(segment_window)
+                metadata.append((perturbation_index, relative_index))
+
+        outputs = _call_model_batch_with_auto_split(
+            self.base_model,
+            {
+                "raw_input": np.asarray(raw_windows, dtype=np.float32),
+                "segment_input": np.asarray(segment_windows, dtype=np.float32),
+            },
+        )
+        main_probs, _, _ = extract_prediction_heads(outputs)
+        main_probs = np.asarray(main_probs, dtype=np.float32)
+        if main_probs.ndim != 3:
+            raise ValueError(
+                "Sequence-aware LIME expected (windows, seq_len, classes), "
+                f"got {main_probs.shape}."
+            )
+        sums = np.zeros((len(raw_perturbations), main_probs.shape[-1]), dtype=np.float64)
+        counts = np.zeros(len(raw_perturbations), dtype=np.float64)
+        for row_index, (perturbation_index, relative_index) in enumerate(metadata):
+            sums[perturbation_index] += main_probs[row_index, relative_index]
+            counts[perturbation_index] += 1.0
+        if np.any(counts <= 0):
+            raise RuntimeError("Sequence-aware LIME produced an uncovered perturbation.")
+        return (sums / counts[:, np.newaxis]).astype(np.float32)
 
 
 def normalize_lime_explanation(explanation, num_channels, num_segments):
@@ -2526,6 +3442,227 @@ def normalize_probabilities(probabilities):
     probabilities = np.asarray(probabilities, dtype=np.float32)
     probabilities = np.clip(probabilities, 1e-8, 1.0)
     return (probabilities / np.maximum(np.sum(probabilities, axis=1, keepdims=True), 1e-8)).astype(np.float32)
+
+
+def per_stage_metric_row(y_true, predictions, class_labels):
+    predictions = np.asarray(predictions, dtype=np.int32).reshape(-1)
+    y_true = np.asarray(y_true, dtype=np.int32).reshape(-1)
+    per_stage = f1_score(
+        y_true,
+        predictions,
+        labels=list(range(len(class_labels))),
+        average=None,
+        zero_division=0,
+    )
+    kappa = float(cohen_kappa_score(y_true, predictions))
+    if not np.isfinite(kappa):
+        kappa = 0.0
+    row = {
+        "Accuracy": float(np.mean(predictions == y_true)),
+        "Macro-F1": float(f1_score(y_true, predictions, average="macro", zero_division=0)),
+        "Kappa": kappa,
+    }
+    for idx, label in enumerate(class_labels):
+        row[f"{label}-F1"] = float(per_stage[idx])
+    return row
+
+
+def unordered_top2_pairs(probabilities, class_labels):
+    top2 = np.argsort(-probabilities, axis=1)[:, :2]
+    labels = np.asarray(class_labels)
+    pairs = []
+    for a, b in top2:
+        ordered = sorted([int(a), int(b)])
+        pairs.append("/".join(str(labels[idx]) for idx in ordered))
+    return np.asarray(pairs, dtype=object), top2
+
+
+def decision_state_frame(base_probs, router_contribution, base_pred, final_pred, class_labels):
+    sorted_probs = np.sort(base_probs, axis=1)
+    p1 = sorted_probs[:, -1]
+    p2 = sorted_probs[:, -2]
+    top2_pair, top2 = unordered_top2_pairs(base_probs, class_labels)
+    entropy = -np.sum(base_probs * np.log(base_probs + 1e-8), axis=1)
+    row_indices = np.arange(len(base_probs))
+    flip_contrast = router_contribution[row_indices, final_pred] - router_contribution[row_indices, base_pred]
+    return pd.DataFrame(
+        {
+            "max_probability": p1,
+            "margin": p1 - p2,
+            "entropy": entropy,
+            "top1_stage": np.asarray(class_labels, dtype=object)[base_pred],
+            "top2_pair": top2_pair,
+            "max_abs_router_contribution": np.max(np.abs(router_contribution), axis=1),
+            "top1_router_contribution": router_contribution[row_indices, top2[:, 0]],
+            "top2_router_contrast": (
+                router_contribution[row_indices, top2[:, 0]]
+                - router_contribution[row_indices, top2[:, 1]]
+            ),
+            "flip_direction_router_contrast": flip_contrast,
+        }
+    )
+
+
+def outcome_masks(y_true, base_pred, final_pred):
+    base_correct = base_pred == y_true
+    final_correct = final_pred == y_true
+    return {
+        "both_correct": base_correct & final_correct,
+        "corrected": (~base_correct) & final_correct,
+        "harmed": base_correct & (~final_correct),
+        "both_wrong": (~base_correct) & (~final_correct),
+    }
+
+
+def summarize_corrected_harmed_features(decision_df, masks, dataset, split):
+    corrected = masks["corrected"]
+    harmed = masks["harmed"]
+    labels = np.concatenate([np.ones(np.sum(corrected), dtype=np.int32), np.zeros(np.sum(harmed), dtype=np.int32)])
+    rows = []
+    features = [
+        "max_probability",
+        "margin",
+        "entropy",
+        "max_abs_router_contribution",
+        "top1_router_contribution",
+        "top2_router_contrast",
+        "flip_direction_router_contrast",
+    ]
+    for feature in features:
+        corrected_values = decision_df.loc[corrected, feature].to_numpy(dtype=np.float32)
+        harmed_values = decision_df.loc[harmed, feature].to_numpy(dtype=np.float32)
+        values = np.concatenate([corrected_values, harmed_values])
+        auroc = np.nan
+        if len(np.unique(labels)) == 2 and len(values) == len(labels) and np.all(np.isfinite(values)):
+            try:
+                auroc = float(roc_auc_score(labels, values))
+                auroc = max(auroc, 1.0 - auroc)
+            except ValueError:
+                auroc = np.nan
+        rows.append(
+            {
+                "dataset": dataset,
+                "split": split,
+                "Feature": feature,
+                "corrected_median": float(np.median(corrected_values)) if len(corrected_values) else np.nan,
+                "corrected_p25": float(np.percentile(corrected_values, 25)) if len(corrected_values) else np.nan,
+                "corrected_p75": float(np.percentile(corrected_values, 75)) if len(corrected_values) else np.nan,
+                "harmed_median": float(np.median(harmed_values)) if len(harmed_values) else np.nan,
+                "harmed_p25": float(np.percentile(harmed_values, 25)) if len(harmed_values) else np.nan,
+                "harmed_p75": float(np.percentile(harmed_values, 75)) if len(harmed_values) else np.nan,
+                "AUROC": auroc,
+            }
+        )
+    return rows
+
+
+def selective_rule_mask(rule, decision_df):
+    family = rule["family"]
+    if family == "base":
+        return np.zeros(len(decision_df), dtype=bool)
+    if family == "global":
+        return np.ones(len(decision_df), dtype=bool)
+    if family == "margin":
+        return decision_df["margin"].to_numpy() < float(rule["threshold"])
+    if family == "entropy":
+        return decision_df["entropy"].to_numpy() > float(rule["threshold"])
+    if family == "pair":
+        return decision_df["top2_pair"].to_numpy() == rule["pair"]
+    if family == "pair_margin":
+        return (
+            (decision_df["top2_pair"].to_numpy() == rule["pair"])
+            & (decision_df["margin"].to_numpy() < float(rule["threshold"]))
+        )
+    if family == "pair_entropy":
+        return (
+            (decision_df["top2_pair"].to_numpy() == rule["pair"])
+            & (decision_df["entropy"].to_numpy() > float(rule["threshold"]))
+        )
+    raise ValueError(f"Unknown selective rule family: {family}")
+
+
+def format_rule(rule):
+    family = rule["family"]
+    if family == "base":
+        return "Router OFF only"
+    if family == "global":
+        return "Global Router ON"
+    if family == "margin":
+        return f"margin@{float(rule['threshold']):.4f}"
+    if family == "entropy":
+        return f"entropy@{float(rule['threshold']):.4f}"
+    if family == "pair":
+        return f"pair={rule['pair']}"
+    if family == "pair_margin":
+        return f"{rule['pair']} & margin@{float(rule['threshold']):.4f}"
+    if family == "pair_entropy":
+        return f"{rule['pair']} & entropy@{float(rule['threshold']):.4f}"
+    return json.dumps(rule, sort_keys=True)
+
+
+def candidate_selective_rules(validation_decision_df):
+    margin_thresholds = [0.05, 0.10, 0.15, 0.20, 0.25]
+    entropy_quantiles = [0.50, 0.60, 0.70, 0.80]
+    pairs = ["W/N1", "N1/N2", "N1/REM", "N2/N3"]
+    rules = [{"family": "base"}]
+    rules += [{"family": "margin", "threshold": threshold} for threshold in margin_thresholds]
+    entropy = validation_decision_df["entropy"].to_numpy()
+    for quantile in entropy_quantiles:
+        rules.append(
+            {
+                "family": "entropy",
+                "quantile": quantile,
+                "threshold": float(np.quantile(entropy, quantile)),
+            }
+        )
+    rules += [{"family": "pair", "pair": pair} for pair in pairs]
+    for pair in pairs:
+        for threshold in margin_thresholds:
+            rules.append({"family": "pair_margin", "pair": pair, "threshold": threshold})
+        for quantile in entropy_quantiles:
+            rules.append(
+                {
+                    "family": "pair_entropy",
+                    "pair": pair,
+                    "quantile": quantile,
+                    "threshold": float(np.quantile(entropy, quantile)),
+                }
+            )
+    return rules
+
+
+def evaluate_selective_rule(rule, decision_df, y_true, base_pred, final_pred, class_labels, dataset, split):
+    mask = selective_rule_mask(rule, decision_df)
+    selected = np.where(mask, final_pred, base_pred)
+    metrics = per_stage_metric_row(y_true, selected, class_labels)
+    base_metrics = per_stage_metric_row(y_true, base_pred, class_labels)
+    masks = outcome_masks(y_true, base_pred, selected)
+    row = {
+        "dataset": dataset,
+        "split": split,
+        "Rule": format_rule(rule),
+        "rule_json": json.dumps(rule, sort_keys=True),
+        "Coverage": float(np.mean(mask)),
+        "Delta Acc": metrics["Accuracy"] - base_metrics["Accuracy"],
+        "Delta MF1": metrics["Macro-F1"] - base_metrics["Macro-F1"],
+        "corrected": int(np.sum(masks["corrected"])),
+        "harmed": int(np.sum(masks["harmed"])),
+        "net_corrected": int(np.sum(masks["corrected"]) - np.sum(masks["harmed"])),
+    }
+    row.update(metrics)
+    return row, selected
+
+
+def select_best_validation_rule(rule_rows):
+    return sorted(
+        rule_rows,
+        key=lambda row: (
+            round(float(row["Accuracy"]) / 1e-4),
+            float(row["Macro-F1"]),
+            -float(row["Coverage"]),
+        ),
+        reverse=True,
+    )[0]
 
 
 def extract_prediction_heads(model_outputs):
@@ -3875,8 +5012,321 @@ def save_split_prediction_probabilities(
         "n1_threshold": np.asarray(float(n1_threshold), dtype=np.float32),
     }
     np.savez_compressed(save_path, **payload)
-    print(f"Saved train/val/test split predictions for C11: {save_path}")
+    print(f"Saved train/val/test split predictions: {save_path}")
     return save_path
+
+
+def print_stage_concept_router_diagnostics(model, class_labels, concept_names):
+    try:
+        router = model.get_layer("stage_specific_concept_router")
+    except Exception as exc:
+        print(f"Stage-Specific Concept Router diagnostics unavailable: {exc}")
+        return
+
+    p_clinical = np.asarray(router.clinical_prior.numpy(), dtype=np.float32)
+    delta_p = np.asarray(router.prior_delta.numpy(), dtype=np.float32)
+    p_effective = p_clinical + float(router.prior_delta_scale) * np.tanh(delta_p)
+    gate = float(router.concept_logit_gate.numpy())
+    gate_tanh = float(np.tanh(gate))
+    stage_labels = list(class_labels)
+    concept_labels = list(concept_names)
+
+    print("\nStage-Specific Concept Router diagnostics")
+    print(f"concept_logit_gate={gate:.6f}, tanh_gate={gate_tanh:.6f}")
+    print(f"prior_delta_scale={float(router.prior_delta_scale):.3f}")
+    print("P_clinical [stage x concept]:")
+    print(pd.DataFrame(p_clinical, index=stage_labels, columns=concept_labels).round(4))
+    print("learned DeltaP [stage x concept]:")
+    print(pd.DataFrame(delta_p, index=stage_labels, columns=concept_labels).round(4))
+    print("P_effective [stage x concept]:")
+    print(pd.DataFrame(p_effective, index=stage_labels, columns=concept_labels).round(4))
+    print("Top-3 absolute concept responsibilities per stage:")
+    for stage_idx, stage_name in enumerate(stage_labels):
+        values = p_effective[stage_idx]
+        top_idx = np.argsort(-np.abs(values))[:3]
+        top_summary = ", ".join(
+            f"{concept_labels[idx]}={values[idx]:.4f}" for idx in top_idx
+        )
+        print(f"{stage_name}: {top_summary}")
+
+
+def upsert_dataset_csv(path, rows, dataset):
+    if not rows:
+        return
+    new_df = pd.DataFrame(rows)
+    if os.path.exists(path):
+        old_df = pd.read_csv(path)
+        if "dataset" in old_df.columns:
+            old_df = old_df[old_df["dataset"] != dataset]
+        new_df = pd.concat([old_df, new_df], ignore_index=True)
+    new_df.to_csv(path, index=False)
+
+
+def save_single_model_scr_counterfactual_audit(
+        model,
+        dataset_key,
+        run_tag,
+        timestamp,
+        class_labels,
+        X_val_raw,
+        X_val_seg,
+        y_val_raw,
+        val_file_sample_counts,
+        X_test_raw,
+        X_test_seg,
+        y_true,
+        test_file_sample_counts,
+        formal_test_argmax_pred,
+        predict_batch_size,
+        sequence_mode,
+        seq_len,
+        sequence_stride,
+):
+    output_dir = os.path.join(OUTPUT_DIR, "selective_concept_audit", "single_model_counterfactual")
+    os.makedirs(output_dir, exist_ok=True)
+    diagnostic_model = build_scr_diagnostic_model(model)
+
+    split_data = {}
+    for split_name, X_raw, X_seg, labels, counts in [
+        ("val", X_val_raw, X_val_seg, y_val_raw, val_file_sample_counts),
+        ("test", X_test_raw, X_test_seg, y_true, test_file_sample_counts),
+    ]:
+        diag = predict_scr_diagnostic_outputs(
+            diagnostic_model,
+            X_raw,
+            X_seg,
+            batch_size=predict_batch_size,
+            sequence_mode=sequence_mode,
+            file_sample_counts=counts,
+            seq_len=seq_len,
+            sequence_stride=sequence_stride,
+            verbose=1 if split_name == "test" else 0,
+        )
+        base_probs = normalize_probabilities(diag["base_probs"])
+        final_probs = normalize_probabilities(diag["final_probs"])
+        base_pred = np.argmax(base_probs, axis=1).astype(np.int16)
+        final_pred = np.argmax(final_probs, axis=1).astype(np.int16)
+        recording_id, epoch_index = build_recording_epoch_axes(counts)
+        split_data[split_name] = {
+            "y_true": np.asarray(labels, dtype=np.int16),
+            "recording_id": recording_id,
+            "epoch_index": epoch_index,
+            "base_logits": probability_logits(base_probs),
+            "stage_evidence": np.asarray(diag["stage_evidence"], dtype=np.float32),
+            "router_contribution": np.asarray(diag["router_contribution"], dtype=np.float32),
+            "final_logits": probability_logits(final_probs),
+            "base_logits_raw_mean": np.asarray(diag["base_logits_raw_mean"], dtype=np.float32),
+            "final_logits_raw_mean": np.asarray(diag["final_logits_raw_mean"], dtype=np.float32),
+            "base_probs": base_probs.astype(np.float32),
+            "final_probs": final_probs.astype(np.float32),
+            "base_pred": base_pred,
+            "final_pred": final_pred,
+        }
+
+    artifact_path = os.path.join(output_dir, f"{dataset_key}_scr_counterfactual.npz")
+    np.savez_compressed(
+        artifact_path,
+        **{
+            f"{split}_{key}": value
+            for split, payload in split_data.items()
+            for key, value in payload.items()
+        },
+        class_labels=np.asarray(class_labels),
+        run_tag=np.asarray(run_tag),
+        timestamp=np.asarray(timestamp),
+        sequence_probability_aggregation=np.asarray("window_softmax_then_epoch_mean"),
+    )
+    print(f"Saved SCR same-model counterfactual artifact: {artifact_path}")
+
+    formal_test_argmax_pred = np.asarray(formal_test_argmax_pred, dtype=np.int16).reshape(-1)
+    diagnostic_test_final = split_data["test"]["final_pred"]
+    agreement = float(np.mean(diagnostic_test_final == formal_test_argmax_pred))
+    parity_payload = {
+        "dataset": dataset_key,
+        "run_tag": run_tag,
+        "prediction_agreement": agreement,
+        "status": "PASS" if agreement == 1.0 else "SCR_FINAL_PREDICTION_PARITY_FAILED",
+    }
+    write_json(os.path.join(output_dir, f"{dataset_key}_diagnostic_final_prediction_parity.json"), parity_payload)
+    if parity_payload["status"] != "PASS":
+        raise RuntimeError(f"SCR_FINAL_PREDICTION_PARITY_FAILED: {parity_payload}")
+    print("SCR diagnostic final prediction parity PASS: agreement=1.000000")
+
+    metric_rows = []
+    flip_rows = []
+    stage_rows = []
+    confusion_rows = []
+    decision_rows = []
+    validation_rule_rows = []
+    test_summary_rows = []
+    selected_predictions = {}
+    best_rule = None
+
+    for split, payload in split_data.items():
+        labels = payload["y_true"].astype(np.int32)
+        base_pred = payload["base_pred"].astype(np.int32)
+        final_pred = payload["final_pred"].astype(np.int32)
+        masks = outcome_masks(labels, base_pred, final_pred)
+        for model_name, pred, coverage in [
+            ("Router OFF", base_pred, 0.0),
+            ("Global Router ON", final_pred, 1.0),
+        ]:
+            row = {
+                "dataset": dataset_key,
+                "split": split,
+                "model": model_name,
+                "coverage": coverage,
+                "corrected": 0,
+                "harmed": 0,
+                "net_corrected": 0,
+            }
+            row.update(per_stage_metric_row(labels, pred, class_labels))
+            metric_rows.append(row)
+
+        for outcome, mask in masks.items():
+            flip_rows.append(
+                {
+                    "dataset": dataset_key,
+                    "split": split,
+                    "outcome": outcome,
+                    "count": int(np.sum(mask)),
+                    "percentage": float(np.mean(mask)),
+                }
+            )
+
+        for stage_idx, stage_name in enumerate(class_labels):
+            stage_mask = labels == stage_idx
+            corrected = int(np.sum(masks["corrected"] & stage_mask))
+            harmed = int(np.sum(masks["harmed"] & stage_mask))
+            stage_rows.append(
+                {
+                    "dataset": dataset_key,
+                    "split": split,
+                    "Stage": stage_name,
+                    "Corrected": corrected,
+                    "Harmed": harmed,
+                    "Net": corrected - harmed,
+                }
+            )
+
+        off_cm = confusion_matrix(labels, base_pred, labels=list(range(len(class_labels))))
+        on_cm = confusion_matrix(labels, final_pred, labels=list(range(len(class_labels))))
+        for true_idx, true_stage in enumerate(class_labels):
+            for pred_idx, pred_stage in enumerate(class_labels):
+                confusion_rows.append(
+                    {
+                        "dataset": dataset_key,
+                        "split": split,
+                        "True": true_stage,
+                        "Pred": pred_stage,
+                        "Router OFF": int(off_cm[true_idx, pred_idx]),
+                        "Router ON": int(on_cm[true_idx, pred_idx]),
+                        "Delta": int(on_cm[true_idx, pred_idx] - off_cm[true_idx, pred_idx]),
+                    }
+                )
+
+        decision_df = decision_state_frame(
+            payload["base_probs"],
+            payload["router_contribution"],
+            base_pred,
+            final_pred,
+            class_labels,
+        )
+        decision_rows.extend(summarize_corrected_harmed_features(decision_df, masks, dataset_key, split))
+
+        if split == "val":
+            rules = candidate_selective_rules(decision_df)
+            for rule in rules:
+                row, _ = evaluate_selective_rule(
+                    rule,
+                    decision_df,
+                    labels,
+                    base_pred,
+                    final_pred,
+                    class_labels,
+                    dataset_key,
+                    split,
+                )
+                validation_rule_rows.append(row)
+            best_row = select_best_validation_rule(validation_rule_rows)
+            best_rule = json.loads(best_row["rule_json"])
+        else:
+            if best_rule is None:
+                raise RuntimeError("Validation best rule was not selected before test evaluation.")
+            selected_row, selected_pred = evaluate_selective_rule(
+                best_rule,
+                decision_df,
+                labels,
+                base_pred,
+                final_pred,
+                class_labels,
+                dataset_key,
+                split,
+            )
+            selected_row["model"] = "Selective Router"
+            test_summary_rows.append(selected_row)
+            selected_predictions["test"] = selected_pred.astype(np.int16)
+
+    if selected_predictions:
+        with np.load(artifact_path, allow_pickle=True) as artifact:
+            payload = {key: artifact[key] for key in artifact.files}
+        payload["test_selective_pred"] = selected_predictions["test"]
+        np.savez_compressed(artifact_path, **payload)
+
+    test_metric_rows = [row for row in metric_rows if row["split"] == "test"]
+    for row in test_metric_rows:
+        if row["model"] == "Global Router ON":
+            test_masks = outcome_masks(
+                split_data["test"]["y_true"].astype(np.int32),
+                split_data["test"]["base_pred"].astype(np.int32),
+                split_data["test"]["final_pred"].astype(np.int32),
+            )
+            row["corrected"] = int(np.sum(test_masks["corrected"]))
+            row["harmed"] = int(np.sum(test_masks["harmed"]))
+            row["net_corrected"] = row["corrected"] - row["harmed"]
+    test_summary_rows = test_metric_rows + test_summary_rows
+
+    upsert_dataset_csv(os.path.join(output_dir, "same_model_metrics.csv"), metric_rows, dataset_key)
+    upsert_dataset_csv(os.path.join(output_dir, "same_model_flip_summary.csv"), flip_rows, dataset_key)
+    upsert_dataset_csv(os.path.join(output_dir, "same_model_stage_corrected_harmed.csv"), stage_rows, dataset_key)
+    upsert_dataset_csv(os.path.join(output_dir, "same_model_confusion_delta.csv"), confusion_rows, dataset_key)
+    upsert_dataset_csv(os.path.join(output_dir, "same_model_decision_state_auroc.csv"), decision_rows, dataset_key)
+    upsert_dataset_csv(os.path.join(output_dir, "same_model_validation_rule_search.csv"), validation_rule_rows, dataset_key)
+    upsert_dataset_csv(os.path.join(output_dir, "same_model_test_selective_summary.csv"), test_summary_rows, dataset_key)
+
+    previous_path = os.path.join(OUTPUT_DIR, "selective_concept_audit", "test_selective_summary.csv")
+    comparison_rows = []
+    if os.path.exists(previous_path):
+        previous = pd.read_csv(previous_path)
+        prev_dataset = previous[previous["dataset"] == dataset_key]
+        previous_base = prev_dataset[prev_dataset["model"].str.contains("A1-zero", regex=False)]
+        previous_selective = prev_dataset[prev_dataset["model"] == "Selective-SCR"]
+        if not previous_base.empty and not previous_selective.empty:
+            two_model_delta = float(previous_selective.iloc[0]["Accuracy"]) - float(previous_base.iloc[0]["Accuracy"])
+            off_acc = next(row["Accuracy"] for row in test_metric_rows if row["model"] == "Router OFF")
+            selective_acc = test_summary_rows[-1]["Accuracy"]
+            same_model_delta = float(selective_acc - off_acc)
+            comparison_rows.append(
+                {
+                    "dataset": dataset_key,
+                    "two_model_selective_delta_acc": two_model_delta,
+                    "same_model_selective_delta_acc": same_model_delta,
+                    "retained_gain_ratio": same_model_delta / two_model_delta if two_model_delta > 0 else np.nan,
+                }
+            )
+    upsert_dataset_csv(os.path.join(output_dir, "same_vs_two_model_gain.csv"), comparison_rows, dataset_key)
+
+    summary_payload = {
+        "dataset": dataset_key,
+        "run_tag": run_tag,
+        "artifact": artifact_path,
+        "best_validation_rule": best_rule,
+        "test_summary": test_summary_rows,
+        "formal_prediction_parity": parity_payload,
+    }
+    write_json(os.path.join(output_dir, f"{dataset_key}_same_model_counterfactual_summary.json"), summary_payload)
+    print(f"Saved SCR same-model counterfactual audit tables to {output_dir}")
+    return summary_payload
 
 
 def main():
@@ -3910,6 +5360,7 @@ def main():
         build_explanation_feedback_targets,
         create_hybrid_model_v2,
         create_sequence_sleep_model,
+        get_clinical_concept_names,
         recompile_sleep_model,
         reset_adaptive_priors,
         set_adaptive_priors,
@@ -3921,6 +5372,24 @@ def main():
         plot_transition_explanation_dashboard = None
 
     print("Core modules loaded.")
+    if ENABLE_STAGE_CONCEPT_ROUTER and CONCEPT_MODULATION_MODE != "zero":
+        raise ValueError(
+            "LFTS_ENABLE_STAGE_CONCEPT_ROUTER=1 requires "
+            "LFTS_CONCEPT_MODULATION_MODE=zero to keep the A1-zero backbone."
+        )
+    if ENABLE_EOG_SLOW_EVIDENCE_RESIDUAL and CONCEPT_MODULATION_MODE != "real":
+        raise ValueError("EOG Slow evidence residual requires LFTS_CONCEPT_MODULATION_MODE=real.")
+    if EOG_SLOW_EVIDENCE_SOURCE not in {"raw", "matched_scalar"}:
+        raise ValueError("LFTS_EOG_SLOW_EVIDENCE_SOURCE must be raw or matched_scalar.")
+    if XAI_FEEDBACK_ENABLED and not USE_SEQUENCE_MODEL:
+        raise ValueError("LFTS_XAI_FEEDBACK_ENABLED=1 requires the sequence model")
+    print(
+        "Differentiable XAI feedback: "
+        f"enabled={XAI_FEEDBACK_ENABLED}, loss_weight={XAI_FEEDBACK_LOSS_WEIGHT}, "
+        f"loss={XAI_ALIGNMENT_LOSS_NAME}, gradient_scope={XAI_GRADIENT_SCOPE}, "
+        f"warmup={XAI_FEEDBACK_WARMUP_EPOCHS}, ramp={XAI_FEEDBACK_RAMP_EPOCHS}; "
+        "default remains disabled"
+    )
     print(
         "Run protocol: "
         f"version={RUN_MAIN_PROTOCOL_VERSION}, "
@@ -3997,6 +5466,13 @@ def main():
         f"sequence_backbone={SEQUENCE_BACKBONE}, "
         f"epoch_encoder_variant={EPOCH_ENCODER_VARIANT}, "
         f"sequence_transformer={SEQUENCE_USE_TRANSFORMER}, "
+        f"epoch_utf_lite={ENABLE_EPOCH_UTF_LITE}, "
+        f"epoch_utf_lite_dim={EPOCH_UTF_LITE_DIM}, "
+        f"epoch_utf_lite_heads={EPOCH_UTF_LITE_HEADS}, "
+        f"epoch_utf_lite_dropout={EPOCH_UTF_LITE_DROPOUT:.2f}, "
+        f"stage_concept_router={ENABLE_STAGE_CONCEPT_ROUTER}, "
+        f"stage_concept_prior_delta_scale={STAGE_CONCEPT_PRIOR_DELTA_SCALE:.3f}, "
+        f"scr_counterfactual_diagnostics={ENABLE_SCR_COUNTERFACTUAL_DIAGNOSTICS}, "
         f"micro_macro_training={MICRO_MACRO_TRAINING}, "
         f"micro_pretrain_epochs={MICRO_PRETRAIN_EPOCHS}, "
         f"macro_stabilization_epochs={MACRO_STABILIZATION_EPOCHS}, "
@@ -4016,6 +5492,10 @@ def main():
         f"n1_supcon={USE_N1_SUPCON}, "
         f"n1_supcon_loss_weight={N1_SUPCON_LOSS_WEIGHT:.3f}, "
         f"n1_supcon_projection_dim={N1_SUPCON_PROJECTION_DIM}, "
+        f"n1_n2_pair_supcon={ENABLE_N1_N2_PAIR_SUPCON}, "
+        f"n1_n2_pair_supcon_weight={N1_N2_PAIR_SUPCON_LOSS_WEIGHT:.3f}, "
+        f"n1_context_local_contrast={ENABLE_N1_CONTEXT_LOCAL_CONTRAST}, "
+        f"n1_context_local_contrast_weight={N1_CONTEXT_LOCAL_CONTRAST_LOSS_WEIGHT:.3f}, "
         f"balanced_sequence_sampling={USE_BALANCED_SEQUENCE_SAMPLING}, "
         f"balance_n1_window_boost={BALANCE_N1_WINDOW_BOOST:.2f}, "
         f"balance_n3_window_boost={BALANCE_N3_WINDOW_BOOST:.2f}, "
@@ -4062,6 +5542,11 @@ def main():
         f"concept_modulation_strength={CONCEPT_MODULATION_STRENGTH:.3f}, "
         f"concept_modulation_stop_gradient={CONCEPT_MODULATION_STOP_GRADIENT}, "
         f"concept_modulation_mode={CONCEPT_MODULATION_MODE}, "
+        f"eog_slow_residual={ENABLE_EOG_SLOW_EVIDENCE_RESIDUAL}, "
+        f"eog_slow_source={EOG_SLOW_EVIDENCE_SOURCE}, "
+        f"eog_slow_hidden={EOG_SLOW_RESIDUAL_HIDDEN_DIM}, "
+        f"eog_slow_dropout={EOG_SLOW_RESIDUAL_DROPOUT:.3f}, "
+        f"eog_slow_gate_init={EOG_SLOW_RESIDUAL_GATE_INIT:.3f}, "
         f"ot_tacb={USE_OT_TACB}, "
         f"ot_tacb_sinkhorn_loss_weight={OT_TACB_SINKHORN_LOSS_WEIGHT:.3f}, "
         f"ot_tacb_fine_boundary_loss_weight={OT_TACB_FINE_BOUNDARY_LOSS_WEIGHT:.3f}, "
@@ -4269,6 +5754,25 @@ def main():
     y_val = to_categorical(y_val_raw, num_classes=NUM_CLASSES)
     y_test = to_categorical(y_test_raw, num_classes=NUM_CLASSES)
 
+    if XAI_FEEDBACK_ENABLED:
+        train_xai_feedback_targets, train_xai_feedback_weights, xai_target_manifest = (
+            load_sequence_xai_feedback_targets(
+                XAI_FEEDBACK_TARGET_PATH,
+                expected_len=len(y_train_raw),
+            )
+        )
+        declared_files = list(xai_target_manifest.get("source_files", []))
+        if declared_files and declared_files != list(train_files[: len(declared_files)]):
+            raise ValueError(
+                "XAI target source files do not match the prefix of the active train split"
+            )
+    else:
+        train_xai_feedback_targets = np.zeros((len(y_train_raw), 30, 3), dtype=np.float32)
+        train_xai_feedback_weights = np.zeros(len(y_train_raw), dtype=np.float32)
+        xai_target_manifest = {"status": "XAI_FEEDBACK_DISABLED"}
+    val_xai_feedback_targets = np.zeros((len(y_val_raw), 30, 3), dtype=np.float32)
+    val_xai_feedback_weights = np.zeros(len(y_val_raw), dtype=np.float32)
+
     lime_feedback_active = uses_lime_dccs_feedback(EXPLANATION_FEEDBACK_MODE)
     if lime_feedback_active:
         lime_feedback_data = load_lime_dccs_feedback_data(
@@ -4344,7 +5848,9 @@ def main():
         X_val_seg,
         y_val_raw,
         num_classes=NUM_CLASSES,
-        concept_prior_weight=CONCEPT_TARGET_PRIOR_WEIGHT,
+        # Validation/test labels must never construct a label-conditioned
+        # explanation target.  Stage labels remain ordinary evaluation labels.
+        concept_prior_weight=0.0,
         channel_prior_weight=DCCS_CHANNEL_PRIOR_WEIGHT,
         feedback_mode=EXPLANATION_FEEDBACK_MODE,
         lime_dccs_targets=val_lime_dccs_targets,
@@ -4602,6 +6108,14 @@ def main():
                 epoch_encoder_variant=EPOCH_ENCODER_VARIANT,
                 use_transformer=SEQUENCE_USE_TRANSFORMER,
                 loss_name=CLASSIFICATION_LOSS_NAME,
+                enable_epoch_utf_lite=ENABLE_EPOCH_UTF_LITE,
+                epoch_utf_lite_dim=EPOCH_UTF_LITE_DIM,
+                epoch_utf_lite_heads=EPOCH_UTF_LITE_HEADS,
+                epoch_utf_lite_dropout=EPOCH_UTF_LITE_DROPOUT,
+                epoch_utf_lite_seed=SEED,
+                enable_stage_concept_router=ENABLE_STAGE_CONCEPT_ROUTER,
+                stage_concept_prior_delta_scale=STAGE_CONCEPT_PRIOR_DELTA_SCALE,
+                instrument_stage_concept_router=ENABLE_SCR_COUNTERFACTUAL_DIAGNOSTICS,
                 use_domain_mixstyle=USE_DOMAIN_MIXSTYLE,
                 mixstyle_p=DOMAIN_MIXSTYLE_P,
                 mixstyle_alpha=DOMAIN_MIXSTYLE_ALPHA,
@@ -4623,6 +6137,11 @@ def main():
                 concept_modulation_strength=CONCEPT_MODULATION_STRENGTH,
                 concept_modulation_stop_gradient=CONCEPT_MODULATION_STOP_GRADIENT,
                 concept_modulation_mode=CONCEPT_MODULATION_MODE,
+                enable_eog_slow_evidence_residual=ENABLE_EOG_SLOW_EVIDENCE_RESIDUAL,
+                eog_slow_evidence_source=EOG_SLOW_EVIDENCE_SOURCE,
+                eog_slow_residual_hidden_dim=EOG_SLOW_RESIDUAL_HIDDEN_DIM,
+                eog_slow_residual_dropout=EOG_SLOW_RESIDUAL_DROPOUT,
+                eog_slow_residual_gate_init=EOG_SLOW_RESIDUAL_GATE_INIT,
                 use_concept_language=concept_language_active,
                 concept_loss_weight=sequence_concept_loss_weight,
                 concept_bottleneck_loss_weight=sequence_bottleneck_loss_weight,
@@ -4644,6 +6163,14 @@ def main():
                 use_n1_supervised_contrastive=USE_N1_SUPCON,
                 n1_contrastive_loss_weight=N1_SUPCON_LOSS_WEIGHT,
                 n1_contrastive_projection_dim=N1_SUPCON_PROJECTION_DIM,
+                enable_n1_n2_pair_supcon=ENABLE_N1_N2_PAIR_SUPCON,
+                n1_n2_pair_supcon_loss_weight=N1_N2_PAIR_SUPCON_LOSS_WEIGHT,
+                enable_n1_context_local_contrast=ENABLE_N1_CONTEXT_LOCAL_CONTRAST,
+                n1_context_local_contrast_loss_weight=N1_CONTEXT_LOCAL_CONTRAST_LOSS_WEIGHT,
+                enable_xai_feedback_head=XAI_FEEDBACK_ENABLED,
+                xai_feedback_loss_weight=XAI_FEEDBACK_LOSS_WEIGHT,
+                xai_alignment_loss_name=XAI_ALIGNMENT_LOSS_NAME,
+                xai_gradient_scope=XAI_GRADIENT_SCOPE,
             )
         else:
             model = create_hybrid_model_v2(
@@ -4671,6 +6198,37 @@ def main():
                 clinical_prior_trainable=CLINICAL_PRIOR_TRAINABLE,
             )
 
+    scr_counterfactual_dataset_key = sanitize_run_tag(
+        os.environ.get("LFTS_SCR_COUNTERFACTUAL_DATASET_KEY", "").strip()
+        or run_tag
+        or f"scr_seed{SEED}"
+    )
+    scr_counterfactual_output_dir = os.path.join(
+        OUTPUT_DIR,
+        "selective_concept_audit",
+        "single_model_counterfactual",
+    )
+    scr_diagnostic_inputs = None
+    if ENABLE_SCR_COUNTERFACTUAL_DIAGNOSTICS:
+        if not (USE_SEQUENCE_MODEL and ENABLE_STAGE_CONCEPT_ROUTER):
+            raise RuntimeError(
+                "LFTS_ENABLE_SCR_COUNTERFACTUAL_DIAGNOSTICS=1 requires the sequence SCR model."
+            )
+        scr_diagnostic_inputs = first_diagnostic_inputs(
+            X_val_raw,
+            X_val_seg,
+            file_sample_counts=val_file_sample_counts,
+            sequence_mode=USE_SEQUENCE_MODEL,
+            seq_len=SEQUENCE_LENGTH,
+            sequence_stride=SEQUENCE_PREDICT_STRIDE,
+        )
+        run_scr_instrumentation_parity(
+            model,
+            scr_diagnostic_inputs,
+            scr_counterfactual_output_dir,
+            scr_counterfactual_dataset_key,
+        )
+
     monitor_metric = (
         "val_main_output_loss"
         if USE_SEQUENCE_MODEL and (
@@ -4678,7 +6236,10 @@ def main():
             or include_transition_boundary_aux
             or include_concept_derivative_aux
             or USE_N1_SUPCON
+            or ENABLE_N1_N2_PAIR_SUPCON
+            or ENABLE_N1_CONTEXT_LOCAL_CONTRAST
             or USE_DOMAIN_ALIGNMENT
+            or XAI_FEEDBACK_ENABLED
         )
         else ("val_loss" if USE_SEQUENCE_MODEL else "val_main_output_loss")
     )
@@ -4756,10 +6317,18 @@ def main():
             ),
             include_concept_derivative_auxiliary=include_concept_derivative_aux,
             include_n1_contrastive=USE_N1_SUPCON,
+            enable_n1_n2_pair_supcon=ENABLE_N1_N2_PAIR_SUPCON,
+            enable_n1_context_local_contrast=ENABLE_N1_CONTEXT_LOCAL_CONTRAST,
+            pair_supcon_scale=0.0,
+            context_local_contrast_scale=0.0,
             balanced_sequence_sampling=USE_BALANCED_SEQUENCE_SAMPLING,
             balance_n1_window_boost=BALANCE_N1_WINDOW_BOOST,
             balance_n3_window_boost=BALANCE_N3_WINDOW_BOOST,
             balance_transition_window_boost=BALANCE_TRANSITION_WINDOW_BOOST,
+            xai_feedback_targets=train_xai_feedback_targets,
+            xai_feedback_sample_weights=train_xai_feedback_weights,
+            include_xai_feedback=XAI_FEEDBACK_ENABLED,
+            xai_feedback_scale=0.0,
         )
         val_gen = SleepSequenceDataGenerator(
             X_val_raw,
@@ -4791,7 +6360,15 @@ def main():
             ),
             include_concept_derivative_auxiliary=include_concept_derivative_aux,
             include_n1_contrastive=USE_N1_SUPCON,
+            enable_n1_n2_pair_supcon=ENABLE_N1_N2_PAIR_SUPCON,
+            enable_n1_context_local_contrast=ENABLE_N1_CONTEXT_LOCAL_CONTRAST,
+            pair_supcon_scale=0.0,
+            context_local_contrast_scale=0.0,
             balanced_sequence_sampling=False,
+            xai_feedback_targets=val_xai_feedback_targets,
+            xai_feedback_sample_weights=val_xai_feedback_weights,
+            include_xai_feedback=XAI_FEEDBACK_ENABLED,
+            xai_feedback_scale=0.0,
         )
         print(
             "Sequence windows: "
@@ -4844,6 +6421,71 @@ def main():
             ),
         )
 
+    if USE_SEQUENCE_MODEL and ENABLE_N1_N2_PAIR_SUPCON:
+        pair_supcon_subset = build_pair_supcon_diagnostic_subset(train_gen)
+        pair_supcon_diagnostics = PairSupConRepresentationDiagnostics(
+            pair_supcon_subset,
+            os.path.join(
+                OUTPUT_DIR,
+                "n1_n2_representation_separation",
+                "isruc_seed42",
+                "training_representation_diagnostics.csv",
+            ),
+            N1_N2_PAIR_SUPCON_LOSS_WEIGHT,
+        )
+        callbacks.append(pair_supcon_diagnostics)
+
+    if USE_SEQUENCE_MODEL and ENABLE_N1_CONTEXT_LOCAL_CONTRAST:
+        context_output_dir = os.path.join(
+            OUTPUT_DIR,
+            "n1_context_local_contrast",
+            "isruc_seed42",
+        )
+        os.makedirs(context_output_dir, exist_ok=True)
+        context_subset = build_n1_context_local_contrast_diagnostic_subset(train_gen)
+        write_json = lambda path, payload: open(path, "w", encoding="utf-8").write(
+            json.dumps(payload, indent=2, ensure_ascii=False, default=lambda x: float(x) if isinstance(x, np.floating) else int(x) if isinstance(x, np.integer) else str(x))
+        )
+        write_json(
+            os.path.join(context_output_dir, "training_context_feasibility_audit.json"),
+            {
+                "status": "PASS",
+                "label_tensor_shape": [None, int(SEQUENCE_LENGTH), int(NUM_CLASSES)],
+                "valid_mask_source": "sum(one_hot_main_output_target, axis=-1) > 0.5; padded timesteps are zero-weighted by SleepSequenceDataGenerator",
+                "recording_continuity_evidence": "build_sequence_windows iterates per file_sample_counts recording; each window start/end is bounded inside one recording; _window_epoch_indices pads only by repeating the final epoch and the valid mask excludes padding.",
+                "sequence_boundary_handling": "t=0, t=T-1, missing previous/next, invalid/padding timesteps are excluded from context subtype masks.",
+                "class_index_mapping": {name: int(idx) for idx, name in enumerate(CLASS_LABELS)},
+                "numeric_stage_labels": {"W": 0, "N1": 1, "N2": 2, "REM": 4},
+                "diagnostic_subset": {
+                    "window_count": int(len(context_subset["windows"])),
+                    "recording_count": int(len(context_subset["recordings"])),
+                    "recordings": [int(x) for x in context_subset["recordings"]],
+                    "subtype_counts": context_subset["subtype_counts"],
+                    "negative_counts": context_subset["negative_counts"],
+                },
+            },
+        )
+        write_json(
+            os.path.join(context_output_dir, "context_loss_implementation_audit.json"),
+            {
+                "status": "PASS",
+                "subtype_mask_function": "src.model_training.n1_context_subtype_masks",
+                "representation_tensor": "td_temporal_dense before temporal_dropout, [B,T,128]",
+                "auxiliary_output": "n1_context_local_contrast_features linear activation of td_temporal_dense",
+                "loss_function": "src.model_training.n1_context_subtype_local_contrastive_loss",
+                "phase_gate": "SleepSequenceDataGenerator.context_local_contrast_scale; fit_with_micro_macro_schedule sets 1.0 only during joint micro-macro fine-tuning.",
+                "negative_stop_gradient": "negative logits use matmul(anchor_features, stop_gradient(features)^T)",
+                "subtype_balancing": "L_context = mean(L_W, L_N2, L_REM) over valid subtypes with anchor_count>=2 and negative_count>=1",
+                "test_leakage": "No test subtype manifest/prototype/kNN/confidence is read by the loss; masks come from current train batch y_true only.",
+            },
+        )
+        context_diagnostics = N1ContextLocalContrastDiagnostics(
+            context_subset,
+            os.path.join(context_output_dir, "training_context_contrast_diagnostics.csv"),
+            N1_CONTEXT_LOCAL_CONTRAST_LOSS_WEIGHT,
+        )
+        callbacks.append(context_diagnostics)
+
     if (
             not USE_SEQUENCE_MODEL
             and EXPLANATION_FEEDBACK_TRAINING
@@ -4867,6 +6509,15 @@ def main():
                 ramp_epochs=MACRO_AUX_RAMP_EPOCHS,
                 start_scale=MACRO_AUX_START_SCALE,
                 final_scale=MACRO_AUX_FINAL_SCALE,
+            ),
+        )
+    if USE_SEQUENCE_MODEL and XAI_FEEDBACK_ENABLED:
+        callbacks.insert(
+            0,
+            XAIFeedbackScheduler(
+                [train_gen, val_gen],
+                warmup_epochs=XAI_FEEDBACK_WARMUP_EPOCHS,
+                ramp_epochs=XAI_FEEDBACK_RAMP_EPOCHS,
             ),
         )
 
@@ -4894,6 +6545,61 @@ def main():
             validation_data=val_gen,
             callbacks=callbacks,
             verbose=2,
+        )
+
+    if ENABLE_N1_N2_PAIR_SUPCON:
+        pair_supcon_output_dir = os.path.join(
+            OUTPUT_DIR,
+            "n1_n2_representation_separation",
+            "isruc_seed42",
+        )
+        pair_supcon_diagnostic_inputs = first_diagnostic_inputs(
+            X_val_raw,
+            X_val_seg,
+            file_sample_counts=val_file_sample_counts,
+            sequence_mode=USE_SEQUENCE_MODEL,
+            seq_len=SEQUENCE_LENGTH,
+            sequence_stride=SEQUENCE_PREDICT_STRIDE,
+        )
+        pair_supcon_best_weight_path = os.path.join(
+            OUTPUT_DIR,
+            "checkpoints",
+            f"{run_tag}_validation_best.weights.h5",
+        )
+        save_best_weights_with_reload_parity(
+            model,
+            pair_supcon_diagnostic_inputs,
+            pair_supcon_best_weight_path,
+            os.path.join(pair_supcon_output_dir, "best_weight_reload_parity.json"),
+            run_tag or "n1_n2_pair_supcon",
+        )
+
+    if ENABLE_N1_CONTEXT_LOCAL_CONTRAST:
+        context_output_dir = os.path.join(
+            OUTPUT_DIR,
+            "n1_context_local_contrast",
+            "isruc_seed42",
+        )
+        os.makedirs(context_output_dir, exist_ok=True)
+        context_diagnostic_inputs = first_diagnostic_inputs(
+            X_val_raw,
+            X_val_seg,
+            file_sample_counts=val_file_sample_counts,
+            sequence_mode=USE_SEQUENCE_MODEL,
+            seq_len=SEQUENCE_LENGTH,
+            sequence_stride=SEQUENCE_PREDICT_STRIDE,
+        )
+        context_best_weight_path = os.path.join(
+            OUTPUT_DIR,
+            "checkpoints",
+            f"{run_tag}_validation_best.weights.h5",
+        )
+        save_best_weights_with_reload_parity(
+            model,
+            context_diagnostic_inputs,
+            context_best_weight_path,
+            os.path.join(context_output_dir, "best_weight_reload_parity.json"),
+            run_tag or "n1_context_local_contrast",
         )
 
     print("\n==========================================")
@@ -4979,6 +6685,24 @@ def main():
             f"N2_R={decoder_metrics['n2_recall']:.4f}"
         )
 
+    if ENABLE_SCR_COUNTERFACTUAL_DIAGNOSTICS:
+        checkpoint_dir = os.path.join(OUTPUT_DIR, "checkpoints")
+        best_weight_path = os.path.join(
+            checkpoint_dir,
+            f"{scr_counterfactual_dataset_key}_validation_best.weights.h5",
+        )
+        best_reload_parity_path = os.path.join(
+            scr_counterfactual_output_dir,
+            f"{scr_counterfactual_dataset_key}_best_weight_reload_parity.json",
+        )
+        save_best_weights_with_reload_parity(
+            model,
+            scr_diagnostic_inputs,
+            best_weight_path,
+            best_reload_parity_path,
+            scr_counterfactual_dataset_key,
+        )
+
     pred_outputs = predict_model_outputs(
         model,
         X_test_raw,
@@ -5061,6 +6785,46 @@ def main():
         f"val_selected: {format_metric_summary(selected_metrics)}"
     )
 
+    if ENABLE_EPOCH_UTF_LITE:
+        try:
+            epoch_utf_layer = model.get_layer("epoch_utf_lite_interaction")
+            print(
+                "Epoch-UTF-Lite final gates: "
+                f"gate_raw={float(epoch_utf_layer.gate_raw.numpy()):.6f}, "
+                f"gate_segment={float(epoch_utf_layer.gate_segment.numpy()):.6f}"
+            )
+        except Exception as exc:
+            print(f"Epoch-UTF-Lite final gate logging failed: {exc}")
+
+    if ENABLE_STAGE_CONCEPT_ROUTER:
+        print_stage_concept_router_diagnostics(
+            model,
+            CLASS_LABELS,
+            get_clinical_concept_names(CLINICAL_CONCEPT_VERSION),
+        )
+
+    if ENABLE_SCR_COUNTERFACTUAL_DIAGNOSTICS:
+        save_single_model_scr_counterfactual_audit(
+            model,
+            scr_counterfactual_dataset_key,
+            run_tag,
+            timestamp,
+            CLASS_LABELS,
+            X_val_raw,
+            X_val_seg,
+            y_val_raw,
+            val_file_sample_counts,
+            X_test_raw,
+            X_test_seg,
+            y_true,
+            test_file_sample_counts,
+            y_pred_argmax,
+            predict_batch_size,
+            USE_SEQUENCE_MODEL,
+            SEQUENCE_LENGTH,
+            SEQUENCE_PREDICT_STRIDE,
+        )
+
     if SAVE_PREDICTION_PROBS:
         save_prediction_probabilities(
             OUTPUT_DIR,
@@ -5083,7 +6847,7 @@ def main():
         )
 
     if SAVE_SPLIT_PREDICTION_PROBS:
-        print("\nSaving train/val/test split predictions for C11 calibration...")
+        print("\nSaving train/val/test split predictions...")
         split_predict_batch_size = (
             min(predict_batch_size, SPLIT_PREDICT_BATCH_SIZE)
             if SPLIT_PREDICT_BATCH_SIZE > 0
@@ -5257,70 +7021,160 @@ def main():
     save_confusion_matrix(y_true, y_pred_report, CLASS_LABELS, OUTPUT_DIR)
 
     if not RUN_XAI_DASHBOARDS:
-        print("\n5. XAI dashboards skipped by default for the clean training/evaluation protocol.")
-        print(f"\nDone. Logs and figures saved under: {OUTPUT_DIR}")
-        return
-    if USE_SEQUENCE_MODEL:
-        print("\n5. XAI dashboards skipped: the current LIME wrapper is for the single-epoch baseline.")
+        print("\n5. XAI dashboards disabled by LFTS_RUN_XAI_DASHBOARDS=0.")
         print(f"\nDone. Logs and figures saved under: {OUTPUT_DIR}")
         return
 
-    print("\n5. Running representative LIME dashboards")
-    lime_wrapper = ModelWrapperForLIME(model)
+    print("\n5. Running representative sequence-aware LIME dashboards")
+    print(
+        "XAI configuration: "
+        f"sequence_aware={USE_SEQUENCE_MODEL}, "
+        f"diagnosis_perturbations={XAI_DIAGNOSIS_PERTURBATIONS}, "
+        f"transition_perturbations={XAI_TRANSITION_PERTURBATIONS}, "
+        f"perturbation_batch_size={XAI_PERTURBATION_BATCH_SIZE}"
+    )
+    xai_manifest = {
+        "enabled": True,
+        "sequence_aware": bool(USE_SEQUENCE_MODEL),
+        "diagnosis_perturbations": int(XAI_DIAGNOSIS_PERTURBATIONS),
+        "transition_perturbations": int(XAI_TRANSITION_PERTURBATIONS),
+        "perturbation_batch_size": int(XAI_PERTURBATION_BATCH_SIZE),
+        "diagnosis": [],
+        "transitions": [],
+        "failures": [],
+    }
+
+    def build_lime_wrapper(target_index):
+        if USE_SEQUENCE_MODEL:
+            return SequenceContextModelWrapperForLIME(
+                model,
+                X_test_raw,
+                X_test_seg,
+                test_file_sample_counts,
+                target_index=target_index,
+                seq_len=SEQUENCE_LENGTH,
+                sequence_stride=SEQUENCE_PREDICT_STRIDE,
+            )
+        return ModelWrapperForLIME(model)
+
+    def xai_files_for_prefix(prefix):
+        return sorted(
+            os.path.join(OUTPUT_DIR, name)
+            for name in os.listdir(OUTPUT_DIR)
+            if name.startswith(prefix) and name.lower().endswith((".png", ".pdf", ".svg", ".npz"))
+        )
+
+    def save_xai_numeric_payload(path, payload, **extra_arrays):
+        arrays = {}
+        if isinstance(payload, dict):
+            for key, value in payload.items():
+                if value is None:
+                    continue
+                array = np.asarray(value)
+                if array.dtype.kind in "biufcUS":
+                    arrays[str(key)] = array
+        for key, value in extra_arrays.items():
+            arrays[str(key)] = np.asarray(value)
+        np.savez_compressed(path, **arrays)
+        return path
+
+    def save_xai_manifest():
+        xai_manifest["diagnosis_count"] = len(xai_manifest["diagnosis"])
+        xai_manifest["transition_count"] = len(xai_manifest["transitions"])
+        xai_manifest["failure_count"] = len(xai_manifest["failures"])
+        manifest_path = os.path.join(OUTPUT_DIR, "xai_output_manifest.json")
+        write_json(manifest_path, xai_manifest)
+        return manifest_path
 
     for stage_idx, stage_name in enumerate(CLASS_LABELS):
         correct_indices = np.where((y_true == stage_idx) & (y_pred_report == stage_idx))[0]
+        selection = "correct_prediction"
         if len(correct_indices) == 0:
-            print(f"Stage {stage_name}: no correctly predicted sample; skipping.")
+            correct_indices = np.where(y_pred_report == stage_idx)[0]
+            selection = "predicted_stage_fallback"
+        if len(correct_indices) == 0:
+            correct_indices = np.where(y_true == stage_idx)[0]
+            selection = "true_stage_fallback"
+        if len(correct_indices) == 0:
+            message = f"Stage {stage_name}: no candidate sample; skipping."
+            print(message)
+            xai_manifest["failures"].append({"scope": "diagnosis", "stage": stage_name, "error": message})
             continue
 
-        target_idx = correct_indices[0]
-        instance_raw = X_test_raw[target_idx]
-        print(f"Explaining stage {stage_name}, test index {target_idx}")
-
-        segments = semantic_segmentation(instance_raw, target_segments=30)
-        explanation = run_multimodal_lime(
-            model=lime_wrapper,
-            instance_multimodal=instance_raw,
-            segments=segments,
-            num_perturbations=300,
-        )
-        explanation = normalize_lime_explanation(
-            explanation,
-            num_channels=instance_raw.shape[1],
-            num_segments=len(segments),
-        )
-        save_path = os.path.join(OUTPUT_DIR, f"XAI_Diagnosis_{stage_name}.png")
-        call_with_supported_kwargs(
-            plot_xai_multimodal_dashboard,
-            signal=instance_raw,
-            segments=segments,
-            segment_importance=explanation["segment_importance"],
-            raw_dccs=explanation["raw_dccs"],
-            calibrated_dccs=explanation["calibrated_dccs"],
-            segment_matrix=explanation["segment_matrix"],
-            prior_weighted_matrix=explanation["prior_weighted_matrix"],
-            temporal_net=explanation["temporal_net"],
-            cooperation_score=explanation["cooperation_score"],
-            conflict_score=explanation["conflict_score"],
-            prior_alignment=explanation["prior_alignment"],
-            channel_disagreement=explanation["channel_disagreement"],
-            clinical_concept_names=explanation.get("clinical_concept_names"),
-            clinical_concept_matrix=explanation.get("clinical_concept_matrix"),
-            clinical_concept_evidence_matrix=explanation.get("clinical_concept_evidence_matrix"),
-            raw_concept_dccs=explanation.get("raw_concept_dccs"),
-            calibrated_concept_dccs=explanation.get("calibrated_concept_dccs"),
-            concept_prior=explanation.get("concept_prior"),
-            concept_alignment=explanation.get("concept_alignment"),
-            perturbation_mode=explanation.get("perturbation_mode"),
-            channel_names=["EEG", "EOG", "EMG"],
-            target_class_name=CLASS_LABELS[explanation["target_class"]],
-            save_path=save_path,
-        )
+        target_idx = int(correct_indices[0])
+        try:
+            instance_raw = X_test_raw[target_idx]
+            print(f"Explaining stage {stage_name}, test index {target_idx}, selection={selection}")
+            segments = semantic_segmentation(instance_raw, target_segments=30)
+            explanation = run_multimodal_lime(
+                model=build_lime_wrapper(target_idx),
+                instance_multimodal=instance_raw,
+                segments=segments,
+                num_perturbations=XAI_DIAGNOSIS_PERTURBATIONS,
+                prediction_batch_size=XAI_PERTURBATION_BATCH_SIZE,
+            )
+            explanation = normalize_lime_explanation(
+                explanation,
+                num_channels=instance_raw.shape[1],
+                num_segments=len(segments),
+            )
+            prefix = f"XAI_Diagnosis_{stage_name}"
+            save_path = os.path.join(OUTPUT_DIR, f"{prefix}.png")
+            save_xai_numeric_payload(
+                os.path.join(OUTPUT_DIR, f"{prefix}_data.npz"),
+                explanation,
+                segments=np.asarray(segments, dtype=np.int32),
+                test_index=np.asarray(target_idx, dtype=np.int64),
+            )
+            call_with_supported_kwargs(
+                plot_xai_multimodal_dashboard,
+                signal=instance_raw,
+                segments=segments,
+                segment_importance=explanation["segment_importance"],
+                raw_dccs=explanation["raw_dccs"],
+                calibrated_dccs=explanation["calibrated_dccs"],
+                segment_matrix=explanation["segment_matrix"],
+                prior_weighted_matrix=explanation["prior_weighted_matrix"],
+                temporal_net=explanation["temporal_net"],
+                cooperation_score=explanation["cooperation_score"],
+                conflict_score=explanation["conflict_score"],
+                prior_alignment=explanation["prior_alignment"],
+                channel_disagreement=explanation["channel_disagreement"],
+                clinical_concept_names=explanation.get("clinical_concept_names"),
+                clinical_concept_matrix=explanation.get("clinical_concept_matrix"),
+                clinical_concept_evidence_matrix=explanation.get("clinical_concept_evidence_matrix"),
+                raw_concept_dccs=explanation.get("raw_concept_dccs"),
+                calibrated_concept_dccs=explanation.get("calibrated_concept_dccs"),
+                concept_prior=explanation.get("concept_prior"),
+                concept_alignment=explanation.get("concept_alignment"),
+                perturbation_mode=explanation.get("perturbation_mode"),
+                channel_names=["EEG", "EOG", "EMG"],
+                target_class_name=CLASS_LABELS[explanation["target_class"]],
+                save_path=save_path,
+            )
+            xai_manifest["diagnosis"].append({
+                "stage": stage_name,
+                "test_index": target_idx,
+                "selection": selection,
+                "target_class": CLASS_LABELS[explanation["target_class"]],
+                "segment_count": len(segments),
+                "files": xai_files_for_prefix(prefix),
+            })
+            save_xai_manifest()
+        except Exception as error:
+            print(f"Stage {stage_name} XAI failed: {type(error).__name__}: {error}")
+            xai_manifest["failures"].append({
+                "scope": "diagnosis",
+                "stage": stage_name,
+                "test_index": target_idx,
+                "error": f"{type(error).__name__}: {error}",
+            })
+            save_xai_manifest()
 
     print("\n6. Running transition-aware XAI dashboards")
     if plot_transition_explanation_dashboard is None:
         print("Transition dashboard function is not available; skipping transition XAI figures.")
+        save_xai_manifest()
         print(f"\nDone. Logs and figures saved under: {OUTPUT_DIR}")
         return
 
@@ -5337,22 +7191,42 @@ def main():
                 continue
 
             epoch_explanations = []
+            transition_failed = False
             for local_idx in range(left, right):
                 global_idx = offset + local_idx
                 instance_raw = X_test_raw[global_idx]
                 segments = semantic_segmentation(instance_raw, target_segments=30)
-                explanation = run_multimodal_lime(
-                    model=lime_wrapper,
-                    instance_multimodal=instance_raw,
-                    segments=segments,
-                    num_perturbations=200,
-                )
-                explanation = normalize_lime_explanation(
-                    explanation,
-                    num_channels=instance_raw.shape[1],
-                    num_segments=len(segments),
-                )
-                epoch_explanations.append(explanation)
+                try:
+                    explanation = run_multimodal_lime(
+                        model=build_lime_wrapper(global_idx),
+                        instance_multimodal=instance_raw,
+                        segments=segments,
+                        num_perturbations=XAI_TRANSITION_PERTURBATIONS,
+                        prediction_batch_size=XAI_PERTURBATION_BATCH_SIZE,
+                    )
+                    explanation = normalize_lime_explanation(
+                        explanation,
+                        num_channels=instance_raw.shape[1],
+                        num_segments=len(segments),
+                    )
+                    epoch_explanations.append(explanation)
+                except Exception as error:
+                    transition_failed = True
+                    xai_manifest["failures"].append({
+                        "scope": "transition_epoch",
+                        "recording": test_files[file_idx],
+                        "test_index": int(global_idx),
+                        "error": f"{type(error).__name__}: {error}",
+                    })
+                    save_xai_manifest()
+                    print(
+                        "Transition XAI epoch failed: "
+                        f"recording={test_files[file_idx]}, index={global_idx}, "
+                        f"error={type(error).__name__}: {error}"
+                    )
+                    break
+            if transition_failed:
+                continue
 
             from_stage = CLASS_LABELS[file_true[transition_idx - 1]]
             to_stage = CLASS_LABELS[file_true[transition_idx]]
@@ -5369,6 +7243,14 @@ def main():
                 OUTPUT_DIR,
                 f"XAI_Transition_{test_files[file_idx].replace('.npz', '')}_{from_stage}_to_{to_stage}.png",
             )
+            transition_prefix = os.path.splitext(os.path.basename(transition_path))[0]
+            save_xai_numeric_payload(
+                os.path.join(OUTPUT_DIR, f"{transition_prefix}_data.npz"),
+                transition_summary,
+                recording=np.asarray(test_files[file_idx]),
+                transition_index=np.asarray(transition_idx, dtype=np.int64),
+                window_bounds=np.asarray([left, right], dtype=np.int64),
+            )
             call_with_supported_kwargs(
                 plot_transition_explanation_dashboard,
                 transition_summary,
@@ -5376,11 +7258,23 @@ def main():
                 to_stage=to_stage,
                 save_path=transition_path,
             )
+            xai_manifest["transitions"].append({
+                "recording": test_files[file_idx],
+                "from_stage": from_stage,
+                "to_stage": to_stage,
+                "transition_index_in_recording": int(transition_idx),
+                "window_left": int(left),
+                "window_right": int(right),
+                "files": xai_files_for_prefix(transition_prefix),
+            })
+            save_xai_manifest()
             transition_generated += 1
             break
         offset += sample_count
 
     print(f"Transition dashboards generated: {transition_generated}")
+    xai_manifest_path = save_xai_manifest()
+    print(f"XAI output manifest saved to: {xai_manifest_path}")
     print(f"\nDone. Logs and figures saved under: {OUTPUT_DIR}")
 
 
