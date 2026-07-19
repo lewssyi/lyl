@@ -1,0 +1,21 @@
+{
+  "schema_version": "sequence_lime_config_v1",
+  "run_id": "profile",
+  "mode": "smoke",
+  "purpose": "Two-sample pipeline/profile guard; not inferential.",
+  "run_config": {
+    "mode": "profile",
+    "max_samples": 2,
+    "sample_correct_per_stage": 1,
+    "sample_wrong_per_stage": 1,
+    "train_masks": 100,
+    "val_masks": 40,
+    "random_repeats": 1,
+    "stability_seeds": [9001, 9002],
+    "bootstrap_repeats": 50,
+    "do_randomization": false,
+    "perturbation_modes": ["zero", "physiological", "gaussian_noise", "local_mean"],
+    "batch_windows": 16
+  },
+  "claim_boundary": "Smoke only; no superiority claim."
+}

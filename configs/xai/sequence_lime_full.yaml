@@ -1,0 +1,36 @@
+{
+  "schema_version": "sequence_lime_config_v1",
+  "run_id": "full_evaluation",
+  "mode": "full",
+  "purpose": "Formal A1-zero Sequence-LIME evaluation across correctness, stage, transition, replacement, stability, and sanity strata.",
+  "run_config": {
+    "mode": "full_evaluation",
+    "max_samples": 40,
+    "sample_correct_per_stage": 2,
+    "sample_wrong_per_stage": 2,
+    "train_masks": 900,
+    "val_masks": 200,
+    "random_repeats": 5,
+    "stability_seeds": [9001, 9002, 9003],
+    "bootstrap_repeats": 2000,
+    "do_randomization": true,
+    "perturbation_modes": ["zero", "physiological", "gaussian_noise", "local_mean"],
+    "batch_windows": 16,
+    "target_segments": 15,
+    "mask_sampling": "local_stratified",
+    "response_transform": "probability",
+    "surrogate_perturbation_mode": "zero"
+  },
+  "required_populations": [
+    "population_random",
+    "correct",
+    "incorrect",
+    "true_stage",
+    "predicted_stage",
+    "transition",
+    "stable",
+    "N1"
+  ],
+  "required_estimands": ["zero", "physiological", "gaussian_noise", "local_mean"],
+  "paper_claim": "PC-SeqLIME superiority is specific to the physiological-perturbation estimand."
+}

@@ -15,10 +15,13 @@ import json
 import math
 import os
 import resource
+import shutil
 import subprocess
 import sys
 import time
-from dataclasses import dataclass, replace
+import traceback
+from dataclasses import asdict, dataclass, replace
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
@@ -51,7 +54,7 @@ if str(TOOLS_DIR) not in sys.path:
 CLASS_LABELS = ["W", "N1", "N2", "N3", "REM"]
 CHANNEL_LABELS = ["EEG", "EOG", "EMG"]
 EPS = 1e-8
-EVALUATOR_VERSION = "sequence_lime_v1.0.0"
+EVALUATOR_VERSION = "sequence_lime_v1.1.0"
 STRICT_PROBABILITY_TOLERANCE = 1e-6
 
 CLINICAL_CONCEPTS = None
@@ -264,7 +267,7 @@ def mode_config(mode: str) -> RunConfig:
             perturbation_chunk=8,
             bootstrap_repeats=200,
             do_randomization=True,
-            perturbation_modes=("physiological", "zero", "gaussian_noise"),
+            perturbation_modes=("physiological", "zero", "gaussian_noise", "local_mean"),
             target_segments=15,
             mask_sampling="local_stratified",
             ridge_alphas=(1e-4, 1e-3, 1e-2, 0.1, 1.0, 10.0, 100.0),
@@ -285,7 +288,7 @@ def mode_config(mode: str) -> RunConfig:
         perturbation_chunk=4,
         bootstrap_repeats=2000,
         do_randomization=True,
-        perturbation_modes=("physiological", "zero", "gaussian_noise"),
+            perturbation_modes=("physiological", "zero", "gaussian_noise", "local_mean"),
         target_segments=15,
         mask_sampling="local_stratified",
         ridge_alphas=(1e-4, 1e-3, 1e-2, 0.1, 1.0, 10.0, 100.0),
@@ -322,6 +325,52 @@ def file_sha256(path: Path, block_size: int = 1 << 20) -> Optional[str]:
                 break
             h.update(chunk)
     return h.hexdigest()
+
+
+def git_state() -> Dict[str, object]:
+    def run(*command: str) -> str:
+        return subprocess.check_output(
+            command,
+            cwd=PROJECT_ROOT,
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+
+    try:
+        commit = run("git", "rev-parse", "HEAD")
+        status = run("git", "status", "--porcelain")
+        return {"git_commit": commit, "working_tree_clean": not bool(status)}
+    except Exception:
+        return {"git_commit": None, "working_tree_clean": False}
+
+
+def build_run_provenance(
+    run_id: str,
+    config: Optional[RunConfig] = None,
+    probability_cache: Optional[Path] = PRED_PATH,
+) -> Dict[str, object]:
+    return {
+        "run_id": str(run_id),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        **git_state(),
+        "checkpoint_path": str(CKPT_PATH),
+        "checkpoint_sha256": file_sha256(CKPT_PATH),
+        "split_path": str(SPLIT_PATH),
+        "split_sha256": file_sha256(SPLIT_PATH),
+        "probability_cache_path": str(probability_cache) if probability_cache else None,
+        "probability_cache_sha256": file_sha256(probability_cache) if probability_cache else None,
+        "evaluator_version": EVALUATOR_VERSION,
+        "evaluator_config": asdict(config) if config is not None else None,
+        "decoder_boundary": {
+            "canonical_decoder": "validation-selected temperature argmax",
+            "hmm_role": "optional validation-selected candidate; not canonical",
+            "lime_endpoint": "pre-HMM raw neural probabilities",
+        },
+        "claim_boundary": (
+            "local attribution and interventional faithfulness under the configured "
+            "replacement rule; not a global causal contribution"
+        ),
+    }
 
 
 def stat_payload(path: Path) -> Dict[str, object]:
@@ -621,7 +670,15 @@ def configure_reproducible_inference(seed: int = 42) -> None:
         pass
 
 
-def build_model(raw_shape: Tuple[int, ...], segment_shape: Tuple[int, ...], weights_path: Path = CKPT_PATH) -> tf.keras.Model:
+def build_model(
+    raw_shape: Tuple[int, ...],
+    segment_shape: Tuple[int, ...],
+    weights_path: Path = CKPT_PATH,
+    enable_xai_feedback_head: bool = False,
+    xai_feedback_loss_weight: float = 0.0,
+    xai_alignment_loss_name: str = "normalized_mse",
+    xai_gradient_scope: str = "head_only",
+) -> tf.keras.Model:
     configure_reproducible_inference(42)
     from src.model_training import create_sequence_sleep_model  # noqa: WPS433
 
@@ -666,8 +723,15 @@ def build_model(raw_shape: Tuple[int, ...], segment_shape: Tuple[int, ...], weig
         n1_context_local_contrast_loss_weight=0.01,
         enable_epoch_utf_lite=False,
         enable_stage_concept_router=False,
+        enable_xai_feedback_head=bool(enable_xai_feedback_head),
+        xai_feedback_loss_weight=float(xai_feedback_loss_weight),
+        xai_alignment_loss_name=xai_alignment_loss_name,
+        xai_gradient_scope=xai_gradient_scope,
     )
-    model.load_weights(str(weights_path))
+    if enable_xai_feedback_head:
+        model.load_weights(str(weights_path), by_name=True, skip_mismatch=True)
+    else:
+        model.load_weights(str(weights_path))
     return model
 
 
@@ -1079,38 +1143,22 @@ def sequence_target_probabilities(
     perturbed_features: Sequence[np.ndarray],
     batch_windows: int,
 ) -> np.ndarray:
-    formal_batches = target_formal_window_batches(counts, global_epoch, batch_windows)
-    if not formal_batches:
-        raise RuntimeError(f"No sequence window covers epoch {global_epoch}")
-    num_perturbations = len(perturbed_epochs)
-    sums = np.zeros(num_perturbations, dtype=np.float64)
-    counts_per = np.zeros(num_perturbations, dtype=np.float64)
-    for batch, positions in formal_batches:
-        raw_batch, seg_batch = [], []
-        batch_len = len(batch)
-        for pert_epoch, pert_feat in zip(perturbed_epochs, perturbed_features):
-            for row_idx, (start, valid_len) in enumerate(batch):
-                idx = window_epoch_indices(start, valid_len, 75)
-                rw = np.asarray(x_raw[idx], dtype=np.float32).copy()
-                sg = np.asarray(x_seg[idx], dtype=np.float32).copy()
-                if row_idx in positions:
-                    rel_pos = positions[row_idx]
-                    rw[rel_pos] = pert_epoch
-                    sg[rel_pos] = pert_feat
-                raw_batch.append(rw)
-                seg_batch.append(sg)
-        probs = model_main_output(
-            model(
-                {"raw_input": np.asarray(raw_batch, dtype=np.float32), "segment_input": np.asarray(seg_batch, dtype=np.float32)},
-                training=False,
-            )
-        )
-        for pert_idx in range(num_perturbations):
-            base = pert_idx * batch_len
-            for row, pos in positions.items():
-                sums[pert_idx] += float(probs[base + int(row), int(pos), int(target_class)])
-                counts_per[pert_idx] += 1.0
-    return (sums / np.maximum(counts_per, 1.0)).astype(np.float32)
+    # Faithfulness needs every sequence window that covers the target epoch,
+    # not unrelated rows that happened to share its historical inference
+    # batch. Reuse the audited covering-window assembler, which enforces the
+    # configured model-call cap and aggregates all covering positions.
+    payload = infer_precomputed_epochs_for_target(
+        model,
+        x_raw,
+        x_seg,
+        counts,
+        global_epoch,
+        target_class,
+        perturbed_epochs,
+        perturbed_features,
+        batch_windows=max(1, int(batch_windows)),
+    )
+    return np.asarray(payload["target_probabilities"], dtype=np.float32)
 
 
 def make_masks(
@@ -1213,6 +1261,7 @@ def stable_mask_hash(
     model_state_id: str,
     segment_hash: str,
     target_class: int,
+    perturbation_target_class: int,
     batch_windows: int,
 ) -> str:
     h = hashlib.sha256()
@@ -1221,6 +1270,9 @@ def stable_mask_hash(
     h.update(f"model_state_id={model_state_id}\n".encode("utf-8"))
     h.update(f"segment_boundary_hash={segment_hash}\n".encode("utf-8"))
     h.update(f"target_class={int(target_class)}\n".encode("utf-8"))
+    h.update(
+        f"perturbation_target_class={int(perturbation_target_class)}\n".encode("utf-8")
+    )
     h.update(f"sequence_aggregation_config_hash={sequence_aggregation_config_hash(batch_windows)}\n".encode("utf-8"))
     arr = np.asarray(mask, dtype=np.int8).ravel()
     h.update(str(arr.shape).encode("utf-8"))
@@ -1320,6 +1372,7 @@ def evaluate_masks_for_target_epoch(
     out_dir: Path,
     cache_namespace: str,
     model_state_id: str = "original_model",
+    perturbation_target_class: Optional[int] = None,
 ) -> Dict[str, object]:
     ensure_lime_imports()
     masks = np.asarray(masks, dtype=np.int32)
@@ -1329,12 +1382,26 @@ def evaluate_masks_for_target_epoch(
     if not covers:
         raise RuntimeError(f"No sequence window covers epoch {global_epoch}")
     t0 = time.perf_counter()
+    effective_perturbation_target_class = (
+        int(target_class)
+        if perturbation_target_class is None
+        else int(perturbation_target_class)
+    )
     seg_hash = segment_boundary_hash(segments)
     cache_dir = mask_prediction_cache_dir(out_dir, global_epoch, model_state_id, perturbation_mode)
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     mask_hashes = [
-        stable_mask_hash(mask, global_epoch, perturbation_mode, model_state_id, seg_hash, target_class, window_inference_batch_size)
+        stable_mask_hash(
+            mask,
+            global_epoch,
+            perturbation_mode,
+            model_state_id,
+            seg_hash,
+            target_class,
+            effective_perturbation_target_class,
+            window_inference_batch_size,
+        )
         for mask in masks
     ]
     first_index: Dict[str, int] = {}
@@ -1363,7 +1430,13 @@ def evaluate_masks_for_target_epoch(
     perturb_t0 = time.perf_counter()
     for unique_pos in missing_unique_positions:
         mask = masks[first_index[unique_order[unique_pos]]]
-        perturbed = apply_perturbation_to_multimodal(epoch, mask, segments, target_class, perturbation_mode=perturbation_mode)
+        perturbed = apply_perturbation_to_multimodal(
+            epoch,
+            mask,
+            segments,
+            effective_perturbation_target_class,
+            perturbation_mode=perturbation_mode,
+        )
         perturbed_epochs.append(np.asarray(perturbed, dtype=np.float32))
     perturb_t1 = time.perf_counter()
     feature_t0 = time.perf_counter()
@@ -1413,6 +1486,7 @@ def evaluate_masks_for_target_epoch(
             "perturbation_mode": str(perturbation_mode),
             "global_epoch_index": int(global_epoch),
             "target_class": int(target_class),
+            "perturbation_target_class": int(effective_perturbation_target_class),
             "segment_boundary_hash": seg_hash,
             "sequence_aggregation_config_hash": sequence_aggregation_config_hash(window_inference_batch_size),
             "cache_namespace_first_writer": str(cache_namespace),
@@ -2265,7 +2339,8 @@ def transition_boundary(y_true: np.ndarray, recording_id: np.ndarray) -> np.ndar
 
 
 def choose_samples(artifact: Mapping[str, np.ndarray], config: RunConfig, out_dir: Path, resume: bool) -> pd.DataFrame:
-    manifest_path = out_dir / "sample_manifest.csv"
+    mode_tag = str(config.mode).replace("/", "_").replace("\\", "_")
+    manifest_path = out_dir / f"sample_manifest_{mode_tag}.csv"
     if resume and manifest_path.exists():
         return pd.read_csv(manifest_path)
     y = artifact["y_true"]
@@ -2276,6 +2351,23 @@ def choose_samples(artifact: Mapping[str, np.ndarray], config: RunConfig, out_di
     boundary = transition_boundary(y, rec)
     conf = probs[np.arange(len(probs)), pred]
     rows = []
+    if config.mode == "full_evaluation":
+        rng = np.random.default_rng(42)
+        random_quota = min(10, len(y))
+        for global_idx in rng.choice(len(y), size=random_quota, replace=False):
+            rows.append({
+                "global_epoch_index": int(global_idx),
+                "recording_id": int(rec[global_idx]),
+                "subject_id": int(rec[global_idx]),
+                "epoch_index_in_recording": int(epoch_idx[global_idx]),
+                "true_stage": CLASS_LABELS[int(y[global_idx])],
+                "predicted_stage": CLASS_LABELS[int(pred[global_idx])],
+                "confidence": float(conf[global_idx]),
+                "correct": bool(pred[global_idx] == y[global_idx]),
+                "transition_boundary": bool(boundary[global_idx]),
+                "sample_group": "population_random",
+                "segments_count": 0,
+            })
     for stage in range(len(CLASS_LABELS)):
         for correct_value, quota, group_name in (
             (True, config.sample_correct_per_stage, "formal_correct"),
@@ -2303,7 +2395,36 @@ def choose_samples(artifact: Mapping[str, np.ndarray], config: RunConfig, out_di
                     "sample_group": group_name,
                     "segments_count": 0,
                 })
+    if config.mode == "full_evaluation":
+        rng = np.random.default_rng(43)
+        for is_transition, group_name in ((True, "transition"), (False, "stable")):
+            candidates = np.flatnonzero(boundary == is_transition)
+            if len(candidates):
+                for global_idx in rng.choice(candidates, size=min(3, len(candidates)), replace=False):
+                    rows.append({
+                        "global_epoch_index": int(global_idx),
+                        "recording_id": int(rec[global_idx]),
+                        "subject_id": int(rec[global_idx]),
+                        "epoch_index_in_recording": int(epoch_idx[global_idx]),
+                        "true_stage": CLASS_LABELS[int(y[global_idx])],
+                        "predicted_stage": CLASS_LABELS[int(pred[global_idx])],
+                        "confidence": float(conf[global_idx]),
+                        "correct": bool(pred[global_idx] == y[global_idx]),
+                        "transition_boundary": bool(boundary[global_idx]),
+                        "sample_group": group_name,
+                        "segments_count": 0,
+                    })
     df = pd.DataFrame(rows).drop_duplicates("global_epoch_index").head(config.max_samples)
+    population_counts = {CLASS_LABELS[stage]: int(np.sum(y == stage)) for stage in range(5)}
+    selected_counts = df["true_stage"].value_counts().to_dict()
+    df["population_weight"] = [
+        float(population_counts[stage] / max(selected_counts.get(stage, 1), 1))
+        for stage in df["true_stage"]
+    ]
+    df["stage_balanced_weight"] = [
+        float(1.0 / (5.0 * max(selected_counts.get(stage, 1), 1)))
+        for stage in df["true_stage"]
+    ]
     df.to_csv(manifest_path, index=False)
     return df
 
@@ -2463,7 +2584,29 @@ def evaluate_single_sample(
     global_idx = int(sample["global_epoch_index"])
     cache_path = out_dir / "cache" / f"sample_{global_idx:06d}.json"
     if cache_path.exists():
-        return read_json(cache_path)
+        result = read_json(cache_path)
+        target_class = int(result["target_class"])
+        exact_vector = sequence_target_vector(
+            model,
+            x_raw,
+            x_seg,
+            counts,
+            global_idx,
+            x_raw[global_idx],
+            x_seg[global_idx],
+            batch_windows=config.batch_windows,
+        )
+        artifact_probability = float(artifact["probs"][global_idx, target_class])
+        result["sequence_wrapper_original_probability"] = float(
+            exact_vector[target_class]
+        )
+        result["formal_sequence_inference_probability"] = artifact_probability
+        result["sequence_wrapper_abs_diff"] = float(
+            abs(exact_vector[target_class] - artifact_probability)
+        )
+        result["sequence_wrapper_protocol"] = "formal_full_batch_context"
+        write_json(cache_path, result)
+        return result
 
     epoch = x_raw[global_idx]
     segments = semantic_segmentation(epoch, target_segments=config.target_segments)
@@ -2491,13 +2634,21 @@ def evaluate_single_sample(
         "stability": [],
     }
 
-    original_wrapper = sequence_target_probabilities(
-        model, x_raw, x_seg, counts, global_idx, target_class, [epoch], [x_seg[global_idx]], config.batch_windows
-    )[0]
+    original_wrapper = sequence_target_vector(
+        model,
+        x_raw,
+        x_seg,
+        counts,
+        global_idx,
+        epoch,
+        x_seg[global_idx],
+        batch_windows=config.batch_windows,
+    )[target_class]
     artifact_prob = float(artifact["probs"][global_idx, target_class])
     result["sequence_wrapper_original_probability"] = float(original_wrapper)
     result["formal_sequence_inference_probability"] = artifact_prob
     result["sequence_wrapper_abs_diff"] = float(abs(original_wrapper - artifact_prob))
+    result["sequence_wrapper_protocol"] = "formal_full_batch_context"
 
     for mode in config.perturbation_modes:
         probs = predict_masks_sequence(
@@ -2871,10 +3022,232 @@ def flatten_results(results: Sequence[Mapping[str, object]], config: RunConfig, 
                 })
     pd.DataFrame(stability_rows).to_csv(out_dir / "stability_sample_level.csv", index=False)
 
-    summarize_tables(out_dir, config)
+def assert_no_test_oracle_fields(frame: pd.DataFrame) -> None:
+    forbidden = [column for column in frame.columns if "oracle" in str(column).lower()]
+    if forbidden:
+        raise ValueError(f"Paper main table must not contain test-side oracle fields: {forbidden}")
 
 
-def summarize_tables(out_dir: Path, config: RunConfig) -> None:
+def write_formal_result_tables(
+    out_dir: Path,
+    config: RunConfig,
+    sample_df: pd.DataFrame,
+    curve_df: pd.DataFrame,
+    group_df: pd.DataFrame,
+    stability_df: pd.DataFrame,
+) -> None:
+    fidelity_columns = [
+        column
+        for column in (
+            "global_epoch_index",
+            "recording_id",
+            "true_stage",
+            "predicted_stage",
+            "correct",
+            "transition_boundary",
+            "validation_weighted_r2",
+            "train_weighted_r2",
+            "original_mask_error",
+        )
+        if column in sample_df
+    ]
+    sample_df[fidelity_columns].to_csv(out_dir / "surrogate_fidelity.csv", index=False)
+    if curve_df.empty:
+        faithfulness = pd.DataFrame()
+    else:
+        group_columns = [column for column in ("perturbation_mode", "ranking") if column in curve_df]
+        metric_columns = [
+            column
+            for column in (
+                "deletion_auc_raw",
+                "insertion_auc_raw",
+                "deletion_AOPC",
+                "insertion_AOPC",
+            )
+            if column in curve_df
+        ]
+        faithfulness = (
+            curve_df.groupby(group_columns, dropna=False)[metric_columns]
+            .agg(["count", "mean", "median", "std"])
+            .reset_index()
+        )
+        faithfulness.columns = [
+            "_".join(str(part) for part in column if str(part))
+            if isinstance(column, tuple)
+            else str(column)
+            for column in faithfulness.columns
+        ]
+        faithfulness["claim_boundary"] = np.where(
+            faithfulness.get("perturbation_mode", "") == "physiological",
+            "PC-SeqLIME superiority is specific to the physiological-perturbation estimand.",
+            "No cross-estimand superiority claim.",
+        )
+    faithfulness.to_csv(out_dir / "faithfulness_summary.csv", index=False)
+
+    if stability_df.empty:
+        stability = pd.DataFrame()
+    else:
+        metrics = [
+            column
+            for column in (
+                "signed_coefficient_spearman",
+                "absolute_coefficient_spearman",
+                "top10_jaccard",
+                "dominant_channel_agreement",
+                "top3_concept_jaccard",
+            )
+            if column in stability_df
+        ]
+        stability = pd.DataFrame(
+            [
+                {
+                    "scope": "within-checkpoint perturbation stability",
+                    "N": int(len(stability_df)),
+                    **{f"mean_{column}": float(stability_df[column].astype(float).mean()) for column in metrics},
+                    "cross_seed_model_stability": "pending additional checkpoints",
+                }
+            ]
+        )
+    stability.to_csv(out_dir / "stability_summary.csv", index=False)
+
+    randomization_path = out_dir / "model_randomization_sanity.csv"
+    randomization = pd.read_csv(randomization_path) if randomization_path.exists() and randomization_path.stat().st_size > 1 else pd.DataFrame()
+    randomization.to_csv(out_dir / "randomization_summary.csv", index=False)
+    correct_incorrect = group_df[group_df["group"].isin(["Correct", "Incorrect"])].copy() if not group_df.empty else pd.DataFrame()
+    correct_incorrect.to_csv(out_dir / "correct_incorrect_summary.csv", index=False)
+    stage = group_df[group_df["group"].str.startswith(("True ", "Pred "), na=False)].copy() if not group_df.empty else pd.DataFrame()
+    stage.to_csv(out_dir / "stage_summary.csv", index=False)
+    profile_path = out_dir / "performance_profile.json"
+    profile = read_json(profile_path) if profile_path.exists() else {}
+    pd.DataFrame(
+        [
+            {
+                "sample_N": int(len(sample_df)),
+                "requested_surrogate_queries_per_sample": int(config.train_masks + config.val_masks),
+                "replacement_endpoint_count": int(len(config.perturbation_modes)),
+                "window_inference_batch_size": int(config.batch_windows),
+                "profile_wall_seconds": profile.get("wall_seconds"),
+                "peak_host_memory_mb": profile.get("peak_host_memory_mb"),
+                "peak_gpu_memory_mb": profile.get("peak_gpu_memory_mb"),
+            }
+        ]
+    ).to_csv(out_dir / "runtime_query_summary.csv", index=False)
+
+
+def validate_required_formal_outputs(out_dir: Path) -> None:
+    required = (
+        "paper_main_table.csv",
+        "paper_main_table.md",
+        "surrogate_fidelity.csv",
+        "faithfulness_summary.csv",
+        "stability_summary.csv",
+        "randomization_summary.csv",
+        "correct_incorrect_summary.csv",
+        "stage_summary.csv",
+        "runtime_query_summary.csv",
+    )
+    failures = []
+    for name in required:
+        path = out_dir / name
+        if not path.exists() or path.stat().st_size <= 1:
+            failures.append(f"{name}: missing/empty")
+            continue
+        if path.suffix == ".csv":
+            try:
+                if pd.read_csv(path).empty:
+                    failures.append(f"{name}: header-only")
+            except pd.errors.EmptyDataError:
+                failures.append(f"{name}: empty data")
+    if failures:
+        raise RuntimeError("Formal XAI output validation failed: " + "; ".join(failures))
+
+
+def write_current_results_manifest(
+    out_dir: Path,
+    run_id: str,
+    publish_root_index: bool = True,
+) -> None:
+    required_names = (
+        "model_prediction_parity.json",
+        "prediction_metric_parity.json",
+        "sequence_wrapper_parity.json",
+        "paper_main_table.csv",
+        "paper_main_table.md",
+        "surrogate_fidelity.csv",
+        "faithfulness_summary.csv",
+        "stability_summary.csv",
+        "randomization_summary.csv",
+        "correct_incorrect_summary.csv",
+        "stage_summary.csv",
+        "runtime_query_summary.csv",
+    )
+    valid = []
+    for name in required_names:
+        path = out_dir / name
+        if path.exists() and path.stat().st_size > 1:
+            valid.append({"path": name, "sha256": file_sha256(path), "size_bytes": path.stat().st_size})
+    deprecated = []
+    for path in sorted(out_dir.glob("*")):
+        if not path.is_file():
+            continue
+        if path.stat().st_size <= 1 or "parity_fail" in path.name.lower() or path.name == "paper_results_ready.md":
+            deprecated.append(
+                {"path": path.name, "reason": "empty/stale pre-consolidation output", "current": False}
+            )
+    local_payload = {
+        **build_run_provenance(run_id),
+        "valid_files": valid,
+        "deprecated_files": deprecated,
+        "sole_current_index": True,
+        "run_result_directory": str(out_dir.resolve()),
+    }
+    write_json(out_dir / "CURRENT_RESULTS_MANIFEST.json", local_payload)
+    if not publish_root_index:
+        return
+    root_valid = []
+    for name in (
+        "model_prediction_parity.json",
+        "prediction_metric_parity.json",
+        "sequence_wrapper_parity.json",
+        "parity_diagnostic_manifest.json",
+    ):
+        path = OUT_ROOT / name
+        if path.exists() and path.stat().st_size > 1:
+            root_valid.append(
+                {
+                    "path": name,
+                    "sha256": file_sha256(path),
+                    "size_bytes": path.stat().st_size,
+                    "scope": "canonical_parity",
+                }
+            )
+    for item in valid:
+        root_valid.append(
+            {
+                **item,
+                "path": str(out_dir.relative_to(OUT_ROOT) / item["path"]),
+                "scope": "active_xai_run",
+            }
+        )
+    write_json(
+        OUT_ROOT / "CURRENT_RESULTS_MANIFEST.json",
+        {
+            **build_run_provenance(run_id),
+            "current_run_id": run_id,
+            "current_run_directory": str(out_dir.resolve()),
+            "valid_files": root_valid,
+            "deprecated_files": deprecated,
+            "sole_current_index": True,
+        },
+    )
+
+
+def summarize_tables(
+    out_dir: Path,
+    config: RunConfig,
+    run_id: Optional[str] = None,
+    publish_root_index: bool = True,
+) -> None:
     sample_df = pd.read_csv(out_dir / "sample_level_metrics.csv") if (out_dir / "sample_level_metrics.csv").exists() else pd.DataFrame()
     curve_df = pd.read_csv(out_dir / "faithfulness_curves.csv") if (out_dir / "faithfulness_curves.csv").exists() else pd.DataFrame()
     clinical_df = pd.read_csv(out_dir / "clinical_alignment_sample_level.csv") if (out_dir / "clinical_alignment_sample_level.csv").exists() else pd.DataFrame()
@@ -2954,8 +3327,39 @@ def summarize_tables(out_dir: Path, config: RunConfig) -> None:
             row = group_df[(group_df["group"] == "Overall") & (group_df["metric"] == metric)]
             if not row.empty:
                 main_rows.append(row.iloc[0].to_dict())
-    pd.DataFrame(main_rows).to_csv(out_dir / "paper_main_table.csv", index=False)
+    main_frame = pd.DataFrame(main_rows)
+    assert_no_test_oracle_fields(main_frame)
+    main_frame.to_csv(out_dir / "paper_main_table.csv", index=False)
+    if main_frame.empty:
+        markdown = ""
+    else:
+        columns = [str(column) for column in main_frame.columns]
+        markdown_rows = [
+            "| " + " | ".join(columns) + " |",
+            "| " + " | ".join(["---"] * len(columns)) + " |",
+        ]
+        for values in main_frame.itertuples(index=False, name=None):
+            markdown_rows.append(
+                "| " + " | ".join(str(value) for value in values) + " |"
+            )
+        markdown = "\n".join(markdown_rows) + "\n"
+    (out_dir / "paper_main_table.md").write_text(markdown, encoding="utf-8")
     group_df.to_csv(out_dir / "paper_supplementary_table.csv", index=False)
+    write_formal_result_tables(
+        out_dir,
+        config,
+        sample_df,
+        curve_df,
+        group_df,
+        stability_df,
+    )
+    if config.mode == "full_evaluation":
+        validate_required_formal_outputs(out_dir)
+    write_current_results_manifest(
+        out_dir,
+        str(run_id or config.mode),
+        publish_root_index=publish_root_index,
+    )
 
     decision = make_decision(sample_df, stability_df, clinical_df)
     audit_summary = {"mode": config.mode, "decision": decision, "sample_N": int(len(sample_df)), "generated_at": time.strftime("%Y-%m-%d %H:%M:%S")}
@@ -3826,7 +4230,11 @@ def run_parity_diagnostic(args: argparse.Namespace) -> Dict[str, object]:
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "cache").mkdir(exist_ok=True)
     inventory = build_artifact_inventory(out_dir)
-    write_static_audit(out_dir, inventory)
+    if not (
+        args.mode == "full"
+        and int(getattr(args, "evaluation_shard_count", 1)) > 1
+    ):
+        write_static_audit(out_dir, inventory)
     if inventory["status"] != "OK":
         payload = {
             "exact_artifact_parity": {
@@ -3840,7 +4248,7 @@ def run_parity_diagnostic(args: argparse.Namespace) -> Dict[str, object]:
         write_json(out_dir / "model_prediction_parity.json", payload)
         return payload
 
-    config = apply_runtime_args(mode_config("parity-diagnostic"), args)
+    config = resolve_mode_config("parity-diagnostic", args)
     field_audit = audit_prediction_artifact_fields(out_dir)
     z = np.load(PRED_PATH)
     artifact = load_artifact_split(z, "test")
@@ -3937,6 +4345,19 @@ def run_parity_diagnostic(args: argparse.Namespace) -> Dict[str, object]:
         "evaluator_version": EVALUATOR_VERSION,
     }
     write_json(out_dir / "model_prediction_parity.json", payload)
+    write_json(
+        out_dir / "parity_diagnostic_manifest.json",
+        {
+            **build_run_provenance("parity_diagnostic", config=config),
+            "result_files": [
+                "model_prediction_parity.json",
+                "prediction_metric_parity.json",
+                "sequence_wrapper_parity.json",
+                "parity_diagnostic_report.md",
+            ],
+            "result": payload,
+        },
+    )
     write_json(out_dir / "audit_summary.json", {"status": payload["scientific_prediction_parity"]["status"], "xai_evaluation_allowed": payload["xai_evaluation_allowed"]})
     write_parity_diagnostic_report(out_dir, payload)
     return payload
@@ -3986,14 +4407,140 @@ def apply_runtime_args(config: RunConfig, args: argparse.Namespace) -> RunConfig
     )
 
 
+def load_profile_payload(args: argparse.Namespace) -> Dict[str, object]:
+    cached = getattr(args, "_profile_payload", None)
+    if cached is not None:
+        return cached
+    path = getattr(args, "config", None)
+    if path is None:
+        payload: Dict[str, object] = {}
+    else:
+        path = Path(path)
+        # Configs intentionally use the JSON subset of YAML so the frozen
+        # environment needs no unversioned PyYAML dependency.
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if payload.get("schema_version") != "sequence_lime_config_v1":
+            raise ValueError("XAI config must declare schema_version=sequence_lime_config_v1")
+        configured_mode = payload.get("mode")
+        if configured_mode and configured_mode != args.mode:
+            raise ValueError(
+                f"Config mode {configured_mode!r} does not match --mode {args.mode!r}"
+            )
+        payload["config_path"] = str(path.resolve())
+        payload["config_sha256"] = file_sha256(path)
+    setattr(args, "_profile_payload", payload)
+    return payload
+
+
+def resolve_mode_config(mode: str, args: argparse.Namespace) -> RunConfig:
+    config = mode_config(mode)
+    payload = load_profile_payload(args)
+    overrides = dict(payload.get("run_config", {}))
+    allowed = set(asdict(config))
+    unknown = sorted(set(overrides) - allowed)
+    if unknown:
+        raise ValueError(f"Unknown RunConfig fields: {unknown}")
+    tuple_fields = {"stability_seeds", "perturbation_modes", "ridge_alphas", "kernel_widths"}
+    for field in tuple_fields & set(overrides):
+        overrides[field] = tuple(overrides[field])
+    if overrides:
+        config = replace(config, **overrides)
+    config = apply_runtime_args(config, args)
+    run_id = str(getattr(args, "run_id", None) or payload.get("run_id") or args.mode)
+    setattr(args, "resolved_run_id", run_id)
+    manifest_dir = OUT_ROOT / "run_manifests" / run_id
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    resolved = {
+        "schema_version": "sequence_lime_resolved_config_v1",
+        "run_id": run_id,
+        "mode": args.mode,
+        "base_config_mode": mode,
+        "run_config": asdict(config),
+        "source_profile": payload,
+    }
+    fingerprint = hashlib.sha256(
+        json.dumps(resolved, sort_keys=True, default=str).encode("utf-8")
+    ).hexdigest()
+    resolved["config_fingerprint"] = fingerprint
+    write_json(manifest_dir / "resolved_config.json", resolved)
+    write_json(
+        manifest_dir / "run_manifest.json",
+        {
+            **build_run_provenance(run_id, config=config),
+            "config_fingerprint": fingerprint,
+            "status": "CONFIG_RESOLVED",
+            "resume_namespace": run_id,
+        },
+    )
+    return config
+
+
+def mark_run_complete(args: argparse.Namespace, status: str = "COMPLETED") -> None:
+    """Atomically turn a resolved run manifest into a verifiable terminal record."""
+    run_id = getattr(args, "resolved_run_id", None)
+    if not run_id:
+        return
+    run_id = str(run_id)
+    manifest_path = OUT_ROOT / "run_manifests" / run_id / "run_manifest.json"
+    out_dir = OUT_ROOT / "runs" / run_id
+    payload = read_json(manifest_path) if manifest_path.exists() else build_run_provenance(run_id)
+    result_files = []
+    if out_dir.exists():
+        for path in sorted(out_dir.rglob("*")):
+            if not path.is_file() or "cache" in path.relative_to(out_dir).parts:
+                continue
+            result_files.append({
+                "path": str(path.relative_to(PROJECT_ROOT)),
+                "size_bytes": int(path.stat().st_size),
+                "sha256": file_sha256(path),
+            })
+    summary_statuses = {}
+    if out_dir.exists():
+        for path in sorted(out_dir.glob("*_summary.json")):
+            try:
+                summary_statuses[path.name] = read_json(path).get("status")
+            except Exception as exc:  # noqa: BLE001
+                summary_statuses[path.name] = f"UNREADABLE: {type(exc).__name__}"
+    payload.update({
+        "status": str(status),
+        "completed_at": datetime.now(timezone.utc).isoformat(),
+        "result_directory": str(out_dir.relative_to(PROJECT_ROOT)),
+        "result_file_count": int(len(result_files)),
+        "result_files": result_files,
+        "summary_statuses": summary_statuses,
+        "evaluation_shard": {
+            "count": int(getattr(args, "evaluation_shard_count", 1)),
+            "index": int(getattr(args, "evaluation_shard_index", 0)),
+        },
+        "merged_shard_run_ids": [
+            value.strip()
+            for value in str(getattr(args, "merge_shard_run_ids", "") or "").split(",")
+            if value.strip()
+        ],
+    })
+    write_json_atomic(manifest_path, payload)
+
+
 def load_runtime_context(args: argparse.Namespace, config: RunConfig):
-    out_dir = OUT_ROOT
+    run_id = str(getattr(args, "resolved_run_id", None) or config.mode)
+    out_dir = OUT_ROOT / "runs" / run_id
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "cache").mkdir(exist_ok=True)
+    merge_ids = [
+        value.strip()
+        for value in str(getattr(args, "merge_shard_run_ids", "") or "").split(",")
+        if value.strip()
+    ]
+    if merge_ids:
+        if args.mode != "full":
+            raise ValueError("--merge-shard-run-ids is valid only with --mode full")
+        merge_full_evaluation_shards(args, config, merge_ids)
+        mark_run_complete(args)
+        return
     inventory = build_artifact_inventory(out_dir)
     z = np.load(PRED_PATH)
     artifact = load_artifact_split(z, "test")
-    current_cache = out_dir / "cache" / "current_sequence_probs_float32.npy"
+    current_cache = OUT_ROOT / "cache" / "current_sequence_probs_float32.npy"
     if current_cache.exists():
         current_probs = np.load(current_cache).astype(np.float32)
         if current_probs.shape != artifact["probs"].shape:
@@ -4007,13 +4554,14 @@ def load_runtime_context(args: argparse.Namespace, config: RunConfig):
         artifact["pred"] = np.argmax(current_probs, axis=1).astype(np.int16)
     split_files = normalize_split_files(load_split_spec())
     manifest = choose_functional_samples(artifact, config, out_dir, resume=bool(getattr(args, "resume", False)))
-    x_raw, x_seg, _quality = load_or_build_test_inputs(out_dir, split_files, artifact)
+    x_raw, x_seg, _quality = load_or_build_test_inputs(OUT_ROOT, split_files, artifact)
     model = build_model(x_raw.shape[1:], x_seg.shape[1:])
     return out_dir, inventory, artifact, manifest, x_raw, x_seg, model
 
 
 def assert_xai_allowed(out_dir: Path) -> Mapping[str, object]:
-    parity_path = out_dir / "model_prediction_parity.json"
+    _ = out_dir
+    parity_path = OUT_ROOT / "model_prediction_parity.json"
     if not parity_path.exists():
         raise RuntimeError("Run --mode parity-diagnostic before XAI smoke/profile modes.")
     parity = read_json(parity_path)
@@ -4024,7 +4572,7 @@ def assert_xai_allowed(out_dir: Path) -> Mapping[str, object]:
 
 def performance_profile(args: argparse.Namespace) -> None:
     t_start = time.perf_counter()
-    config = apply_runtime_args(mode_config("performance-profile"), args)
+    config = resolve_mode_config("performance-profile", args)
     out_dir, inventory, artifact, manifest, x_raw, x_seg, model = load_runtime_context(args, config)
     parity = assert_xai_allowed(out_dir)
     wrapper_parity = read_json(out_dir / "sequence_wrapper_parity.json") if (out_dir / "sequence_wrapper_parity.json").exists() else {}
@@ -4143,7 +4691,7 @@ def performance_profile(args: argparse.Namespace) -> None:
 
 
 def functional_smoke(args: argparse.Namespace) -> None:
-    config = apply_runtime_args(mode_config("functional-smoke"), args)
+    config = resolve_mode_config("functional-smoke", args)
     out_dir, inventory, artifact, manifest, x_raw, x_seg, model = load_runtime_context(args, config)
     parity = assert_xai_allowed(out_dir)
     section = str(getattr(args, "smoke_section", "all") or "all")
@@ -4752,7 +5300,7 @@ def plot_lime_method_ablation(surrogate: pd.DataFrame, comparisons: pd.DataFrame
 
 
 def run_lime_method_ablation(args: argparse.Namespace) -> None:
-    config = apply_runtime_args(mode_config("functional-smoke"), args)
+    config = resolve_mode_config("functional-smoke", args)
     out_dir, _inventory, artifact, manifest, x_raw, x_seg, model = load_runtime_context(args, config)
     parity = assert_xai_allowed(out_dir)
     checkpoint_before = stat_payload(CKPT_PATH)
@@ -4982,6 +5530,9 @@ def fit_reliability_lime_ranking(
         "score": positive_rank_score(projected),
         "raw_projected_score": projected,
         "fidelity": fidelity,
+        "original_mask_probability": float(
+            np.asarray(evaluated["target_probabilities"], dtype=np.float32)[0]
+        ),
         "requested_explainer_queries": int(train_masks + validation_masks),
         "accounting": evaluated["accounting"],
     }
@@ -4998,6 +5549,7 @@ def run_single_feature_calibration(
     global_idx: int,
     target_class: int,
     out_dir: Path,
+    class_conditioned_perturbation: bool = True,
 ) -> Dict[str, object]:
     feature_count = int(epoch.shape[1] * len(evaluation_segments))
     identity = np.eye(feature_count, dtype=np.int32)
@@ -5018,6 +5570,9 @@ def run_single_feature_calibration(
             out_dir=out_dir,
             cache_namespace=f"lime_reliability_single_feature_{mode}",
             model_state_id="original_model",
+            perturbation_target_class=(
+                int(target_class) if class_conditioned_perturbation else -1
+            ),
         )
         probabilities = np.asarray(evaluated["target_probabilities"], dtype=np.float32)
         original = float(probabilities[0])
@@ -5042,6 +5597,7 @@ def run_single_feature_calibration(
     return {
         "requested_queries_per_mode": int(2 + 2 * feature_count),
         "total_requested_calibration_queries": int(2 * (2 + 2 * feature_count)),
+        "class_conditioned_perturbation": bool(class_conditioned_perturbation),
         "modes": mode_payload,
     }
 
@@ -5096,12 +5652,19 @@ def physiology_prior_rank_score(
     epoch: np.ndarray,
     evaluation_segments: Sequence[Tuple[int, int]],
     target_class: int,
+    concept_prior_override: Optional[np.ndarray] = None,
+    channel_prior_override: Optional[np.ndarray] = None,
 ) -> np.ndarray:
     ensure_lime_imports()
     payload = extract_clinical_concept_matrix(epoch, evaluation_segments, fs=100)
     concept_matrix = np.asarray(payload["concept_matrix"], dtype=np.float32)
     concept_channels = np.asarray(payload["concept_channels"], dtype=np.int32)
-    concept_prior = np.asarray(get_stage_concept_prior(target_class), dtype=np.float32)
+    concept_prior = np.asarray(
+        concept_prior_override
+        if concept_prior_override is not None
+        else get_stage_concept_prior(target_class),
+        dtype=np.float32,
+    )
     channel_count = int(epoch.shape[1])
     segment_count = int(len(evaluation_segments))
     feature_score = np.zeros((channel_count, segment_count), dtype=np.float32)
@@ -5110,7 +5673,12 @@ def physiology_prior_rank_score(
             feature_score[int(channel_index)] += (
                 float(concept_prior[concept_index]) * concept_matrix[concept_index]
             )
-    channel_prior = np.asarray(get_clinical_prior(target_class), dtype=np.float32)[:channel_count]
+    channel_prior = np.asarray(
+        channel_prior_override
+        if channel_prior_override is not None
+        else get_clinical_prior(target_class),
+        dtype=np.float32,
+    )[:channel_count]
     feature_score *= channel_prior[:, np.newaxis]
     return positive_rank_score(feature_score.ravel())
 
@@ -5151,7 +5719,34 @@ def physiology_innovation_candidate_scores(
         + np.asarray(physiological["insertion_rank_score"], dtype=np.float32)
     )
     prior_score = physiology_prior_rank_score(epoch, evaluation_segments, target_class)
+    independent_prior_score = physiology_prior_rank_score(
+        epoch,
+        evaluation_segments,
+        target_class,
+        concept_prior_override=np.mean(
+            np.vstack([get_stage_concept_prior(stage) for stage in range(len(CLASS_LABELS))]),
+            axis=0,
+        ),
+        channel_prior_override=np.mean(
+            np.vstack([get_clinical_prior(stage) for stage in range(len(CLASS_LABELS))]),
+            axis=0,
+        ),
+    )
+    shuffled_prior_score = physiology_prior_rank_score(
+        epoch,
+        evaluation_segments,
+        target_class,
+        concept_prior_override=np.roll(
+            np.asarray(get_stage_concept_prior(target_class), dtype=np.float32), 3
+        ),
+        channel_prior_override=np.roll(
+            np.asarray(get_clinical_prior(target_class), dtype=np.float32), 1
+        ),
+    )
     consensus_score = np.minimum(zero_score, physiological_score)
+    ablation_zero = 0.25 * sequence_score + 0.75 * zero_score
+    ablation_physiological = 0.25 * sequence_score + 0.75 * physiological_score
+    ablation_dual = 0.20 * sequence_score + 0.40 * zero_score + 0.40 * physiological_score
     base_dual = (
         0.15 * sequence_score
         + 0.35 * zero_score
@@ -5182,6 +5777,12 @@ def physiology_innovation_candidate_scores(
     channel_count = int(epoch.shape[1])
     segment_count = int(len(evaluation_segments))
     return {
+        "ablation_B_zero_marginal": ablation_zero,
+        "ablation_C_physiological_marginal": ablation_physiological,
+        "ablation_D_zero_plus_physiological": ablation_dual,
+        "ablation_E_D_plus_predicted_stage_prior": 0.80 * ablation_dual + 0.20 * prior_score,
+        "ablation_F_D_plus_stage_independent_prior": 0.80 * ablation_dual + 0.20 * independent_prior_score,
+        "ablation_G_shuffled_concept_prior": 0.80 * ablation_dual + 0.20 * shuffled_prior_score,
         "pcslime_prior_only_764": prior_score,
         "pcslime_zero_prior_764": 0.15 * sequence_score + 0.55 * zero_score + 0.30 * prior_score,
         "pcslime_dual_prior_764": base_dual,
@@ -5209,6 +5810,7 @@ def evaluate_reliability_ranking(
     global_idx: int,
     target_class: int,
     out_dir: Path,
+    class_conditioned_perturbation: bool = True,
 ) -> Dict[str, object]:
     score = np.asarray(score, dtype=np.float32).ravel()
     order = np.argsort(-score, kind="stable").astype(np.int32)
@@ -5237,6 +5839,9 @@ def evaluate_reliability_ranking(
             target_class, epoch, evaluation_segments, perturbation_mode=mode,
             window_inference_batch_size=config.batch_windows, out_dir=out_dir,
             cache_namespace=f"lime_reliability_curve_{method}_{mode}", model_state_id="original_model",
+            perturbation_target_class=(
+                int(target_class) if class_conditioned_perturbation else -1
+            ),
         )
         accounting[mode] = evaluated["accounting"]
         probabilities = np.asarray(evaluated["target_probabilities"], dtype=np.float32)
@@ -5443,11 +6048,12 @@ def run_physiology_innovation_sample(
     cache_dir.mkdir(parents=True, exist_ok=True)
     result_path = cache_dir / "lime_physiology_innovation.json"
     signature_payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "candidate_family": "stage_concept_prior_temporal_cross_channel_coherence",
         "evaluation_modes": ["zero", "physiological"],
         "evaluation_segment_count": 30,
         "base_explainer_queries": 764,
+        "concept_prior_ablation": "A-G",
     }
     signature = hashlib.sha256(
         json.dumps(signature_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -5538,16 +6144,40 @@ def run_physiology_confirmation_sample(
     sequence_score = np.asarray(
         [row["sequence_lime_rank_score"] for row in component_rows], dtype=np.float32,
     )
-    fixed_score = physiology_innovation_candidate_scores(
+    candidate_scores = physiology_innovation_candidate_scores(
         epoch, evaluation_segments, target_class, sequence_score, base["calibration"],
-    )["pcslime_dual_prior_764"]
+    )
+    fixed_score = candidate_scores["pcslime_dual_prior_764"]
     ranking_results = {
         "classic_lime_budget_matched_764": base["ranking_results"]["classic_lime_budget_matched_764"],
+        "ablation_A_classic_sequence_lime": base["ranking_results"]["classic_lime_budget_matched_764"],
         "pcslime_dual_prior_764": evaluate_reliability_ranking(
             "pcslime_dual_prior_764", fixed_score, epoch, evaluation_segments, config,
             model, x_raw, x_seg, counts, global_idx, target_class, out_dir,
         ),
     }
+    for method in (
+        "ablation_B_zero_marginal",
+        "ablation_C_physiological_marginal",
+        "ablation_D_zero_plus_physiological",
+        "ablation_E_D_plus_predicted_stage_prior",
+        "ablation_F_D_plus_stage_independent_prior",
+        "ablation_G_shuffled_concept_prior",
+    ):
+        ranking_results[method] = evaluate_reliability_ranking(
+            method,
+            candidate_scores[method],
+            epoch,
+            evaluation_segments,
+            config,
+            model,
+            x_raw,
+            x_seg,
+            counts,
+            global_idx,
+            target_class,
+            out_dir,
+        )
     result = {
         "schema_version": 1,
         "configuration_signature": signature,
@@ -5565,7 +6195,7 @@ def run_physiology_confirmation_sample(
 
 
 def run_lime_physiology_confirmation(args: argparse.Namespace) -> None:
-    config = apply_runtime_args(mode_config("functional-smoke"), args)
+    config = resolve_mode_config("functional-smoke", args)
     out_dir, _inventory, artifact, _manifest, x_raw, x_seg, model = load_runtime_context(args, config)
     per_stage = int(getattr(args, "lime_physiology_confirmation_per_stage", 8))
     manifest = choose_reliability_confirmation_samples(
@@ -5625,6 +6255,48 @@ def run_lime_physiology_confirmation(args: argparse.Namespace) -> None:
     metrics_df.to_csv(out_dir / f"{output_stem}_metrics.csv", index=False)
     curves_df.to_csv(out_dir / f"{output_stem}_curves.csv", index=False)
     comparisons.to_csv(out_dir / f"{output_stem}_paired_comparisons.csv", index=False)
+    ablation_methods = metrics_df["method"].astype(str).str.startswith("ablation_")
+    concept_prior_ablation = metrics_df.loc[ablation_methods].copy()
+    concept_prior_ablation["training_target_allowed_by_default"] = ~concept_prior_ablation[
+        "method"
+    ].isin(
+        [
+            "ablation_E_D_plus_predicted_stage_prior",
+            "ablation_G_shuffled_concept_prior",
+        ]
+    )
+    concept_prior_ablation.to_csv(
+        out_dir / f"{output_stem}_concept_prior_ablation.csv", index=False
+    )
+    de_rows = []
+    for mode in sorted(concept_prior_ablation["evaluation_perturbation_mode"].unique()):
+        subset = concept_prior_ablation[
+            concept_prior_ablation["evaluation_perturbation_mode"] == mode
+        ]
+        for metric in ("deletion_auc_raw", "insertion_auc_raw"):
+            pivot = subset.pivot_table(
+                index="global_epoch_index", columns="method", values=metric, aggfunc="first"
+            )
+            d_name = "ablation_D_zero_plus_physiological"
+            e_name = "ablation_E_D_plus_predicted_stage_prior"
+            if d_name in pivot and e_name in pivot:
+                delta = (pivot[e_name] - pivot[d_name]).dropna()
+                de_rows.append(
+                    {
+                        "evaluation_perturbation_mode": mode,
+                        "metric": metric,
+                        "N": int(len(delta)),
+                        "mean_E_minus_D": float(delta.mean()),
+                        "median_E_minus_D": float(delta.median()),
+                        "interpretation": (
+                            "E adds prediction-conditioned evidence and is not independent "
+                            "support for the model prediction."
+                        ),
+                    }
+                )
+    pd.DataFrame(de_rows).to_csv(
+        out_dir / f"{output_stem}_concept_prior_D_vs_E.csv", index=False
+    )
 
     method = "pcslime_dual_prior_764"
     baseline = "classic_lime_budget_matched_764"
@@ -5684,10 +6356,28 @@ def run_lime_physiology_confirmation(args: argparse.Namespace) -> None:
     checkpoint_after = stat_payload(CKPT_PATH)
     if statistical_pass and directional_pass:
         status = "PHYSIOLOGY_CONFIRMATION_SUPERIORITY_PASS"
+        paper_ready_conclusion = (
+            f"At an equal 764-query budget, physiology-constrained Sequence-LIME "
+            f"improved both deletion and insertion faithfulness under physiological "
+            f"replacement on the independent N={len(manifest)} holdout with corrected "
+            "paired statistical support. This superiority claim is specific to the "
+            "pre-specified physiological estimand."
+        )
     elif directional_pass:
         status = "PHYSIOLOGY_CONFIRMATION_DIRECTIONAL_ONLY"
+        paper_ready_conclusion = (
+            f"On this independent N={len(manifest)} holdout, both physiological "
+            "faithfulness directions favored the proposed ranking, but the pre-specified "
+            "corrected paired statistical criterion was not met. A paper-level "
+            "superiority claim is not allowed."
+        )
     else:
         status = "PHYSIOLOGY_CONFIRMATION_MIXED"
+        paper_ready_conclusion = (
+            f"The independent N={len(manifest)} physiological-replacement results were "
+            "mixed under the pre-specified directional criteria. A paper-level "
+            "superiority claim is not allowed."
+        )
     summary = {
         "status": status,
         "sample_count": int(manifest["global_epoch_index"].nunique()),
@@ -5700,9 +6390,7 @@ def run_lime_physiology_confirmation(args: argparse.Namespace) -> None:
         "directional_advantage": directional_pass,
         "paired_statistical_support": statistical_pass,
         "paper_superiority_claim_allowed": bool(directional_pass and statistical_pass),
-        "paper_ready_conclusion": (
-            "At an equal 764-query budget, physiology-constrained Sequence-LIME significantly improved both deletion and insertion faithfulness under physiologically plausible counterfactual perturbations on an independent N=40 holdout. This superiority claim is specific to the pre-specified physiological estimand; zero replacement remains an out-of-distribution sensitivity analysis and did not show consistent superiority."
-        ),
+        "paper_ready_conclusion": paper_ready_conclusion,
         "primary_paired_comparisons": json.loads(primary.to_json(orient="records")),
         "zero_sensitivity_comparisons": json.loads(sensitivity.to_json(orient="records")),
         "exploratory_stage_stratified": json.loads(stage_stratified.to_json(orient="records")),
@@ -5753,7 +6441,7 @@ def run_lime_physiology_confirmation(args: argparse.Namespace) -> None:
 
 
 def run_lime_physiology_innovation(args: argparse.Namespace) -> None:
-    config = apply_runtime_args(mode_config("functional-smoke"), args)
+    config = resolve_mode_config("functional-smoke", args)
     out_dir, _inventory, artifact, _manifest, x_raw, x_seg, model = load_runtime_context(args, config)
     manifest_path = out_dir / "lime_reliability_preregistered_confirmation_manifest_n30.csv"
     if not manifest_path.exists():
@@ -6041,7 +6729,7 @@ def run_lime_reliability_innovation(
     confirmation: bool = False,
     preregistered: bool = False,
 ) -> None:
-    config = apply_runtime_args(mode_config("functional-smoke"), args)
+    config = resolve_mode_config("functional-smoke", args)
     out_dir, _inventory, artifact, manifest, x_raw, x_seg, model = load_runtime_context(args, config)
     if preregistered:
         manifest = choose_reliability_confirmation_samples(
@@ -6294,6 +6982,104 @@ def run_lime_reliability_innovation(
     print(json.dumps(summary, indent=2, ensure_ascii=False))
 
 
+def merge_full_evaluation_shards(
+    args: argparse.Namespace,
+    config: RunConfig,
+    shard_run_ids: Sequence[str],
+) -> None:
+    """Merge disjoint completed full-evaluation shards and publish one result."""
+    run_id = str(getattr(args, "resolved_run_id", None) or "full_evaluation")
+    out_dir = OUT_ROOT / "runs" / run_id
+    out_dir.mkdir(parents=True, exist_ok=True)
+    raw_files = (
+        "sample_level_metrics.csv",
+        "faithfulness_curves.csv",
+        "clinical_alignment_sample_level.csv",
+        "stability_sample_level.csv",
+        "model_randomization_sanity.csv",
+        "perturbation_robustness.csv",
+        "sample_manifest_full_evaluation.csv",
+    )
+    shard_dirs = []
+    shard_manifests = []
+    for shard_run_id in shard_run_ids:
+        shard_run_id = str(shard_run_id).strip()
+        if not shard_run_id:
+            continue
+        shard_dir = OUT_ROOT / "runs" / shard_run_id
+        run_manifest_path = OUT_ROOT / "run_manifests" / shard_run_id / "run_manifest.json"
+        if not shard_dir.exists() or not run_manifest_path.exists():
+            raise FileNotFoundError(f"Missing shard directory/manifest for {shard_run_id}")
+        shard_manifest = read_json(run_manifest_path)
+        if shard_manifest.get("status") != "COMPLETED":
+            raise RuntimeError(
+                f"Shard {shard_run_id} is not complete: {shard_manifest.get('status')}"
+            )
+        failed_path = shard_dir / "failed_samples.csv"
+        if failed_path.exists() and failed_path.stat().st_size > 1:
+            failed_frame = pd.read_csv(failed_path)
+            if not failed_frame.empty:
+                raise RuntimeError(f"Shard {shard_run_id} contains failed samples")
+        shard_dirs.append(shard_dir)
+        shard_manifests.append(shard_manifest)
+    if len(shard_dirs) < 2:
+        raise ValueError("Full merge requires at least two completed shard run IDs")
+
+    sample_sets = []
+    for shard_dir in shard_dirs:
+        path = shard_dir / "sample_manifest_full_evaluation.csv"
+        frame = pd.read_csv(path)
+        sample_sets.append(set(frame["global_epoch_index"].astype(int).tolist()))
+    for left in range(len(sample_sets)):
+        for right in range(left + 1, len(sample_sets)):
+            overlap = sample_sets[left] & sample_sets[right]
+            if overlap:
+                raise RuntimeError(f"Full-evaluation shards overlap at samples {sorted(overlap)}")
+
+    for name in raw_files:
+        frames = []
+        for shard_dir in shard_dirs:
+            path = shard_dir / name
+            if not path.exists() or path.stat().st_size <= 1:
+                raise RuntimeError(f"Required shard output is missing/empty: {path}")
+            frame = pd.read_csv(path)
+            if frame.empty:
+                raise RuntimeError(f"Required shard output is header-only: {path}")
+            frames.append(frame)
+        combined = pd.concat(frames, ignore_index=True).drop_duplicates()
+        if "global_epoch_index" in combined:
+            combined = combined.sort_values("global_epoch_index", kind="stable")
+        combined.to_csv(out_dir / name, index=False)
+
+    first_inventory = shard_dirs[0] / "artifact_inventory.json"
+    if first_inventory.exists():
+        shutil.copy2(first_inventory, out_dir / "artifact_inventory.json")
+    write_json(
+        out_dir / "full_evaluation_shard_merge_manifest.json",
+        {
+            **build_run_provenance(run_id, config=config),
+            "status": "SHARDS_MERGED",
+            "shard_run_ids": [str(value) for value in shard_run_ids],
+            "shard_result_directories": [str(path) for path in shard_dirs],
+            "shard_manifest_hashes": [
+                file_sha256(
+                    OUT_ROOT / "run_manifests" / str(shard_run_id) / "run_manifest.json"
+                )
+                for shard_run_id in shard_run_ids
+            ],
+            "merged_sample_count": int(sum(len(values) for values in sample_sets)),
+            "sample_overlap_count": 0,
+        },
+    )
+    pd.DataFrame().to_csv(out_dir / "failed_samples.csv", index=False)
+    summarize_tables(
+        out_dir,
+        config,
+        run_id=run_id,
+        publish_root_index=True,
+    )
+
+
 def run_evaluation(args: argparse.Namespace) -> None:
     out_dir = OUT_ROOT
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -6305,27 +7091,35 @@ def run_evaluation(args: argparse.Namespace) -> None:
         return
     if args.mode == "performance-profile":
         performance_profile(args)
+        mark_run_complete(args)
         return
     if args.mode == "functional-smoke":
         functional_smoke(args)
+        mark_run_complete(args)
         return
     if args.mode == "lime-method-ablation":
         run_lime_method_ablation(args)
+        mark_run_complete(args)
         return
     if args.mode == "lime-reliability-innovation":
         run_lime_reliability_innovation(args)
+        mark_run_complete(args)
         return
     if args.mode == "lime-reliability-confirmation":
         run_lime_reliability_innovation(args, confirmation=True)
+        mark_run_complete(args)
         return
     if args.mode == "lime-reliability-preregistered-confirmation":
         run_lime_reliability_innovation(args, preregistered=True)
+        mark_run_complete(args)
         return
     if args.mode == "lime-physiology-innovation":
         run_lime_physiology_innovation(args)
+        mark_run_complete(args)
         return
     if args.mode == "lime-physiology-confirmation":
         run_lime_physiology_confirmation(args)
+        mark_run_complete(args)
         return
     if args.mode == "paper-report":
         payload = generate_lime_paper_artifacts(out_dir)
@@ -6337,19 +7131,41 @@ def run_evaluation(args: argparse.Namespace) -> None:
         write_json(out_dir / "audit_summary.json", {"status": "CHECKPOINT_NOT_FOUND", "inventory": inventory})
         return
 
-    config = mode_config("smoke" if args.mode == "smoke" else ("metric-smoke" if args.mode == "metric-smoke" else "full"))
-    config = apply_runtime_args(config, args)
+    base_mode = "smoke" if args.mode == "smoke" else ("metric-smoke" if args.mode == "metric-smoke" else "full")
+    config = resolve_mode_config(base_mode, args)
+    run_id = str(getattr(args, "resolved_run_id", None) or config.mode)
+    out_dir = OUT_ROOT / "runs" / run_id
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "cache").mkdir(exist_ok=True)
+    inventory = build_artifact_inventory(out_dir)
+    write_static_audit(out_dir, inventory)
     z = np.load(PRED_PATH)
     artifact = load_artifact_split(z, "test")
     split_files = normalize_split_files(load_split_spec())
     manifest = choose_samples(artifact, config, out_dir, resume=args.resume)
-    x_raw, x_seg, quality = load_or_build_test_inputs(out_dir, split_files, artifact)
+    shard_count = int(getattr(args, "evaluation_shard_count", 1))
+    shard_index = int(getattr(args, "evaluation_shard_index", 0))
+    if shard_count < 1 or not 0 <= shard_index < shard_count:
+        raise ValueError("Evaluation shard index must satisfy 0 <= index < shard count")
+    if shard_count > 1:
+        positions = np.arange(len(manifest), dtype=np.int64)
+        manifest = manifest.iloc[positions % shard_count == shard_index].reset_index(drop=True)
+        if manifest.empty:
+            raise RuntimeError(
+                f"Evaluation shard {shard_index}/{shard_count} selected no samples"
+            )
+        manifest.to_csv(out_dir / "evaluation_shard_manifest.csv", index=False)
+        print(
+            f"Evaluation shard {shard_index + 1}/{shard_count}: "
+            f"{len(manifest)} of {len(positions)} samples"
+        )
+    x_raw, x_seg, quality = load_or_build_test_inputs(OUT_ROOT, split_files, artifact)
     model = build_model(x_raw.shape[1:], x_seg.shape[1:])
     model_params = int(np.sum([np.prod(v.shape) for v in model.weights]))
     inventory["model_parameter_count"] = model_params
     write_json(out_dir / "artifact_inventory.json", inventory)
 
-    parity_path = out_dir / "model_prediction_parity.json"
+    parity_path = OUT_ROOT / "model_prediction_parity.json"
     parity = read_json(parity_path) if args.resume and parity_path.exists() else run_parity_diagnostic(args)
     if not bool(parity.get("xai_evaluation_allowed", False)):
         write_json(out_dir / "audit_summary.json", {"status": "MODEL_ARTIFACT_PARITY_FAIL", "parity": parity})
@@ -6361,10 +7177,16 @@ def run_evaluation(args: argparse.Namespace) -> None:
             "class_order": CLASS_LABELS,
         }
         write_parity_fail_outputs(out_dir, legacy, inventory)
+        mark_run_complete(args, status="FAILED_PARITY")
         return
     artifact = dict(artifact)
     artifact["probs"] = predict_sequence_probs(model, x_raw, x_seg, artifact["file_sample_counts"], batch_windows=config.batch_windows)
-    np.save(out_dir / "cache" / "current_sequence_probs_float32.npy", artifact["probs"].astype(np.float32))
+    probability_cache_path = (
+        OUT_ROOT / "cache" / "current_sequence_probs_float32.npy"
+        if shard_count == 1
+        else out_dir / "cache" / "current_sequence_probs_float32.npy"
+    )
+    np.save(probability_cache_path, artifact["probs"].astype(np.float32))
     artifact["pred"] = np.argmax(artifact["probs"], axis=1).astype(np.int16)
 
     results = []
@@ -6377,21 +7199,38 @@ def run_evaluation(args: argparse.Namespace) -> None:
                 raise RuntimeError(f"sequence wrapper parity failed: {res['sequence_wrapper_abs_diff']}")
             results.append(res)
         except Exception as exc:  # noqa: BLE001
-            failed.append({"global_epoch_index": int(row["global_epoch_index"]), "reason": repr(exc)})
+            failed.append({
+                "global_epoch_index": int(row["global_epoch_index"]),
+                "exception_type": type(exc).__name__,
+                "reason": repr(exc),
+                "traceback": traceback.format_exc(),
+            })
             print(f"  failed: {exc}")
     pd.DataFrame(failed).to_csv(out_dir / "failed_samples.csv", index=False)
     if results:
         manifest = manifest.copy()
         seg_map = {int(res["global_epoch_index"]): int(res["segments_count"]) for res in results}
         manifest["segments_count"] = manifest["global_epoch_index"].map(seg_map).fillna(manifest["segments_count"]).astype(int)
-        manifest.to_csv(out_dir / "sample_manifest.csv", index=False)
+        mode_tag = str(config.mode).replace("/", "_").replace("\\", "_")
+        manifest.to_csv(out_dir / f"sample_manifest_{mode_tag}.csv", index=False)
         flatten_results(results, config, out_dir)
         rand_df = run_model_randomization(results, config, x_raw, x_seg, artifact["file_sample_counts"], artifact, x_raw.shape[1:], x_seg.shape[1:], out_dir)
         if rand_df.empty and not (out_dir / "model_randomization_sanity.csv").exists():
             pd.DataFrame().to_csv(out_dir / "model_randomization_sanity.csv", index=False)
-        summarize_tables(out_dir, config)
+        summarize_tables(
+            out_dir,
+            config,
+            run_id=run_id,
+            publish_root_index=(shard_count == 1),
+        )
     else:
         write_json(out_dir / "audit_summary.json", {"status": "FAIL", "reason": "No samples completed", "failed": failed})
+    mark_run_complete(args, status="COMPLETED" if not failed else "INCOMPLETE")
+    if failed:
+        raise RuntimeError(
+            f"XAI_EVALUATION_INCOMPLETE: {len(failed)}/{len(manifest)} samples failed; "
+            "see failed_samples.csv"
+        )
 
 
 def summarize_only() -> None:
@@ -6410,11 +7249,39 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--resume", action="store_true")
     parser.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        help="Versioned JSON-compatible YAML profile under configs/xai/.",
+    )
+    parser.add_argument(
+        "--run-id",
+        default=None,
+        help="Independent resume/provenance namespace (defaults to the profile run_id).",
+    )
+    parser.add_argument(
+        "--evaluation-shard-count",
+        type=int,
+        default=1,
+        help="Split a formal general evaluation into disjoint positional shards.",
+    )
+    parser.add_argument(
+        "--evaluation-shard-index",
+        type=int,
+        default=0,
+        help="Zero-based shard index for --evaluation-shard-count.",
+    )
+    parser.add_argument(
+        "--merge-shard-run-ids",
+        default=None,
+        help="Comma-separated completed full-evaluation run IDs to merge.",
+    )
+    parser.add_argument(
         "--smoke-section",
         choices=("surrogate", "faithfulness", "stability", "clinical", "randomization", "all"),
         default="all",
     )
-    parser.add_argument("--window-inference-batch-size", type=int, default=32)
+    parser.add_argument("--window-inference-batch-size", type=int, default=None)
     parser.add_argument("--lime-train-masks", type=int, default=None)
     parser.add_argument("--lime-validation-masks", type=int, default=None)
     parser.add_argument("--lime-target-segments", type=int, default=None)
@@ -6448,7 +7315,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lime-response-transform", choices=("probability", "logit"), default=None)
     parser.add_argument(
         "--lime-surrogate-perturbation-mode",
-        choices=("zero", "physiological", "gaussian_noise"),
+        choices=("zero", "physiological", "gaussian_noise", "local_mean"),
         default=None,
         help="Perturbation used to fit the primary LIME surrogate (default: zero; physiological replacement remains a sensitivity test).",
     )

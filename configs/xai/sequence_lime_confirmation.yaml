@@ -1,0 +1,20 @@
+{
+  "schema_version": "sequence_lime_config_v1",
+  "run_id": "preregistered_confirmation",
+  "mode": "lime-reliability-preregistered-confirmation",
+  "purpose": "Stage-stratified holdout reliability confirmation with isolated resume namespace.",
+  "run_config": {
+    "mode": "preregistered_confirmation",
+    "max_samples": 30,
+    "train_masks": 900,
+    "val_masks": 200,
+    "random_repeats": 5,
+    "stability_seeds": [9001, 9002, 9003],
+    "bootstrap_repeats": 2000,
+    "do_randomization": true,
+    "perturbation_modes": ["zero", "physiological", "gaussian_noise", "local_mean"],
+    "batch_windows": 16
+  },
+  "cross_seed_model_stability": "pending additional checkpoints",
+  "within_checkpoint_perturbation_stability": true
+}
