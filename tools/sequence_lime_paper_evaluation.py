@@ -54,8 +54,13 @@ if str(TOOLS_DIR) not in sys.path:
 CLASS_LABELS = ["W", "N1", "N2", "N3", "REM"]
 CHANNEL_LABELS = ["EEG", "EOG", "EMG"]
 EPS = 1e-8
-EVALUATOR_VERSION = "sequence_lime_v1.1.0"
+EVALUATOR_VERSION = "sequence_lime_v1.1.1"
 STRICT_PROBABILITY_TOLERANCE = 1e-6
+# The frozen classifier endpoint must retain sequence-window batch 16 for exact
+# probability parity. Perturbation evaluation can hold both the original and a
+# randomized model in GPU memory, so only those synthetic window forwards are
+# microbatched. This limit is part of the cache/provenance fingerprint below.
+PERTURBATION_WINDOW_BATCH_CAP = 8
 
 CLINICAL_CONCEPTS = None
 CONCEPT_CHANNEL_INDEX = None
@@ -1243,12 +1248,19 @@ def segment_boundary_hash(segments: Sequence[Tuple[int, int]]) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def perturbation_window_batch_size(batch_windows: int) -> int:
+    return min(max(1, int(batch_windows)), PERTURBATION_WINDOW_BATCH_CAP)
+
+
 def sequence_aggregation_config_hash(batch_windows: int) -> str:
     payload = {
         "seq_len": 75,
         "stride": 5,
         "aggregation": "mean_over_covering_windows",
-        "window_inference_batch_size": int(batch_windows),
+        "configured_window_inference_batch_size": int(batch_windows),
+        "perturbation_window_inference_batch_size": perturbation_window_batch_size(
+            batch_windows
+        ),
         "padding": "none",
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
@@ -1321,10 +1333,11 @@ def infer_precomputed_epochs_for_target(
             assembled.append((rw, sg, int(mask_idx), int(rel_pos)))
     t_assembly1 = time.perf_counter()
 
+    effective_batch_windows = perturbation_window_batch_size(batch_windows)
     batch_sizes: List[int] = []
     t_gpu = 0.0
-    for start in range(0, len(assembled), max(1, int(batch_windows))):
-        chunk = assembled[start: start + max(1, int(batch_windows))]
+    for start in range(0, len(assembled), effective_batch_windows):
+        chunk = assembled[start: start + effective_batch_windows]
         batch_sizes.append(int(len(chunk)))
         raw_batch = np.asarray([item[0] for item in chunk], dtype=np.float32)
         seg_batch = np.asarray([item[1] for item in chunk], dtype=np.float32)
@@ -1340,7 +1353,7 @@ def infer_precomputed_epochs_for_target(
     actual = int(sum(batch_sizes))
     assert len(assembled) == expected
     assert actual == len(assembled)
-    assert max(batch_sizes or [0]) <= int(batch_windows)
+    assert max(batch_sizes or [0]) <= effective_batch_windows
     return {
         "target_probabilities": target_probs,
         "full_probability_vectors": full_vectors,
@@ -1352,6 +1365,8 @@ def infer_precomputed_epochs_for_target(
         "model_forward_call_count": int(len(batch_sizes)),
         "model_forward_batch_sizes": batch_sizes,
         "sum_model_forward_batch_sizes": actual,
+        "configured_window_inference_batch_size": int(batch_windows),
+        "perturbation_window_inference_batch_size": int(effective_batch_windows),
         "window_assembly_seconds": float(t_assembly1 - t_assembly0),
         "gpu_forward_seconds": float(t_gpu),
     }
@@ -1453,6 +1468,10 @@ def evaluate_masks_for_target_epoch(
         "model_forward_call_count": 0,
         "model_forward_batch_sizes": [],
         "sum_model_forward_batch_sizes": 0,
+        "configured_window_inference_batch_size": int(window_inference_batch_size),
+        "perturbation_window_inference_batch_size": perturbation_window_batch_size(
+            window_inference_batch_size
+        ),
         "window_assembly_seconds": 0.0,
         "gpu_forward_seconds": 0.0,
     }
@@ -1511,11 +1530,14 @@ def evaluate_masks_for_target_epoch(
     actual_inferred = int(infer_payload["actual_inferred_window_instances"])
     batch_sizes = [int(v) for v in infer_payload["model_forward_batch_sizes"]]
     sum_batch = int(sum(batch_sizes))
+    effective_batch_windows = int(
+        infer_payload["perturbation_window_inference_batch_size"]
+    )
     accounting_pass = bool(
         expected == actual_assembled
         and actual_inferred == actual_assembled
         and sum_batch == actual_inferred
-        and (max(batch_sizes or [0]) <= int(window_inference_batch_size))
+        and (max(batch_sizes or [0]) <= effective_batch_windows)
         and int(infer_payload["padding_window_instances"]) == 0
     )
     efficiency = {
@@ -1542,6 +1564,7 @@ def evaluate_masks_for_target_epoch(
         "model_forward_batch_sizes": batch_sizes,
         "sum_model_forward_batch_sizes": sum_batch,
         "window_inference_batch_size": int(window_inference_batch_size),
+        "perturbation_window_inference_batch_size": effective_batch_windows,
         "status": "WINDOW_INSTANCE_ACCOUNTING_PASS" if accounting_pass else "WINDOW_INSTANCE_ACCOUNTING_FAIL",
     }
     timings = {
@@ -1645,14 +1668,17 @@ def predict_masks_sequence(
 def vectorized_forward_plan(total_masks: int, counts: np.ndarray, global_epoch: int, batch_windows: int, chunk: int) -> Dict[str, object]:
     covering = target_windows(counts, global_epoch)
     target_rows = int(total_masks * len(covering))
+    effective_batch_windows = perturbation_window_batch_size(batch_windows)
     return {
         "covering_window_count": int(len(covering)),
         "formal_context_batch_count": int(len(target_formal_window_batches(counts, global_epoch, batch_windows))),
         "formal_context_window_rows_per_chunk": None,
-        "model_forward_batch_count": int(math.ceil(target_rows / max(1, int(batch_windows)))),
+        "model_forward_batch_count": int(math.ceil(target_rows / effective_batch_windows)),
         "target_sequence_window_instances": int(total_masks * len(covering)),
         "forwarded_sequence_window_rows": target_rows,
-        "ideal_forward_batches_for_target_windows": int(math.ceil(target_rows / max(1, int(batch_windows)))),
+        "ideal_forward_batches_for_target_windows": int(math.ceil(target_rows / effective_batch_windows)),
+        "configured_window_inference_batch_size": int(batch_windows),
+        "perturbation_window_inference_batch_size": int(effective_batch_windows),
         "vectorized_inference": True,
     }
 

@@ -1,146 +1,74 @@
-# Tooling Map
+# Maintained tools
 
-Current direction:
+`tools/` contains only A1-zero, unified Sequence-XAI, protocol, and clinical
+review entry points. One-off C10/B2/B3/SCR/UTF-Lite/SupCon/multi-teacher/
+channel-residual and superseded diagnostic scripts were removed after an
+external, hash-verified backup and a reference scan.
 
-- Keep C0 as the no-concept baseline.
-- Keep C10 (`*_c10_late_concept_residual`) as the main model.
-- Stop C11/C11b post-hoc calibration and C12/C13/C14 training variants.
-- Do not add more seed sweeps as the main route.
+## A1-zero and protocol
 
-## Kept Tools
+- `run_main_with_protocol_split.py` — fixed-split launcher; canonical ISRUC
+  preset: `isruc_A1_concept_film_zero`.
+- `build_sleep_dataset_protocol.py` — subject/recording-disjoint dataset split
+  protocol builder.
+- `build_cross_dataset_protocol.py` — explicit cross-dataset protocol builder.
 
-- `build_sleep_dataset_protocol.py`
-  - Builds fixed train/val/test protocol split JSON files.
-- `run_main_with_protocol_split.py`
-  - Main fixed-split launcher.
-  - Active presets:
-    - `edf_c0_no_concept`
-    - `edf_c0_accuracy_selector_only`
-    - `edf_c10_late_concept_residual`
-    - `isruc_c0_no_concept`
-    - `isruc_c0_accuracy_selector_only`
-    - `isruc_c10_late_concept_residual`
-- `c10_error_diagnostics.py`
-  - Reads C10 prediction NPZ files and reports error patterns.
-- `c10_targeted_error_mining.py`
-  - Second-pass C10 error analysis for focused confusion pairs and recording-level failures.
-- `b2_physiology_rule_teacher_disagreement.py`
-  - AISleep-inspired post-hoc rule teacher for W/N1/N2/N3/REM from clinical concepts.
-  - Reports model-rule disagreement, uncertainty-weighted top-risk error rates, high-confidence conflicts,
-    N1-focused rates, and ranked conflict examples.
-- `b3_risk_aware_corrector.py`
-  - Leakage-aware post-hoc corrector trained on train split, selected on val split, and evaluated on test.
-  - Uses model probabilities, sequence context, optional B2 rule/risk features, gated probability blending,
-    and a lightweight Viterbi pass.
-- `export_c10a_split_predictions.py`
-  - Optional exporter when a saved C10 checkpoint must be replayed over train/val/test files.
-- `generate_c10_framework_visio.py`
-- `generate_c10_nature_framework.py`
-  - C10 figure-generation helpers.
+## Sequence-XAI
 
-## Retired Routes
+- `sequence_lime_paper_evaluation.py` — parity, isolated/resumable smoke,
+  confirmation/full evaluation, stability, randomization, faithfulness,
+  A-G prior ablation, runtime/query accounting, and paper tables.
+- `generate_sequence_xai_training_targets.py` — train-only offline teacher with
+  self-distillation/OOF provenance, multiple target controls, and a reliability
+  score plus hard gate.
+- `xai_feedback_head_smoke.py` — default-off head shape, checkpoint parity, and
+  gradient-isolation smoke test.
+- `audit_concept_definition_parity.py` — real-sample comparison of
+  `segment_proxy_v1` and `raw_physiology_v1`.
 
-The following routes should not be launched from this workspace unless they are
-explicitly restored for an ablation appendix:
+## Clinical review
 
-- C1-C8 concept-prior exploration presets.
-- C10b confidence-gated residual.
-- C10c post-hoc confusion-aware protection.
-- C11 full 5-class recalibration.
-- C11b conservative pairwise correction.
-- C12 transition-boundary enhancement.
-- C13 stability-first late residual.
-- C14 N1/N2 pair-focus training.
-- Probability ensembling.
-- ISRUC concept-prior batch suite.
+- `build_clinical_expert_review_pack.py` — blinded, stratified review pack.
+- `analyze_clinical_expert_ratings.py` — agreement and rating analysis after
+  human experts complete the template.
 
-## Example Commands
+Clinical expert validation is pending.
 
-Run C0 on ISRUC:
+## Canonical commands
+
+Run prediction/wrapper parity:
 
 ```bash
-python tools/run_main_with_protocol_split.py \
-  --split-json dataset_protocols/ISRUC/split.json \
-  --gpus 0,1 \
-  --per-replica-batch 16 \
-  --predict-per-replica-batch 16 \
-  --no-preset-batch-clamp \
-  --dataset-preset isruc_c0_no_concept
+/home/b502/app/anaconda3/envs/l_venv/bin/python3.11 \
+  tools/sequence_lime_paper_evaluation.py \
+  --dataset isruc --seed 42 --mode parity-diagnostic
 ```
 
-Run C10 on ISRUC:
+Run the isolated functional profile:
 
 ```bash
-python tools/run_main_with_protocol_split.py \
-  --split-json dataset_protocols/ISRUC/split.json \
-  --gpus 0,1 \
-  --per-replica-batch 16 \
-  --predict-per-replica-batch 16 \
-  --no-preset-batch-clamp \
-  --dataset-preset isruc_c10_late_concept_residual
+/home/b502/app/anaconda3/envs/l_venv/bin/python3.11 \
+  tools/sequence_lime_paper_evaluation.py \
+  --dataset isruc --seed 42 \
+  --mode functional-smoke \
+  --config configs/xai/sequence_lime_functional.yaml \
+  --run-id functional_smoke --resume
 ```
 
-Run C10 on SleepEDF:
+Generate a train-only teacher smoke artifact:
 
 ```bash
-python tools/run_main_with_protocol_split.py \
-  --split-json dataset_protocols/SleepEDF/split.json \
-  --gpus 0,1 \
-  --per-replica-batch 16 \
-  --predict-per-replica-batch 16 \
-  --no-preset-batch-clamp \
-  --dataset-preset edf_c10_late_concept_residual
+/home/b502/app/anaconda3/envs/l_venv/bin/python3.11 \
+  tools/generate_sequence_xai_training_targets.py \
+  --split train --target-type pc_seqlime_without_stage_prior \
+  --teacher-mode self_distillation_in_sample \
+  --max-recordings 1 --max-samples 1 --run-id feedback_target_smoke
 ```
 
-Analyze a C10 prediction NPZ:
+The canonical decoder is validation-selected temperature argmax. HMM is an
+optional validation-selected candidate, and LIME explains pre-HMM neural
+probabilities.
 
-```bash
-python tools/c10_error_diagnostics.py \
-  --prediction-npz outputs/predictions/<prediction_file>.npz \
-  --dataset isruc \
-  --output-dir outputs/diagnostics/<run_name> \
-  --splits test \
-  --baseline-pred-source saved
-```
-
-Run B2 physiology rule-teacher disagreement on an existing prediction file:
-
-```bash
-python tools/b2_physiology_rule_teacher_disagreement.py \
-  --prediction-npz outputs/predictions/<prediction_file>.npz \
-  --dataset isruc \
-  --split test \
-  --split-json dataset_protocols/ISRUC/split.json \
-  --concept-extractor direct_epoch \
-  --concept-cache outputs/diagnostics/b2_rule_teacher/isruc_test_direct_epoch_concepts_v2.npz \
-  --calibrate-prototypes \
-  --prototype-split val \
-  --prototype-cache outputs/diagnostics/b2_rule_teacher/isruc_val_direct_epoch_stage_prototypes_v2.npz \
-  --prototype-weight 0.90 \
-  --output-dir outputs/diagnostics/b2_rule_teacher/<run_name>
-```
-
-Key B2 outputs:
-
-- `summary.json`: rule metrics, disagreement rates, `model_error_rate_when_top_risk_10pct`,
-  and `retained_accuracy_after_review_top_risk_10pct`.
-- `top_conflicts.csv`: disagreement examples ranked by `risk_score` with model/rule margins and probability distance.
-- `rule_teacher_outputs.npz`: `p_rule`, `rule_pred`, `risk_score`, `model_margin`, `prob_js`, and related arrays.
-
-Run B3 risk-aware post-hoc corrector on a split prediction file:
-
-```bash
-python tools/b3_risk_aware_corrector.py \
-  --prediction-npz outputs/predictions/<split_prediction_file>.npz \
-  --dataset isruc \
-  --split-json dataset_protocols/ISRUC/split.json \
-  --concept-cache-dir outputs/diagnostics/b3_corrector/concept_cache \
-  --concept-extractor direct_epoch \
-  --prototype-source train \
-  --prototype-weight 0.90 \
-  --epochs 20 \
-  --output-dir outputs/diagnostics/b3_corrector/<run_name>
-```
-
-B3 is a validation-selected correction layer. Treat it as a full-coverage
-accuracy experiment, not as a replacement for B2 selective review metrics.
+The pre-cleanup usage decision, reason, replacement, and backup location for
+every audited Python entry are recorded in
+`docs/TOOLS_INVENTORY_BEFORE_CLEANUP.csv`.

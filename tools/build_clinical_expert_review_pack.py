@@ -36,6 +36,36 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def load_evaluation_targets(run_dirs, perturbation_mode="physiological"):
+    target_map = {}
+    provenance = []
+    for run_dir in run_dirs:
+        run_dir = Path(run_dir).resolve()
+        paths = sorted((run_dir / "cache").glob("sample_*.json"))
+        if not paths:
+            raise FileNotFoundError(f"No completed sample cache in {run_dir}")
+        for path in paths:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            mode_payload = payload.get("perturbation_results", {}).get(
+                perturbation_mode
+            )
+            if not mode_payload:
+                raise KeyError(f"{path} lacks perturbation mode {perturbation_mode}")
+            segment_count = int(payload["segments_count"])
+            coefficient = np.asarray(mode_payload["coef"], dtype=np.float32)
+            if coefficient.size != 3 * segment_count:
+                raise ValueError(
+                    f"{path} coefficient size {coefficient.size} is not "
+                    f"3 x {segment_count}"
+                )
+            global_index = int(payload["global_epoch_index"])
+            if global_index in target_map:
+                raise ValueError(f"Duplicate evaluation sample {global_index}")
+            target_map[global_index] = coefficient.reshape(3, segment_count).T
+            provenance.append({"path": str(path), "sha256": sha256(path)})
+    return target_map, provenance
+
+
 def transition_flags(labels: np.ndarray) -> np.ndarray:
     flags = np.zeros(len(labels), dtype=bool)
     if len(labels) > 1:
@@ -85,19 +115,51 @@ def render_item(path, waveform, importance, concept_matrix):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--targets", type=Path, default=DEFAULT_TARGETS)
+    parser.add_argument(
+        "--evaluation-run-dir",
+        type=Path,
+        action="append",
+        default=[],
+        help="Completed evaluator run directory; repeat for disjoint shards.",
+    )
+    parser.add_argument(
+        "--perturbation-mode",
+        default="physiological",
+        choices=("zero", "physiological", "gaussian_noise", "local_mean"),
+    )
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--per-cell", type=int, default=2)
     parser.add_argument("--seed", type=int, default=20260719)
     args = parser.parse_args()
-    for path in (INPUT_CACHE, PREDICTIONS, args.targets):
+    required_paths = [INPUT_CACHE, PREDICTIONS]
+    if not args.evaluation_run_dir:
+        required_paths.append(args.targets)
+    for path in required_paths:
         if not path.exists():
             raise FileNotFoundError(path)
-    cache, pred, targets = np.load(INPUT_CACHE), np.load(PREDICTIONS), np.load(args.targets)
+    cache, pred = np.load(INPUT_CACHE), np.load(PREDICTIONS)
     labels = pred["test_y_true"].astype(int)
     predictions = np.argmax(pred["test_probs_raw"], axis=1)
-    target_indices = targets["global_epoch_index"].astype(int)
-    importance = targets["importance"].astype(np.float32)
-    target_map = {int(index): row for index, row in zip(target_indices, importance)}
+    if args.evaluation_run_dir:
+        target_map, source_provenance = load_evaluation_targets(
+            args.evaluation_run_dir,
+            perturbation_mode=args.perturbation_mode,
+        )
+        target_source = "completed_sequence_lime_evaluation"
+    else:
+        targets = np.load(args.targets)
+        target_indices = targets["global_epoch_index"].astype(int)
+        importance = targets["importance"].astype(np.float32)
+        target_map = {
+            int(index): row for index, row in zip(target_indices, importance)
+        }
+        source_provenance = [
+            {"path": str(args.targets.resolve()), "sha256": sha256(args.targets)}
+        ]
+        target_source = "precomputed_target_artifact"
+    target_indices = np.asarray(sorted(target_map), dtype=int)
+    if np.any(target_indices < 0) or np.any(target_indices >= len(labels)):
+        raise ValueError("Review target indices fall outside the frozen test artifact")
     available = np.zeros(len(labels), dtype=bool)
     available[target_indices] = True
     selected, transition = stratified_indices(
@@ -107,12 +169,14 @@ def main():
     item_dir = reviewer_dir / "items"
     item_dir.mkdir(parents=True, exist_ok=True)
     private_rows, rating_rows = [], []
-    boundaries = np.linspace(0, 3000, 31, dtype=int)
-    segments = list(zip(boundaries[:-1], boundaries[1:]))
     for order, index in enumerate(selected, 1):
         item_id = f"XAI-{order:04d}"
         waveform = cache["x_raw"][index].astype(np.float32)
         item_importance = target_map[index]
+        boundaries = np.linspace(
+            0, waveform.shape[0], int(item_importance.shape[0]) + 1, dtype=int
+        )
+        segments = list(zip(boundaries[:-1], boundaries[1:]))
         concepts = concepts_from_raw_waveform(waveform, segments)["concept_matrix"]
         render_item(item_dir / f"{item_id}.png", waveform, item_importance, concepts)
         private_rows.append(
@@ -145,8 +209,9 @@ def main():
         "blinded": True,
         "seed": args.seed,
         "item_count": len(selected),
-        "targets_path": str(args.targets),
-        "targets_sha256": sha256(args.targets),
+        "target_source": target_source,
+        "target_source_files": source_provenance,
+        "perturbation_mode": args.perturbation_mode,
         "prediction_artifact_sha256": sha256(PREDICTIONS),
         "private_key_separate": True,
     }

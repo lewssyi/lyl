@@ -54,6 +54,9 @@ _CLEAN_SEQUENCE_BASE: Dict[str, str] = {
     "LFTS_MICRO_FINETUNE_LR_SCALE": "0.10",
     "LFTS_EXPLANATION_FEEDBACK_MODE": "clinical",
     "LFTS_EXPLANATION_FEEDBACK_TRAINING": "0",
+    "LFTS_XAI_FEEDBACK_ENABLED": "0",
+    "LFTS_XAI_FEEDBACK_LOSS_WEIGHT": "0.0",
+    "LFTS_LABEL_CONDITIONED_CONCEPT_TARGETS": "0",
     "LFTS_ATTENTION_FEEDBACK_LOSS_WEIGHT": "0.0",
     "LFTS_CONCEPT_OUTPUT_LOSS_WEIGHT": "0.0",
     "LFTS_CONCEPT_BOTTLENECK_LOSS_WEIGHT": "0.0",
@@ -72,15 +75,6 @@ _NO_CONCEPT_BRANCH: Dict[str, str] = {
     "LFTS_ADAPTIVE_CLINICAL_PRIORS": "0",
 }
 
-_LATE_CONCEPT_RESIDUAL_BRANCH: Dict[str, str] = {
-    **_NO_CONCEPT_BRANCH,
-    "LFTS_USE_LATE_CLINICAL_CONCEPT_RESIDUAL": "1",
-    "LFTS_LATE_CONCEPT_RESIDUAL_SCALE": "0.05",
-    "LFTS_LATE_CONCEPT_RESIDUAL_TRAINABLE": "1",
-    "LFTS_LATE_CONCEPT_STOP_GRADIENT": "1",
-    "LFTS_CLINICAL_PRIOR_TRAINABLE": "0",
-}
-
 _CONCEPT_FILM_MODULATION_BRANCH: Dict[str, str] = {
     **_NO_CONCEPT_BRANCH,
     "LFTS_USE_CONCEPT_FEATURE_MODULATION": "1",
@@ -92,83 +86,18 @@ _CONCEPT_FILM_MODULATION_BRANCH: Dict[str, str] = {
 }
 
 
-_ACCURACY_SELECTOR_ONLY: Dict[str, str] = {
-    "LFTS_SELECTOR_MODE": "accuracy",
-    "LFTS_N1_THRESHOLD_MAX_ACC_DROP": "0.000",
-    "LFTS_POSTPROCESS_ACCURACY_GUARD_DROP": "0.0000",
-}
-
-
 DATASET_PRESETS: Dict[str, Dict[str, str]] = {
     "none": {},
-    "A1_concept_film": {
-        **_CLEAN_SEQUENCE_BASE,
-        **_CONCEPT_FILM_MODULATION_BRANCH,
-        "LFTS_RUN_TAG": "A1_concept_film",
-    },
-    "A1_concept_film_s005": {
-        **_CLEAN_SEQUENCE_BASE,
-        **_CONCEPT_FILM_MODULATION_BRANCH,
-        "LFTS_CONCEPT_MODULATION_STRENGTH": "0.05",
-        "LFTS_RUN_TAG": "A1_concept_film_s005",
-    },
-    "A1_concept_film_s015": {
-        **_CLEAN_SEQUENCE_BASE,
-        **_CONCEPT_FILM_MODULATION_BRANCH,
-        "LFTS_CONCEPT_MODULATION_STRENGTH": "0.15",
-        "LFTS_RUN_TAG": "A1_concept_film_s015",
-    },
     "A1_concept_film_zero": {
         **_CLEAN_SEQUENCE_BASE,
         **_CONCEPT_FILM_MODULATION_BRANCH,
         "LFTS_CONCEPT_MODULATION_MODE": "zero",
         "LFTS_RUN_TAG": "A1_concept_film_zero",
     },
-    "A1_concept_film_zero_hard_risk": {
-        **_CLEAN_SEQUENCE_BASE,
-        **_CONCEPT_FILM_MODULATION_BRANCH,
-        "LFTS_CONCEPT_MODULATION_MODE": "zero",
-        "LFTS_LOSS_NAME": "risk_weighted_n1_margin_focal",
-        "LFTS_RUN_TAG": "A1_concept_film_zero_hard_risk",
-    },
-    "A1_concept_film_shuffled": {
-        **_CLEAN_SEQUENCE_BASE,
-        **_CONCEPT_FILM_MODULATION_BRANCH,
-        "LFTS_CONCEPT_MODULATION_MODE": "shuffled",
-        "LFTS_RUN_TAG": "A1_concept_film_shuffled",
-    },
     "edf_c0_no_concept": {
         **_CLEAN_SEQUENCE_BASE,
         **_NO_CONCEPT_BRANCH,
         "LFTS_RUN_TAG": "edf_c0_no_concept",
-    },
-    "edf_c0_accuracy_selector_only": {
-        **_CLEAN_SEQUENCE_BASE,
-        **_NO_CONCEPT_BRANCH,
-        **_ACCURACY_SELECTOR_ONLY,
-        "LFTS_RUN_TAG": "edf_c0_accuracy_selector_only",
-    },
-    "edf_c10_late_concept_residual": {
-        **_CLEAN_SEQUENCE_BASE,
-        **_LATE_CONCEPT_RESIDUAL_BRANCH,
-        "LFTS_RUN_TAG": "edf_c10_late_concept_residual",
-    },
-    "edf_A1_concept_film": {
-        **_CLEAN_SEQUENCE_BASE,
-        **_CONCEPT_FILM_MODULATION_BRANCH,
-        "LFTS_RUN_TAG": "edf_A1_concept_film",
-    },
-    "edf_A1_concept_film_s005": {
-        **_CLEAN_SEQUENCE_BASE,
-        **_CONCEPT_FILM_MODULATION_BRANCH,
-        "LFTS_CONCEPT_MODULATION_STRENGTH": "0.05",
-        "LFTS_RUN_TAG": "edf_A1_concept_film_s005",
-    },
-    "edf_A1_concept_film_s015": {
-        **_CLEAN_SEQUENCE_BASE,
-        **_CONCEPT_FILM_MODULATION_BRANCH,
-        "LFTS_CONCEPT_MODULATION_STRENGTH": "0.15",
-        "LFTS_RUN_TAG": "edf_A1_concept_film_s015",
     },
     "edf_A1_concept_film_zero": {
         **_CLEAN_SEQUENCE_BASE,
@@ -176,51 +105,10 @@ DATASET_PRESETS: Dict[str, Dict[str, str]] = {
         "LFTS_CONCEPT_MODULATION_MODE": "zero",
         "LFTS_RUN_TAG": "edf_A1_concept_film_zero",
     },
-    "edf_A1_concept_film_zero_hard_risk": {
-        **_CLEAN_SEQUENCE_BASE,
-        **_CONCEPT_FILM_MODULATION_BRANCH,
-        "LFTS_CONCEPT_MODULATION_MODE": "zero",
-        "LFTS_LOSS_NAME": "risk_weighted_n1_margin_focal",
-        "LFTS_RUN_TAG": "edf_A1_concept_film_zero_hard_risk",
-    },
-    "edf_A1_concept_film_shuffled": {
-        **_CLEAN_SEQUENCE_BASE,
-        **_CONCEPT_FILM_MODULATION_BRANCH,
-        "LFTS_CONCEPT_MODULATION_MODE": "shuffled",
-        "LFTS_RUN_TAG": "edf_A1_concept_film_shuffled",
-    },
     "isruc_c0_no_concept": {
         **_CLEAN_SEQUENCE_BASE,
         **_NO_CONCEPT_BRANCH,
         "LFTS_RUN_TAG": "isruc_c0_no_concept",
-    },
-    "isruc_c0_accuracy_selector_only": {
-        **_CLEAN_SEQUENCE_BASE,
-        **_NO_CONCEPT_BRANCH,
-        **_ACCURACY_SELECTOR_ONLY,
-        "LFTS_RUN_TAG": "isruc_c0_accuracy_selector_only",
-    },
-    "isruc_c10_late_concept_residual": {
-        **_CLEAN_SEQUENCE_BASE,
-        **_LATE_CONCEPT_RESIDUAL_BRANCH,
-        "LFTS_RUN_TAG": "isruc_c10_late_concept_residual",
-    },
-    "isruc_A1_concept_film": {
-        **_CLEAN_SEQUENCE_BASE,
-        **_CONCEPT_FILM_MODULATION_BRANCH,
-        "LFTS_RUN_TAG": "isruc_A1_concept_film",
-    },
-    "isruc_A1_concept_film_s005": {
-        **_CLEAN_SEQUENCE_BASE,
-        **_CONCEPT_FILM_MODULATION_BRANCH,
-        "LFTS_CONCEPT_MODULATION_STRENGTH": "0.05",
-        "LFTS_RUN_TAG": "isruc_A1_concept_film_s005",
-    },
-    "isruc_A1_concept_film_s015": {
-        **_CLEAN_SEQUENCE_BASE,
-        **_CONCEPT_FILM_MODULATION_BRANCH,
-        "LFTS_CONCEPT_MODULATION_STRENGTH": "0.15",
-        "LFTS_RUN_TAG": "isruc_A1_concept_film_s015",
     },
     "isruc_A1_concept_film_zero": {
         **_CLEAN_SEQUENCE_BASE,
@@ -228,42 +116,13 @@ DATASET_PRESETS: Dict[str, Dict[str, str]] = {
         "LFTS_CONCEPT_MODULATION_MODE": "zero",
         "LFTS_RUN_TAG": "isruc_A1_concept_film_zero",
     },
-    "isruc_A1_concept_film_zero_hard_risk": {
-        **_CLEAN_SEQUENCE_BASE,
-        **_CONCEPT_FILM_MODULATION_BRANCH,
-        "LFTS_CONCEPT_MODULATION_MODE": "zero",
-        "LFTS_LOSS_NAME": "risk_weighted_n1_margin_focal",
-        "LFTS_RUN_TAG": "isruc_A1_concept_film_zero_hard_risk",
-    },
-    "isruc_A1_concept_film_shuffled": {
-        **_CLEAN_SEQUENCE_BASE,
-        **_CONCEPT_FILM_MODULATION_BRANCH,
-        "LFTS_CONCEPT_MODULATION_MODE": "shuffled",
-        "LFTS_RUN_TAG": "isruc_A1_concept_film_shuffled",
-    },
 }
 
 DATASET_PRESET_BATCH_LIMITS: Dict[str, Dict[str, int]] = {
     # SleepEDF has long recordings and the sequence frontend flattens
     # per_replica_batch * seq_len epochs through the raw encoder. Keep this
     # conservative for 10-12GB cards such as RTX 3080.
-    "A1_concept_film": {
-        "per_replica_batch": 8,
-        "predict_per_replica_batch": 16,
-    },
-    "A1_concept_film_s005": {
-        "per_replica_batch": 8,
-        "predict_per_replica_batch": 16,
-    },
-    "A1_concept_film_s015": {
-        "per_replica_batch": 8,
-        "predict_per_replica_batch": 16,
-    },
     "A1_concept_film_zero": {
-        "per_replica_batch": 8,
-        "predict_per_replica_batch": 16,
-    },
-    "A1_concept_film_shuffled": {
         "per_replica_batch": 8,
         "predict_per_replica_batch": 16,
     },
@@ -271,31 +130,7 @@ DATASET_PRESET_BATCH_LIMITS: Dict[str, Dict[str, int]] = {
         "per_replica_batch": 8,
         "predict_per_replica_batch": 16,
     },
-    "edf_c0_accuracy_selector_only": {
-        "per_replica_batch": 8,
-        "predict_per_replica_batch": 16,
-    },
-    "edf_c10_late_concept_residual": {
-        "per_replica_batch": 8,
-        "predict_per_replica_batch": 16,
-    },
-    "edf_A1_concept_film": {
-        "per_replica_batch": 8,
-        "predict_per_replica_batch": 16,
-    },
-    "edf_A1_concept_film_s005": {
-        "per_replica_batch": 8,
-        "predict_per_replica_batch": 16,
-    },
-    "edf_A1_concept_film_s015": {
-        "per_replica_batch": 8,
-        "predict_per_replica_batch": 16,
-    },
     "edf_A1_concept_film_zero": {
-        "per_replica_batch": 8,
-        "predict_per_replica_batch": 16,
-    },
-    "edf_A1_concept_film_shuffled": {
         "per_replica_batch": 8,
         "predict_per_replica_batch": 16,
     },
@@ -303,31 +138,7 @@ DATASET_PRESET_BATCH_LIMITS: Dict[str, Dict[str, int]] = {
         "per_replica_batch": 8,
         "predict_per_replica_batch": 16,
     },
-    "isruc_c0_accuracy_selector_only": {
-        "per_replica_batch": 8,
-        "predict_per_replica_batch": 16,
-    },
-    "isruc_c10_late_concept_residual": {
-        "per_replica_batch": 8,
-        "predict_per_replica_batch": 16,
-    },
-    "isruc_A1_concept_film": {
-        "per_replica_batch": 8,
-        "predict_per_replica_batch": 16,
-    },
-    "isruc_A1_concept_film_s005": {
-        "per_replica_batch": 8,
-        "predict_per_replica_batch": 16,
-    },
-    "isruc_A1_concept_film_s015": {
-        "per_replica_batch": 8,
-        "predict_per_replica_batch": 16,
-    },
     "isruc_A1_concept_film_zero": {
-        "per_replica_batch": 8,
-        "predict_per_replica_batch": 16,
-    },
-    "isruc_A1_concept_film_shuffled": {
         "per_replica_batch": 8,
         "predict_per_replica_batch": 16,
     },
@@ -357,8 +168,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--dataset-preset",
         choices=tuple(DATASET_PRESETS.keys()),
-        default="none",
-        help="Optional dataset-specific launch preset kept outside run_main.py.",
+        default="A1_concept_film_zero",
+        help="Launch preset (default: frozen A1 concept-FiLM zero mainline).",
     )
     parser.add_argument(
         "--allow-protocol-overrides",

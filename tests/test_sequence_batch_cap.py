@@ -39,6 +39,29 @@ class SequenceBatchCapTest(unittest.TestCase):
         self.assertTrue(np.allclose(probabilities, 0.75))
         self.assertLessEqual(max(model.batch_sizes), 2)
 
+    def test_large_requested_batch_is_memory_capped(self):
+        model = RecordingModel()
+        x_raw = np.zeros((80, 20, 3), dtype=np.float32)
+        x_seg = np.zeros((80, 30, 28), dtype=np.float32)
+        perturbed_epochs = [np.zeros((20, 3), dtype=np.float32) for _ in range(12)]
+        perturbed_features = [
+            np.zeros((30, 28), dtype=np.float32) for _ in range(12)
+        ]
+        probabilities = sequence_target_probabilities(
+            model,
+            x_raw,
+            x_seg,
+            np.asarray([80]),
+            global_epoch=40,
+            target_class=2,
+            perturbed_epochs=perturbed_epochs,
+            perturbed_features=perturbed_features,
+            batch_windows=16,
+        )
+        self.assertEqual(probabilities.shape, (12,))
+        self.assertTrue(np.allclose(probabilities, 0.75))
+        self.assertEqual(max(model.batch_sizes), 8)
+
 
 if __name__ == "__main__":
     unittest.main()
