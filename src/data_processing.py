@@ -95,6 +95,58 @@ def recording_robust_zscore(X, eps=1e-6):
     return sanitize_signal_epochs((X - center) / (scale + eps))
 
 
+def prefix_causal_robust_zscore(X, eps=1e-6):
+    """Normalize epoch t from unlabeled samples observed through epoch t only."""
+    values = sanitize_signal_epochs(X)
+    normalized = np.empty_like(values, dtype=np.float32)
+    for epoch_index in range(len(values)):
+        prefix = values[: epoch_index + 1]
+        center = np.median(prefix, axis=(0, 1), keepdims=True)
+        mad = np.median(np.abs(prefix - center), axis=(0, 1), keepdims=True)
+        robust_scale = 1.4826 * mad
+        fallback = np.std(prefix, axis=(0, 1), keepdims=True)
+        scale = np.where(robust_scale > eps, robust_scale, fallback)
+        scale = np.where(scale > eps, scale, 1.0)
+        normalized[epoch_index] = (values[epoch_index] - center[0]) / (scale[0] + eps)
+    return sanitize_signal_epochs(normalized)
+
+
+def epoch_local_normalization(X, eps=1e-6):
+    """Deployment-safe per-epoch, per-channel z-score without future context."""
+    values = sanitize_signal_epochs(X)
+    center = np.mean(values, axis=1, keepdims=True)
+    scale = np.std(values, axis=1, keepdims=True)
+    scale = np.where(scale > eps, scale, 1.0)
+    return sanitize_signal_epochs((values - center) / (scale + eps))
+
+
+def fit_train_global_scaler(X, eps=1e-6):
+    """Fit an unlabeled robust scaler on training data only."""
+    values = sanitize_signal_epochs(X)
+    center = np.median(values, axis=(0, 1), keepdims=True)
+    mad = np.median(np.abs(values - center), axis=(0, 1), keepdims=True)
+    scale = 1.4826 * mad
+    fallback = np.std(values, axis=(0, 1), keepdims=True)
+    scale = np.where(scale > eps, scale, fallback)
+    scale = np.where(scale > eps, scale, 1.0)
+    return {
+        "fit_scope": "train_only",
+        "center": center.astype(np.float32),
+        "scale": scale.astype(np.float32),
+        "eps": float(eps),
+    }
+
+
+def apply_train_fitted_global_scaler(X, scaler):
+    if not isinstance(scaler, dict) or scaler.get("fit_scope") != "train_only":
+        raise ValueError("train_fitted_global_scaler requires a train-only scaler state")
+    values = sanitize_signal_epochs(X)
+    center = np.asarray(scaler["center"], dtype=np.float32)
+    scale = np.asarray(scaler["scale"], dtype=np.float32)
+    eps = float(scaler.get("eps", 1e-6))
+    return sanitize_signal_epochs((values - center) / (scale + eps))
+
+
 def _secondwise_step_metric(X_safe, fs):
     n_epochs, n_samples, n_channels = X_safe.shape
     samples_per_bin = max(1, int(round(float(fs) if fs is not None else 100.0)))
@@ -530,6 +582,7 @@ def preprocess_multichannel_epochs(
     filter_backend="scipy",
     clip_sigma=None,
     enable_amplitude_clipping=False,
+    normalization_state=None,
 ):
     """
     Apply dataset-agnostic clinical-concept harmonized preprocessing.
@@ -562,8 +615,19 @@ def preprocess_multichannel_epochs(
 
     if normalize:
         mode = str(normalization_mode or "recording_robust_zscore").strip().lower()
-        if mode in {"recording_robust_zscore", "robust", "robust_zscore"}:
+        if mode in {
+            "recording_robust_zscore_canonical",
+            "recording_robust_zscore",
+            "robust",
+            "robust_zscore",
+        }:
             X = recording_robust_zscore(X)
+        elif mode == "prefix_causal_robust_zscore":
+            X = prefix_causal_robust_zscore(X)
+        elif mode == "train_fitted_global_scaler":
+            X = apply_train_fitted_global_scaler(X, normalization_state)
+        elif mode == "epoch_local_normalization":
+            X = epoch_local_normalization(X)
         elif mode in {"recording_zscore", "zscore", "standard", "channel_zscore"}:
             mean = np.mean(X, axis=(0, 1), keepdims=True)
             std = np.std(X, axis=(0, 1), keepdims=True)
@@ -579,8 +643,10 @@ def preprocess_multichannel_epochs(
             X = sanitize_signal_epochs(2.0 * X - 1.0)
         else:
             raise ValueError(
-                "normalization_mode must be recording_robust_zscore, recording_zscore, "
-                f"recording_minmax, or recording_robust_minmax; got {normalization_mode!r}"
+                "normalization_mode must be recording_robust_zscore_canonical, "
+                "prefix_causal_robust_zscore, train_fitted_global_scaler, "
+                "epoch_local_normalization, recording_zscore, recording_minmax, "
+                f"or recording_robust_minmax; got {normalization_mode!r}"
             )
 
     return X.astype(np.float32)
@@ -978,5 +1044,4 @@ def load_edf_epoch(psg_path, hypno_path):
         verbose=False,
     )
     return epochs.get_data(), epochs.events[:, 2]
-
 

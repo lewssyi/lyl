@@ -1,61 +1,38 @@
 import copy
+import hashlib
 
 import numpy as np
 import scipy.signal as signal
 from sklearn.linear_model import Ridge
 from sklearn.metrics import pairwise_distances
 
+try:
+    from .clinical_concepts import (
+        RAW_PHYSIOLOGY_VERSION,
+        concept_metadata,
+        concepts_from_raw_waveform,
+        stage_channel_prior,
+        stage_concept_prior,
+    )
+except ImportError:  # run_main.py also supports importing src modules by path
+    from clinical_concepts import (
+        RAW_PHYSIOLOGY_VERSION,
+        concept_metadata,
+        concepts_from_raw_waveform,
+        stage_channel_prior,
+        stage_concept_prior,
+    )
+
 
 STAGE_LABELS = ["W", "N1", "N2", "N3", "REM"]
-
-CLINICAL_CONCEPTS = [
-    {"name": "EEG Delta", "channel": 0},
-    {"name": "EEG Theta", "channel": 0},
-    {"name": "EEG Alpha", "channel": 0},
-    {"name": "EEG Sigma", "channel": 0},
-    {"name": "EEG Beta", "channel": 0},
-    {"name": "EOG Slow Eye", "channel": 1},
-    {"name": "EOG Rapid Eye", "channel": 1},
-    {"name": "EMG Low Tone", "channel": 2},
-    {"name": "EMG Muscle Activation", "channel": 2},
-]
-
+CLINICAL_CONCEPTS = concept_metadata(RAW_PHYSIOLOGY_VERSION)
+_STAGE_CONCEPT_PRIOR_MATRIX = stage_concept_prior()
 STAGE_CONCEPT_PRIORS = {
-    0: {
-        "EEG Alpha": 0.34,
-        "EEG Beta": 0.18,
-        "EMG Muscle Activation": 0.30,
-        "EOG Slow Eye": 0.10,
-        "EEG Theta": 0.08,
-    },
-    1: {
-        "EEG Theta": 0.32,
-        "EOG Slow Eye": 0.26,
-        "EEG Alpha": 0.18,
-        "EEG Delta": 0.12,
-        "EMG Muscle Activation": 0.12,
-    },
-    2: {
-        "EEG Sigma": 0.36,
-        "EEG Theta": 0.20,
-        "EEG Delta": 0.18,
-        "EMG Muscle Activation": 0.14,
-        "EOG Slow Eye": 0.12,
-    },
-    3: {
-        "EEG Delta": 0.62,
-        "EEG Theta": 0.16,
-        "EEG Sigma": 0.10,
-        "EMG Low Tone": 0.07,
-        "EOG Slow Eye": 0.05,
-    },
-    4: {
-        "EOG Rapid Eye": 0.34,
-        "EMG Low Tone": 0.30,
-        "EEG Theta": 0.18,
-        "EEG Beta": 0.10,
-        "EEG Alpha": 0.08,
-    },
+    stage: {
+        item["name"]: float(_STAGE_CONCEPT_PRIOR_MATRIX[index, stage])
+        for index, item in enumerate(CLINICAL_CONCEPTS)
+    }
+    for stage in range(len(STAGE_LABELS))
 }
 
 TRANSITION_CONCEPT_PRIORS = {
@@ -98,6 +75,16 @@ def _concept_prior_vector(prior_map):
     return _normalize_positive(values)
 
 
+def _coerce_rng(seed=42, rng=None):
+    if seed is not None and rng is not None:
+        raise ValueError("Pass either seed or rng, not both.")
+    if rng is not None:
+        if not isinstance(rng, np.random.Generator):
+            raise TypeError("rng must be an instance of np.random.Generator")
+        return rng
+    return np.random.default_rng(42 if seed is None else int(seed))
+
+
 def perturb_total_mean(signal_1d, start_idx, end_idx):
     if start_idx == end_idx:
         return
@@ -110,10 +97,11 @@ def perturb_mean(signal_1d, start_idx, end_idx):
     signal_1d[start_idx:end_idx] = np.mean(signal_1d[start_idx:end_idx])
 
 
-def perturb_noise(signal_1d, start_idx, end_idx):
+def perturb_noise(signal_1d, start_idx, end_idx, rng=None):
     if start_idx == end_idx:
         return
-    signal_1d[start_idx:end_idx] = np.random.uniform(
+    rng = _coerce_rng(seed=None, rng=rng)
+    signal_1d[start_idx:end_idx] = rng.uniform(
         np.min(signal_1d), np.max(signal_1d), end_idx - start_idx
     )
 
@@ -124,14 +112,15 @@ def perturb_zero(signal_1d, start_idx, end_idx):
     signal_1d[start_idx:end_idx] = 0.0
 
 
-def perturb_gaussian_noise(signal_1d, start_idx, end_idx):
+def perturb_gaussian_noise(signal_1d, start_idx, end_idx, rng=None):
     if start_idx == end_idx:
         return
     reference = signal_1d[start_idx:end_idx]
     sigma = float(np.std(reference))
     if sigma < 1e-8:
         sigma = float(np.std(signal_1d))
-    signal_1d[start_idx:end_idx] = np.random.normal(
+    rng = _coerce_rng(seed=None, rng=rng)
+    signal_1d[start_idx:end_idx] = rng.normal(
         float(np.mean(reference)),
         max(sigma, 1e-8),
         end_idx - start_idx,
@@ -157,12 +146,13 @@ def _match_segment_statistics(replacement, reference):
     return matched * ref_std + ref_mean
 
 
-def _phase_randomized_surrogate(segment):
+def _phase_randomized_surrogate(segment, rng=None):
     if len(segment) < 8 or np.std(segment) < 1e-8:
         return np.full_like(segment, np.mean(segment), dtype=np.float32)
     centered = segment - np.mean(segment)
     spectrum = np.fft.rfft(centered)
-    random_phase = np.random.uniform(-np.pi, np.pi, size=spectrum.shape)
+    rng = _coerce_rng(seed=None, rng=rng)
+    random_phase = rng.uniform(-np.pi, np.pi, size=spectrum.shape)
     random_phase[0] = 0.0
     if len(random_phase) > 1 and len(segment) % 2 == 0:
         random_phase[-1] = 0.0
@@ -170,7 +160,7 @@ def _phase_randomized_surrogate(segment):
     return _match_segment_statistics(surrogate, segment).astype(np.float32)
 
 
-def _low_frequency_surrogate(segment):
+def _low_frequency_surrogate(segment, rng=None):
     if len(segment) < 6:
         return np.full_like(segment, np.mean(segment), dtype=np.float32)
     window_len = min(len(segment) // 2 * 2 - 1, 51)
@@ -179,14 +169,15 @@ def _low_frequency_surrogate(segment):
     else:
         trend = signal.savgol_filter(segment, window_length=window_len, polyorder=2, mode="interp")
     residual_std = float(np.std(segment - trend))
-    slow_noise = np.random.normal(0.0, residual_std + 1e-8, size=len(segment))
+    rng = _coerce_rng(seed=None, rng=rng)
+    slow_noise = rng.normal(0.0, residual_std + 1e-8, size=len(segment))
     if len(segment) >= 9:
         slow_noise = signal.savgol_filter(slow_noise, window_length=min(len(segment) // 2 * 2 - 1, 31), polyorder=2)
     surrogate = trend + 0.35 * slow_noise
     return _match_segment_statistics(surrogate, segment).astype(np.float32)
 
 
-def _envelope_preserving_surrogate(segment):
+def _envelope_preserving_surrogate(segment, rng=None):
     if len(segment) < 4 or np.std(segment) < 1e-8:
         return np.full_like(segment, np.mean(segment), dtype=np.float32)
     segment_centered = segment - np.mean(segment)
@@ -194,7 +185,8 @@ def _envelope_preserving_surrogate(segment):
     envelope = np.sqrt(
         np.convolve(segment_centered ** 2, np.ones(envelope_window) / envelope_window, mode="same") + 1e-8
     )
-    high_freq_noise = np.random.normal(0.0, 1.0, size=len(segment))
+    rng = _coerce_rng(seed=None, rng=rng)
+    high_freq_noise = rng.normal(0.0, 1.0, size=len(segment))
     high_freq_noise = high_freq_noise - np.convolve(
         high_freq_noise,
         np.ones(envelope_window) / envelope_window,
@@ -204,34 +196,33 @@ def _envelope_preserving_surrogate(segment):
     return _match_segment_statistics(surrogate, segment).astype(np.float32)
 
 
-def _physiological_segment_surrogate(signal_1d, start_idx, end_idx, channel_idx, target_class):
+def _physiological_segment_surrogate(
+    signal_1d, start_idx, end_idx, channel_idx, target_class, rng=None
+):
     segment_values = signal_1d[start_idx:end_idx].astype(np.float32)
     if len(segment_values) == 0:
         return segment_values
 
     if channel_idx == 0:
-        replacement = _phase_randomized_surrogate(segment_values)
+        replacement = _phase_randomized_surrogate(segment_values, rng=rng)
     elif channel_idx == 1:
-        replacement = _low_frequency_surrogate(segment_values)
+        replacement = _low_frequency_surrogate(segment_values, rng=rng)
     elif channel_idx == 2:
-        replacement = _envelope_preserving_surrogate(segment_values)
+        replacement = _envelope_preserving_surrogate(segment_values, rng=rng)
         if target_class == 4:
             replacement = np.mean(segment_values) + 0.65 * (replacement - np.mean(replacement))
     else:
-        replacement = _phase_randomized_surrogate(segment_values)
+        replacement = _phase_randomized_surrogate(segment_values, rng=rng)
 
     return _blend_segment_edges(segment_values, replacement)
 
 
 def get_clinical_prior(target_class):
-    clinical_priors = {
-        0: [0.30, 0.20, 0.50],
-        1: [0.50, 0.40, 0.10],
-        2: [0.85, 0.05, 0.10],
-        3: [0.90, 0.05, 0.05],
-        4: [0.20, 0.30, 0.50],
-    }
-    return np.array(clinical_priors.get(target_class, [0.33, 0.33, 0.34]), dtype=np.float32)
+    stage_idx = _stage_to_index(target_class)
+    priors = stage_channel_prior()
+    if stage_idx is None or stage_idx < 0 or stage_idx >= len(priors):
+        return np.asarray([0.33, 0.33, 0.34], dtype=np.float32)
+    return priors[stage_idx].copy()
 
 
 def get_stage_concept_prior(target_class):
@@ -258,6 +249,7 @@ def apply_stage_aware_perturbation(
     channel_idx,
     target_class,
     perturbation_mode="physiological",
+    rng=None,
 ):
     if perturbation_mode == "physiological":
         signal_1d[start_idx:end_idx] = _physiological_segment_surrogate(
@@ -266,6 +258,7 @@ def apply_stage_aware_perturbation(
             end_idx,
             channel_idx,
             target_class,
+            rng=rng,
         )
         return
 
@@ -274,7 +267,7 @@ def apply_stage_aware_perturbation(
         return
 
     if perturbation_mode in {"gaussian", "gaussian_noise", "noise"}:
-        perturb_gaussian_noise(signal_1d, start_idx, end_idx)
+        perturb_gaussian_noise(signal_1d, start_idx, end_idx, rng=rng)
         return
 
     if perturbation_mode in {"mean", "local_mean"}:
@@ -283,20 +276,21 @@ def apply_stage_aware_perturbation(
 
     if channel_idx == 2:
         if target_class == 4:
-            perturb_noise(signal_1d, start_idx, end_idx)
+            perturb_noise(signal_1d, start_idx, end_idx, rng=rng)
         else:
             perturb_mean(signal_1d, start_idx, end_idx)
     elif channel_idx == 1:
         if target_class in [0, 4]:
             perturb_mean(signal_1d, start_idx, end_idx)
         else:
-            perturb_noise(signal_1d, start_idx, end_idx)
+            perturb_noise(signal_1d, start_idx, end_idx, rng=rng)
     else:
         perturb_mean(signal_1d, start_idx, end_idx)
 
 
-def generate_random_perturbations(num_perturbations, num_features):
-    return np.random.binomial(1, 0.5, size=(num_perturbations, num_features))
+def generate_random_perturbations(num_perturbations, num_features, seed=42, rng=None):
+    rng = _coerce_rng(seed=seed, rng=rng)
+    return rng.binomial(1, 0.5, size=(num_perturbations, num_features))
 
 
 def calculate_cosine_distances(random_perturbations, num_features):
@@ -314,7 +308,9 @@ def apply_perturbation_to_multimodal(
     segments,
     target_class,
     perturbation_mode="physiological",
+    rng=None,
 ):
+    rng = _coerce_rng(seed=None, rng=rng)
     perturbed_signal = copy.deepcopy(signal_multimodal)
     num_segments = len(segments)
     num_channels = signal_multimodal.shape[1] if len(signal_multimodal.shape) == 2 else 1
@@ -332,6 +328,7 @@ def apply_perturbation_to_multimodal(
                         channel_idx,
                         target_class,
                         perturbation_mode=perturbation_mode,
+                        rng=rng,
                     )
                 else:
                     channel_signal = (
@@ -346,6 +343,7 @@ def apply_perturbation_to_multimodal(
                         0,
                         target_class,
                         perturbation_mode=perturbation_mode,
+                        rng=rng,
                     )
     return perturbed_signal
 
@@ -357,21 +355,34 @@ def predict_perturbations(
     segments,
     target_class,
     perturbation_mode="physiological",
+    prediction_batch_size=16,
+    rng=None,
 ):
+    rng = _coerce_rng(seed=None, rng=rng)
     perturbation_predictions = []
-    for perturbation in random_perturbations:
-        perturbed_signal = apply_perturbation_to_multimodal(
-            instance_multimodal,
-            perturbation,
-            segments,
-            target_class,
-            perturbation_mode=perturbation_mode,
+    prediction_batch_size = max(1, int(prediction_batch_size))
+    for batch_start in range(0, len(random_perturbations), prediction_batch_size):
+        signal_batch = []
+        segment_batch = []
+        for perturbation in random_perturbations[batch_start: batch_start + prediction_batch_size]:
+            perturbed_signal = apply_perturbation_to_multimodal(
+                instance_multimodal,
+                perturbation,
+                segments,
+                target_class,
+                perturbation_mode=perturbation_mode,
+                rng=rng,
+            )
+            signal_batch.append(np.asarray(perturbed_signal, dtype=np.float32))
+            segment_batch.append(
+                extract_segment_features(perturbed_signal, segments, max_segments=30)
+            )
+        model_prediction = _predict_model_main_head(
+            model,
+            np.asarray(signal_batch, dtype=np.float32),
+            np.asarray(segment_batch, dtype=np.float32),
         )
-        perturbed_seg_features = extract_segment_features(perturbed_signal, segments, max_segments=30)
-        sig_reshaped = perturbed_signal[np.newaxis, :, :]
-        seg_reshaped = perturbed_seg_features[np.newaxis, :, :]
-        model_prediction = _predict_model_main_head(model, sig_reshaped, seg_reshaped)
-        perturbation_predictions.append(model_prediction[0])
+        perturbation_predictions.extend(np.asarray(model_prediction, dtype=np.float32))
     return np.asarray(perturbation_predictions, dtype=np.float32)
 
 
@@ -445,6 +456,7 @@ def compute_deletion_insertion_auc(
     num_steps=20,
     max_segments=30,
     random_state=None,
+    rng=None,
 ):
     """
     Compute LIME fidelity curves for a perturbation strategy.
@@ -490,61 +502,55 @@ def compute_deletion_insertion_auc(
     deletion_curve = []
     insertion_curve = []
 
-    previous_state = None
-    if random_state is not None:
-        previous_state = np.random.get_state()
-        np.random.seed(int(random_state))
-
-    try:
-        for feature_count in feature_counts:
-            deletion_mask = _mask_for_ranked_features(
-                num_features,
-                feature_order,
-                int(feature_count),
-                "deletion",
-            )
-            deletion_signal = apply_perturbation_to_multimodal(
-                instance_multimodal,
-                deletion_mask,
+    rng = _coerce_rng(seed=random_state, rng=rng)
+    for feature_count in feature_counts:
+        deletion_mask = _mask_for_ranked_features(
+            num_features,
+            feature_order,
+            int(feature_count),
+            "deletion",
+        )
+        deletion_signal = apply_perturbation_to_multimodal(
+            instance_multimodal,
+            deletion_mask,
+            segments,
+            target_class,
+            perturbation_mode=perturbation_mode,
+            rng=rng,
+        )
+        deletion_curve.append(
+            _predict_target_probability(
+                model,
+                deletion_signal,
                 segments,
                 target_class,
-                perturbation_mode=perturbation_mode,
+                max_segments=max_segments,
             )
-            deletion_curve.append(
-                _predict_target_probability(
-                    model,
-                    deletion_signal,
-                    segments,
-                    target_class,
-                    max_segments=max_segments,
-                )
-            )
+        )
 
-            insertion_mask = _mask_for_ranked_features(
-                num_features,
-                feature_order,
-                int(feature_count),
-                "insertion",
-            )
-            insertion_signal = apply_perturbation_to_multimodal(
-                instance_multimodal,
-                insertion_mask,
+        insertion_mask = _mask_for_ranked_features(
+            num_features,
+            feature_order,
+            int(feature_count),
+            "insertion",
+        )
+        insertion_signal = apply_perturbation_to_multimodal(
+            instance_multimodal,
+            insertion_mask,
+            segments,
+            target_class,
+            perturbation_mode=perturbation_mode,
+            rng=rng,
+        )
+        insertion_curve.append(
+            _predict_target_probability(
+                model,
+                insertion_signal,
                 segments,
                 target_class,
-                perturbation_mode=perturbation_mode,
+                max_segments=max_segments,
             )
-            insertion_curve.append(
-                _predict_target_probability(
-                    model,
-                    insertion_signal,
-                    segments,
-                    target_class,
-                    max_segments=max_segments,
-                )
-            )
-    finally:
-        if previous_state is not None:
-            np.random.set_state(previous_state)
+        )
 
     deletion_curve = np.asarray(deletion_curve, dtype=np.float32)
     insertion_curve = np.asarray(insertion_curve, dtype=np.float32)
@@ -638,76 +644,8 @@ def calculate_dccs(segment_importance, num_channels, num_segments, target_class)
     return raw_dccs, final_dccs
 
 
-def _minmax_scale(values):
-    values = np.nan_to_num(np.asarray(values, dtype=np.float32), nan=0.0, posinf=0.0, neginf=0.0)
-    min_val = float(np.min(values)) if len(values) else 0.0
-    max_val = float(np.max(values)) if len(values) else 0.0
-    if max_val - min_val <= 1e-8:
-        return np.zeros_like(values, dtype=np.float32)
-    return ((values - min_val) / (max_val - min_val)).astype(np.float32)
-
-
-def _relative_band_power(segment_values, fs, low, high):
-    if len(segment_values) < 8 or np.std(segment_values) < 1e-8:
-        return 0.0
-    freqs = np.fft.rfftfreq(len(segment_values), d=1.0 / fs)
-    spectrum = np.abs(np.fft.rfft(segment_values - np.mean(segment_values))) ** 2
-    total_power = float(np.sum(spectrum) + 1e-8)
-    mask = (freqs >= low) & (freqs < high)
-    if not np.any(mask):
-        return 0.0
-    return float(np.sum(spectrum[mask]) / total_power)
-
-
 def extract_clinical_concept_matrix(signal_multimodal, segments, fs=100):
-    num_segments = len(segments)
-    signal_array = np.asarray(signal_multimodal, dtype=np.float32)
-    if signal_array.ndim == 1:
-        signal_array = signal_array[:, np.newaxis]
-    num_channels = signal_array.shape[1]
-    concept_names = [item["name"] for item in CLINICAL_CONCEPTS]
-    concept_channels = np.array([item["channel"] for item in CLINICAL_CONCEPTS], dtype=np.int32)
-    raw_matrix = np.zeros((len(CLINICAL_CONCEPTS), num_segments), dtype=np.float32)
-
-    for seg_idx, (start_idx, end_idx) in enumerate(segments):
-        seg_data = signal_array[start_idx:end_idx, :]
-        if len(seg_data) == 0:
-            continue
-
-        if num_channels > 0:
-            eeg = seg_data[:, 0]
-            raw_matrix[0, seg_idx] = _relative_band_power(eeg, fs, 0.5, 4.0)
-            raw_matrix[1, seg_idx] = _relative_band_power(eeg, fs, 4.0, 8.0)
-            raw_matrix[2, seg_idx] = _relative_band_power(eeg, fs, 8.0, 12.0)
-            raw_matrix[3, seg_idx] = _relative_band_power(eeg, fs, 12.0, 16.0)
-            raw_matrix[4, seg_idx] = _relative_band_power(eeg, fs, 16.0, 30.0)
-
-        if num_channels > 1:
-            eog = seg_data[:, 1]
-            raw_matrix[5, seg_idx] = _relative_band_power(eog, fs, 0.1, 1.0) + 0.10 * float(np.std(eog))
-            raw_matrix[6, seg_idx] = _relative_band_power(eog, fs, 1.0, 5.0) + 0.10 * float(np.max(np.abs(eog)))
-
-        if num_channels > 2:
-            emg = seg_data[:, 2]
-            rms = float(np.sqrt(np.mean(emg ** 2) + 1e-8))
-            burst = float(np.percentile(np.abs(emg), 95))
-            raw_matrix[8, seg_idx] = rms + 0.25 * burst
-
-    for concept_idx in range(raw_matrix.shape[0]):
-        raw_matrix[concept_idx] = _minmax_scale(raw_matrix[concept_idx])
-
-    if num_channels > 2:
-        raw_matrix[7] = 1.0 - raw_matrix[8]
-
-    for concept_idx, channel_idx in enumerate(concept_channels):
-        if channel_idx >= num_channels:
-            raw_matrix[concept_idx] = 0.0
-
-    return {
-        "concept_names": concept_names,
-        "concept_channels": concept_channels,
-        "concept_matrix": raw_matrix.astype(np.float32),
-    }
+    return concepts_from_raw_waveform(signal_multimodal, segments, fs=fs)
 
 
 def calculate_concept_dccs(
@@ -975,8 +913,14 @@ def run_multimodal_lime(
     segments,
     num_perturbations=500,
     perturbation_mode="physiological",
+    prediction_batch_size=16,
+    seed=None,
+    rng=None,
     **kwargs,
 ):
+    """Run deterministic offline LIME with an explicit local generator."""
+    effective_seed = 42 if seed is None and rng is None else seed
+    rng = _coerce_rng(seed=effective_seed, rng=rng)
     orig_seg_features = extract_segment_features(instance_multimodal, segments, max_segments=30)
     original_pred = model.predict(
         [instance_multimodal[np.newaxis, :, :], orig_seg_features[np.newaxis, :, :]],
@@ -991,10 +935,16 @@ def run_multimodal_lime(
     print(
         f"XAI Engine: target stage={target_class}, "
         f"segments={num_segments}, channels={num_channels}, "
-        f"perturbations={num_perturbations}, mode={perturbation_mode}"
+        f"perturbations={num_perturbations}, mode={perturbation_mode}, "
+        f"prediction_batch_size={max(1, int(prediction_batch_size))}"
     )
 
-    random_perturbations = generate_random_perturbations(num_perturbations, num_features)
+    random_perturbations = generate_random_perturbations(
+        num_perturbations,
+        num_features,
+        seed=None,
+        rng=rng,
+    )
     predictions = predict_perturbations(
         model,
         instance_multimodal,
@@ -1002,6 +952,8 @@ def run_multimodal_lime(
         segments,
         target_class,
         perturbation_mode=perturbation_mode,
+        prediction_batch_size=prediction_batch_size,
+        rng=rng,
     )
 
     distances = calculate_cosine_distances(random_perturbations, num_features)
@@ -1019,6 +971,10 @@ def run_multimodal_lime(
 
     return {
         "target_class": target_class,
+        "seed": None if effective_seed is None else int(effective_seed),
+        "perturbation_mask_sha256": hashlib.sha256(
+            np.asarray(random_perturbations, dtype=np.uint8).tobytes()
+        ).hexdigest(),
         "original_pred": original_pred,
         "perturbation_mode": perturbation_mode,
         "segment_importance": np.asarray(segment_importance, dtype=np.float32),
