@@ -54,7 +54,7 @@ if str(TOOLS_DIR) not in sys.path:
 CLASS_LABELS = ["W", "N1", "N2", "N3", "REM"]
 CHANNEL_LABELS = ["EEG", "EOG", "EMG"]
 EPS = 1e-8
-EVALUATOR_VERSION = "sequence_lime_v1.1.2"
+EVALUATOR_VERSION = "sequence_lime_v1.1.3"
 STRICT_PROBABILITY_TOLERANCE = 1e-6
 # The frozen classifier endpoint must retain sequence-window batch 16 for exact
 # probability parity. Perturbation evaluation can hold both the original and a
@@ -7214,6 +7214,17 @@ def run_evaluation(args: argparse.Namespace) -> None:
 
     base_mode = "smoke" if args.mode == "smoke" else ("metric-smoke" if args.mode == "metric-smoke" else "full")
     config = resolve_mode_config(base_mode, args)
+    merge_ids = [
+        value.strip()
+        for value in str(getattr(args, "merge_shard_run_ids", "") or "").split(",")
+        if value.strip()
+    ]
+    if merge_ids:
+        if args.mode != "full":
+            raise ValueError("--merge-shard-run-ids is valid only with --mode full")
+        merge_full_evaluation_shards(args, config, merge_ids)
+        mark_run_complete(args)
+        return
     run_id = str(getattr(args, "resolved_run_id", None) or config.mode)
     out_dir = OUT_ROOT / "runs" / run_id
     out_dir.mkdir(parents=True, exist_ok=True)
