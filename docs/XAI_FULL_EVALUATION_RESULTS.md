@@ -50,3 +50,13 @@ Version 1.1.3 fixes CLI routing so `--merge-shard-run-ids` enters the guarded me
 - Cross-seed model stability still requires additional frozen checkpoints.
 - Deployment-safe normalization performance requires separately trained and evaluated checkpoints.
 - Clinical expert validation remains pending and requires qualified human reviewers.
+
+## Adjunct A/B/C diagnosis and two-version evaluation
+
+The v1.1.3 formal run above remains the sole current historical evaluation and none of its result hashes changed. A subsequent isolated root-cause audit is indexed under `outputs/sequence_lime_abc_diagnosis/isruc_seed42/`, with its validation-frozen two-version evaluation under `outputs/sequence_lime_two_versions/isruc_seed42/`.
+
+The audit found `MIXED_A_PLUS_C`: the old randomization route changed zero variables and its cache/resume identity omitted the full evaluated-model hash; after those defects were fixed, classic Sequence-LIME passed full-model randomization while the historical predicted-stage-prior fusion failed. The validation-only selection froze `V_ZERO + Y2` before the fixed-36 test.
+
+On the frozen test, the selected candidate reduced deletion AUC from 0.46233 to 0.40862 and increased insertion AUC from 0.74277 to 0.76950, with mask-seed Spearman increasing from 0.41846 to approximately 1.0. External validation weighted R2 remained exactly 0.66766 for both classic and the candidate. T0 full-model randomization passed 2/3 seeds, whereas T1 passed only 1/3. The resulting scientific status is `MF_SEQLIME_PARTIAL_PASS`, not a paper-level superiority result.
+
+Clinical Concept Annotation is a separate post-attribution layer. It has `IMPLEMENTATION_VALID / EXPERT_VALIDATION_PENDING` status and is excluded from all model-faithfulness scores. Final isolated guards reproduced exact canonical batch-16 probabilities, sequence-wrapper maximum difference `5.960464477539063e-08`, zero current-memory growth across 1,200 fixed-graph forwards, and 58/58 maintained tests.
