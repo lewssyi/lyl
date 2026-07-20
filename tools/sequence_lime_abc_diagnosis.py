@@ -294,6 +294,7 @@ def run_sample(
     energy = signal_energy(epoch, segments)
     score_map: Dict[Tuple[str, str, str], np.ndarray] = {}
     fidelity_map = {}
+    component_map = {}
     for protocol, target_class in protocols.items():
         zero_targets = transform_surrogate_targets(zero_vectors, target_class)
         physiological_targets = transform_surrogate_targets(
@@ -307,16 +308,44 @@ def run_sample(
                 zero_targets[target_name][: len(base_masks)],
                 train_masks,
             )
+            zero_component = marginal_score(
+                zero_targets[target_name], calibration_offset, feature_count
+            )
+            physiological_component = marginal_score(
+                physiological_targets[target_name], calibration_offset, feature_count
+            )
             methods = compose_diagnostic_methods(
                 coefficient,
-                marginal_score(zero_targets[target_name], calibration_offset, feature_count),
-                marginal_score(physiological_targets[target_name], calibration_offset, feature_count),
+                zero_component,
+                physiological_component,
                 predicted_prior,
                 independent_prior,
                 energy,
                 random_score,
             )
+            if bool(sample.get("_include_validation_candidates", False)):
+                methods.update({
+                    "V_M0": positive_rank_score(coefficient),
+                    "V_ZERO": positive_rank_score(zero_component),
+                    "V_PHYS": positive_rank_score(physiological_component),
+                    "V_EQUAL": positive_rank_score(
+                        coefficient + zero_component + physiological_component
+                    ),
+                    "V_ZERO25": positive_rank_score(0.75 * coefficient + 0.25 * zero_component),
+                    "V_PHYS25": positive_rank_score(
+                        0.75 * coefficient + 0.25 * physiological_component
+                    ),
+                })
+            method_filter = sample.get("_method_filter")
+            if method_filter:
+                allowed = {str(value) for value in method_filter}
+                methods = {key: value for key, value in methods.items() if key in allowed}
             fidelity_map[(protocol, target_name)] = fidelity
+            component_map[(protocol, target_name)] = {
+                "classic": positive_rank_score(coefficient),
+                "zero": positive_rank_score(zero_component),
+                "physiological": positive_rank_score(physiological_component),
+            }
             for method, score in methods.items():
                 score_map[(protocol, target_name, method)] = np.asarray(score, dtype=np.float32)
     curve_masks, locations = faithfulness_masks(score_map)
@@ -344,6 +373,7 @@ def run_sample(
     rows = []
     for (protocol, target_name, method), score in score_map.items():
         fidelity = fidelity_map[(protocol, target_name)]
+        components = component_map[(protocol, target_name)]
         curve = curve_summary(curve_vectors, protocols[protocol], locations[(protocol, target_name, method)])
         matrix = score.reshape(epoch.shape[1], len(segments))
         rows.append({
@@ -373,6 +403,9 @@ def run_sample(
             "query_count": query_count,
             "runtime_seconds": runtime / max(len(score_map), 1),
             "attribution_score": json.dumps(score.astype(float).tolist(), separators=(",", ":")),
+            "classic_component_score": json.dumps(components["classic"].astype(float).tolist(), separators=(",", ":")),
+            "zero_component_score": json.dumps(components["zero"].astype(float).tolist(), separators=(",", ":")),
+            "physiological_component_score": json.dumps(components["physiological"].astype(float).tolist(), separators=(",", ":")),
             "human_prior_used": bool(method in {"M4", "M5", "M6"}),
             "model_attribution_claim": bool(method not in {"M5", "M6", "M7", "M8"}),
             **curve,
