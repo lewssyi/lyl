@@ -1430,45 +1430,64 @@ def infer_precomputed_epochs_for_target(
         raise RuntimeError(f"No sequence window covers epoch {global_epoch}")
     sums = np.zeros((len(perturbed_epochs), len(CLASS_LABELS)), dtype=np.float64)
     counts_per = np.zeros(len(perturbed_epochs), dtype=np.float64)
-    assembled: List[Tuple[np.ndarray, np.ndarray, int, int]] = []
-    t_assembly0 = time.perf_counter()
+    effective_batch_windows = perturbation_window_batch_size(batch_windows)
+    batch_sizes: List[int] = []
+    t_gpu = 0.0
+    t_assembly = 0.0
+    actual_assembled = 0
+    pending_raw: List[np.ndarray] = []
+    pending_segment: List[np.ndarray] = []
+    pending_meta: List[Tuple[int, int]] = []
+
+    def flush_pending() -> None:
+        nonlocal t_gpu
+        nonlocal t_assembly
+        if not pending_raw:
+            return
+        assembly_start = time.perf_counter()
+        raw_batch = np.asarray(pending_raw, dtype=np.float32)
+        seg_batch = np.asarray(pending_segment, dtype=np.float32)
+        t_assembly += time.perf_counter() - assembly_start
+        batch_sizes.append(int(len(pending_raw)))
+        gpu0 = time.perf_counter()
+        probs = compiled_perturbation_output(model, raw_batch, seg_batch)
+        t_gpu += time.perf_counter() - gpu0
+        for row_idx, (mask_idx, rel_pos) in enumerate(pending_meta):
+            sums[int(mask_idx)] += probs[int(row_idx), int(rel_pos)].astype(np.float64)
+            counts_per[int(mask_idx)] += 1.0
+        pending_raw.clear()
+        pending_segment.clear()
+        pending_meta.clear()
+
     for mask_idx, (pert_epoch, pert_feat) in enumerate(zip(perturbed_epochs, perturbed_features)):
         for start, valid_len, rel_pos in covers:
+            assembly_start = time.perf_counter()
             idx = window_epoch_indices(start, valid_len, 75)
             rw = np.asarray(x_raw[idx], dtype=np.float32).copy()
             sg = np.asarray(x_seg[idx], dtype=np.float32).copy()
             rw[int(rel_pos)] = pert_epoch
             sg[int(rel_pos)] = pert_feat
-            assembled.append((rw, sg, int(mask_idx), int(rel_pos)))
-    t_assembly1 = time.perf_counter()
-
-    effective_batch_windows = perturbation_window_batch_size(batch_windows)
-    batch_sizes: List[int] = []
-    t_gpu = 0.0
-    for start in range(0, len(assembled), effective_batch_windows):
-        chunk = assembled[start: start + effective_batch_windows]
-        batch_sizes.append(int(len(chunk)))
-        raw_batch = np.asarray([item[0] for item in chunk], dtype=np.float32)
-        seg_batch = np.asarray([item[1] for item in chunk], dtype=np.float32)
-        gpu0 = time.perf_counter()
-        probs = compiled_perturbation_output(model, raw_batch, seg_batch)
-        t_gpu += time.perf_counter() - gpu0
-        for row_idx, (_rw, _sg, mask_idx, rel_pos) in enumerate(chunk):
-            sums[int(mask_idx)] += probs[int(row_idx), int(rel_pos)].astype(np.float64)
-            counts_per[int(mask_idx)] += 1.0
+            pending_raw.append(rw)
+            pending_segment.append(sg)
+            pending_meta.append((int(mask_idx), int(rel_pos)))
+            actual_assembled += 1
+            t_assembly += time.perf_counter() - assembly_start
+            if len(pending_raw) >= effective_batch_windows:
+                flush_pending()
+    flush_pending()
     full_vectors = (sums / np.maximum(counts_per[:, None], 1.0)).astype(np.float32)
     target_probs = full_vectors[:, int(target_class)].astype(np.float32)
     expected = int(len(perturbed_epochs) * len(covers))
     actual = int(sum(batch_sizes))
-    assert len(assembled) == expected
-    assert actual == len(assembled)
+    assert actual_assembled == expected
+    assert actual == actual_assembled
     assert max(batch_sizes or [0]) <= effective_batch_windows
     return {
         "target_probabilities": target_probs,
         "full_probability_vectors": full_vectors,
         "covering_window_count": int(len(covers)),
         "expected_unpadded_window_instances": expected,
-        "actual_assembled_window_instances": int(len(assembled)),
+        "actual_assembled_window_instances": int(actual_assembled),
         "actual_inferred_window_instances": actual,
         "padding_window_instances": 0,
         "model_forward_call_count": int(len(batch_sizes)),
@@ -1476,7 +1495,7 @@ def infer_precomputed_epochs_for_target(
         "sum_model_forward_batch_sizes": actual,
         "configured_window_inference_batch_size": int(batch_windows),
         "perturbation_window_inference_batch_size": int(effective_batch_windows),
-        "window_assembly_seconds": float(t_assembly1 - t_assembly0),
+        "window_assembly_seconds": float(t_assembly),
         "gpu_forward_seconds": float(t_gpu),
     }
 
