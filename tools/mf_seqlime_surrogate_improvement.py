@@ -167,6 +167,7 @@ def _alpha_from_candidate(candidate: str) -> float:
 
 def run_sample(sample, model, level: str, seed: int, candidates, artifact, x_raw, x_seg, out_dir: Path):
     started = time.perf_counter()
+    evaluator.ensure_lime_imports()
     global_index = int(sample["global_epoch_index"])
     epoch = np.asarray(x_raw[global_index], dtype=np.float32)
     segments = evaluator.semantic_segmentation(epoch, target_segments=30)
