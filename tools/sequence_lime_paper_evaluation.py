@@ -55,6 +55,8 @@ CLASS_LABELS = ["W", "N1", "N2", "N3", "REM"]
 CHANNEL_LABELS = ["EEG", "EOG", "EMG"]
 EPS = 1e-8
 EVALUATOR_VERSION = "sequence_lime_v1.1.3"
+MASK_CACHE_SCHEMA_VERSION = "sequence_lime_mask_cache_v2_model_fingerprint"
+SAMPLE_CACHE_SCHEMA_VERSION = "sequence_lime_sample_cache_v2_provenance"
 STRICT_PROBABILITY_TOLERANCE = 1e-6
 # The frozen classifier endpoint must retain sequence-window batch 16 for exact
 # probability parity. Perturbation evaluation can hold both the original and a
@@ -683,8 +685,10 @@ def build_model(
     xai_feedback_loss_weight: float = 0.0,
     xai_alignment_loss_name: str = "normalized_mse",
     xai_gradient_scope: str = "head_only",
+    load_checkpoint: bool = True,
+    initialization_seed: int = 42,
 ) -> tf.keras.Model:
-    configure_reproducible_inference(42)
+    configure_reproducible_inference(initialization_seed)
     from src.model_training import create_sequence_sleep_model  # noqa: WPS433
 
     model = create_sequence_sleep_model(
@@ -733,11 +737,51 @@ def build_model(
         xai_alignment_loss_name=xai_alignment_loss_name,
         xai_gradient_scope=xai_gradient_scope,
     )
-    if enable_xai_feedback_head:
-        model.load_weights(str(weights_path), by_name=True, skip_mismatch=True)
-    else:
-        model.load_weights(str(weights_path))
+    if load_checkpoint:
+        if enable_xai_feedback_head:
+            model.load_weights(str(weights_path), by_name=True, skip_mismatch=True)
+        else:
+            model.load_weights(str(weights_path))
     return model
+
+
+def model_weight_fingerprint(model) -> str:
+    """Hash the evaluated in-memory state without relying on unstable Keras names."""
+    h = hashlib.sha256()
+    weights = list(getattr(model, "weights", ()))
+    h.update(f"weight_count={len(weights)}\n".encode("utf-8"))
+    for index, variable in enumerate(weights):
+        value = np.asarray(variable.numpy() if hasattr(variable, "numpy") else variable)
+        h.update(f"{index}|{value.dtype.str}|{value.shape}\n".encode("utf-8"))
+        h.update(np.ascontiguousarray(value).tobytes())
+    return h.hexdigest()
+
+
+def evaluated_model_identity(
+    model,
+    model_state_id: str,
+    *,
+    randomization_level: str = "R0",
+    randomization_seed: Optional[int] = None,
+    method_id: str = "legacy",
+    protocol_id: str = "legacy",
+) -> Dict[str, object]:
+    """Return the complete identity used by every perturbation cache key."""
+    fingerprint = model_weight_fingerprint(model)
+    payload = {
+        "schema_version": MASK_CACHE_SCHEMA_VERSION,
+        "evaluator_version": EVALUATOR_VERSION,
+        "model_state_id": str(model_state_id),
+        "model_weight_fingerprint": fingerprint,
+        "randomization_level": str(randomization_level),
+        "randomization_seed": None if randomization_seed is None else int(randomization_seed),
+        "method_id": str(method_id),
+        "protocol_id": str(protocol_id),
+    }
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    payload["identity_digest"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    setattr(model, "_sequence_lime_evaluated_fingerprint", fingerprint)
+    return payload
 
 
 def model_main_output(outputs) -> np.ndarray:
@@ -1330,11 +1374,13 @@ def stable_mask_hash(
     target_class: int,
     perturbation_target_class: int,
     batch_windows: int,
+    model_identity_digest: str = "legacy-unspecified",
 ) -> str:
     h = hashlib.sha256()
     h.update(f"global_epoch_index={int(global_epoch)}\n".encode("utf-8"))
     h.update(f"perturbation_mode={perturbation_mode}\n".encode("utf-8"))
     h.update(f"model_state_id={model_state_id}\n".encode("utf-8"))
+    h.update(f"model_identity_digest={model_identity_digest}\n".encode("utf-8"))
     h.update(f"segment_boundary_hash={segment_hash}\n".encode("utf-8"))
     h.update(f"target_class={int(target_class)}\n".encode("utf-8"))
     h.update(
@@ -1351,11 +1397,19 @@ def mask_prediction_cache_dir(out_dir: Path, global_epoch: int, model_state_id: 
     return sample_cache_dir(out_dir, global_epoch) / "mask_predictions" / str(model_state_id) / str(perturbation_mode)
 
 
-def read_mask_prediction(path: Path) -> Optional[Dict[str, object]]:
+def read_mask_prediction(
+    path: Path,
+    expected_model_identity_digest: Optional[str] = None,
+) -> Optional[Dict[str, object]]:
     if not path.exists():
         return None
     try:
-        return read_json(path)
+        payload = read_json(path)
+        if expected_model_identity_digest is not None and payload.get(
+            "model_identity_digest"
+        ) != expected_model_identity_digest:
+            return None
+        return payload
     except Exception:
         return None
 
@@ -1443,6 +1497,7 @@ def evaluate_masks_for_target_epoch(
     cache_namespace: str,
     model_state_id: str = "original_model",
     perturbation_target_class: Optional[int] = None,
+    model_identity: Optional[Mapping[str, object]] = None,
 ) -> Dict[str, object]:
     ensure_lime_imports()
     masks = np.asarray(masks, dtype=np.int32)
@@ -1457,8 +1512,41 @@ def evaluate_masks_for_target_epoch(
         if perturbation_target_class is None
         else int(perturbation_target_class)
     )
+    if model_identity is None:
+        resolved_model_identity = evaluated_model_identity(model, model_state_id)
+    else:
+        resolved_model_identity = dict(model_identity)
+        observed_fingerprint = getattr(
+            model,
+            "_sequence_lime_evaluated_fingerprint",
+            None,
+        )
+        if observed_fingerprint is None:
+            observed_fingerprint = model_weight_fingerprint(model)
+        if resolved_model_identity.get("model_weight_fingerprint") != observed_fingerprint:
+            raise RuntimeError(
+                "Evaluated model weights do not match supplied cache identity: "
+                f"expected={resolved_model_identity.get('model_weight_fingerprint')} "
+                f"observed={observed_fingerprint}"
+            )
+        canonical_identity = {
+            key: value
+            for key, value in resolved_model_identity.items()
+            if key != "identity_digest"
+        }
+        expected_digest = hashlib.sha256(
+            json.dumps(canonical_identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        if resolved_model_identity.get("identity_digest") != expected_digest:
+            raise RuntimeError("Supplied model identity digest is invalid")
+    identity_digest = str(resolved_model_identity["identity_digest"])
     seg_hash = segment_boundary_hash(segments)
-    cache_dir = mask_prediction_cache_dir(out_dir, global_epoch, model_state_id, perturbation_mode)
+    cache_dir = mask_prediction_cache_dir(
+        out_dir,
+        global_epoch,
+        f"{model_state_id}__{identity_digest[:16]}",
+        perturbation_mode,
+    )
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     mask_hashes = [
@@ -1471,6 +1559,7 @@ def evaluate_masks_for_target_epoch(
             target_class,
             effective_perturbation_target_class,
             window_inference_batch_size,
+            identity_digest,
         )
         for mask in masks
     ]
@@ -1487,7 +1576,10 @@ def evaluate_masks_for_target_epoch(
     cache_hit_unique = np.zeros(len(unique_order), dtype=bool)
     missing_unique_positions: List[int] = []
     for unique_pos, mh in enumerate(unique_order):
-        cached = read_mask_prediction(cache_dir / f"{mh}.json")
+        cached = read_mask_prediction(
+            cache_dir / f"{mh}.json",
+            expected_model_identity_digest=identity_digest,
+        )
         if cached is not None:
             unique_target[unique_pos] = float(cached["target_probability"])
             unique_vectors[unique_pos] = np.asarray(cached["full_probability_vector"], dtype=np.float32)
@@ -1557,6 +1649,9 @@ def evaluate_masks_for_target_epoch(
             "full_probability_vector": unique_vectors[unique_pos].astype(float).tolist(),
             "covering_window_count": int(len(covers)),
             "model_state_id": str(model_state_id),
+            "model_identity_digest": identity_digest,
+            "model_identity": resolved_model_identity,
+            "cache_schema_version": MASK_CACHE_SCHEMA_VERSION,
             "perturbation_mode": str(perturbation_mode),
             "global_epoch_index": int(global_epoch),
             "target_class": int(target_class),
@@ -1640,6 +1735,8 @@ def evaluate_masks_for_target_epoch(
         "unique_mask_hashes": unique_order,
         "from_cache": from_cache.tolist(),
         "covering_window_counts": [int(len(covers)) for _ in range(requested_mask_count)],
+        "model_identity": resolved_model_identity,
+        "model_identity_digest": identity_digest,
         "accounting": accounting,
         "efficiency": efficiency,
         "timings_sec": timings,
@@ -2664,30 +2761,48 @@ def evaluate_single_sample(
     ensure_lime_imports()
     global_idx = int(sample["global_epoch_index"])
     cache_path = out_dir / "cache" / f"sample_{global_idx:06d}.json"
+    model_identity = evaluated_model_identity(
+        model,
+        "original_model",
+        method_id="paper_evaluation",
+        protocol_id=config.mode,
+    )
+    config_digest = hashlib.sha256(
+        json.dumps(asdict(config), sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    cache_provenance = {
+        "schema_version": SAMPLE_CACHE_SCHEMA_VERSION,
+        "evaluator_version": EVALUATOR_VERSION,
+        "model_identity_digest": model_identity["identity_digest"],
+        "model_weight_fingerprint": model_identity["model_weight_fingerprint"],
+        "config_digest": config_digest,
+        "global_epoch_index": global_idx,
+    }
     if cache_path.exists():
         result = read_json(cache_path)
-        target_class = int(result["target_class"])
-        exact_vector = sequence_target_vector(
-            model,
-            x_raw,
-            x_seg,
-            counts,
-            global_idx,
-            x_raw[global_idx],
-            x_seg[global_idx],
-            batch_windows=config.batch_windows,
-        )
-        artifact_probability = float(artifact["probs"][global_idx, target_class])
-        result["sequence_wrapper_original_probability"] = float(
-            exact_vector[target_class]
-        )
-        result["formal_sequence_inference_probability"] = artifact_probability
-        result["sequence_wrapper_abs_diff"] = float(
-            abs(exact_vector[target_class] - artifact_probability)
-        )
-        result["sequence_wrapper_protocol"] = "formal_full_batch_context"
-        write_json(cache_path, result)
-        return result
+        if result.get("cache_provenance") == cache_provenance:
+            target_class = int(result["target_class"])
+            exact_vector = sequence_target_vector(
+                model,
+                x_raw,
+                x_seg,
+                counts,
+                global_idx,
+                x_raw[global_idx],
+                x_seg[global_idx],
+                batch_windows=config.batch_windows,
+            )
+            artifact_probability = float(artifact["probs"][global_idx, target_class])
+            result["sequence_wrapper_original_probability"] = float(
+                exact_vector[target_class]
+            )
+            result["formal_sequence_inference_probability"] = artifact_probability
+            result["sequence_wrapper_abs_diff"] = float(
+                abs(exact_vector[target_class] - artifact_probability)
+            )
+            result["sequence_wrapper_protocol"] = "formal_full_batch_context"
+            write_json(cache_path, result)
+            return result
 
     epoch = x_raw[global_idx]
     segments = semantic_segmentation(epoch, target_segments=config.target_segments)
@@ -2713,6 +2828,7 @@ def evaluate_single_sample(
         "status": "OK",
         "perturbation_results": {},
         "stability": [],
+        "cache_provenance": cache_provenance,
     }
 
     original_wrapper = sequence_target_vector(
@@ -2840,25 +2956,140 @@ def evaluate_single_sample(
     return result
 
 
-def randomized_model(raw_shape, segment_shape, level: str) -> tf.keras.Model:
-    model = build_model(raw_shape, segment_shape, CKPT_PATH)
-    candidates = []
-    if level in {"final_layer", "final_head"}:
-        candidates.extend(["main_output_logits"])
-    if level in {"final_head", "upper_temporal"}:
-        candidates.extend(["td_temporal_dense"])
-    if level == "upper_temporal":
-        candidates.extend([layer.name for layer in model.layers if "temporal" in layer.name or "tcn" in layer.name])
-    rng = np.random.default_rng(424242 + len(level))
-    for layer_name in sorted(set(candidates)):
-        try:
-            layer = model.get_layer(layer_name)
-        except ValueError:
-            continue
-        weights = layer.get_weights()
-        if weights:
-            layer.set_weights([rng.normal(0.0, max(float(np.std(w)), 1e-3), size=w.shape).astype(w.dtype) for w in weights])
-    return model
+RANDOMIZATION_LEVEL_ALIASES = {
+    "final_layer": "R1",
+    "final_head": "R2",
+    "upper_temporal": "R4",
+}
+
+
+def normalize_randomization_level(level: str) -> str:
+    normalized = RANDOMIZATION_LEVEL_ALIASES.get(str(level), str(level).upper())
+    if normalized not in {f"R{i}" for i in range(8)}:
+        raise ValueError(f"Unsupported randomization level: {level}")
+    return normalized
+
+
+def randomization_selected_layers(model, level: str) -> List[object]:
+    """Select cumulative trainable blocks for R0--R6 by canonical layer order."""
+    level = normalize_randomization_level(level)
+    if level == "R0":
+        return []
+    if level == "R1":
+        return [model.get_layer("main_output")]
+    if level == "R2":
+        names = {"td_temporal_dense", "main_output"}
+        return [layer for layer in model.layers if layer.name in names]
+    if level == "R6":
+        return [layer for layer in model.layers if layer.trainable_weights]
+    starts = {
+        "R3": "multi_head_attention",
+        "R4": "v3_state_local_conv",
+        "R5": "td_epoch_feature_dense",
+    }
+    start_name = starts[level]
+    start_index = next(
+        (index for index, layer in enumerate(model.layers) if layer.name == start_name),
+        None,
+    )
+    if start_index is None:
+        raise RuntimeError(f"Canonical randomization boundary layer missing: {start_name}")
+    return [layer for layer in model.layers[start_index:] if layer.trainable_weights]
+
+
+def _variable_owner_lookup(model) -> Dict[int, str]:
+    owners: Dict[int, str] = {}
+    for layer in model.layers:
+        for variable in layer.weights:
+            owners[id(variable)] = layer.name
+    return owners
+
+
+def _snapshot_model_weights(model) -> List[np.ndarray]:
+    return [np.asarray(variable.numpy()).copy() for variable in model.weights]
+
+
+def _randomization_scale(value: np.ndarray) -> float:
+    observed = float(np.std(value)) if value.size else 0.0
+    if observed > 1e-6:
+        return observed
+    if value.ndim >= 2 and value.shape[-2] > 0:
+        return float(np.sqrt(2.0 / float(value.shape[-2])))
+    return 0.01
+
+
+def randomized_model(
+    raw_shape,
+    segment_shape,
+    level: str,
+    seed: int = 3101,
+) -> tf.keras.Model:
+    """Build an independent canonical copy and randomize the requested block."""
+    normalized = normalize_randomization_level(level)
+    canonical = build_model(raw_shape, segment_shape, CKPT_PATH)
+    before = _snapshot_model_weights(canonical)
+    if normalized == "R7":
+        randomized = build_model(
+            raw_shape,
+            segment_shape,
+            CKPT_PATH,
+            load_checkpoint=False,
+            initialization_seed=int(seed),
+        )
+        selected_ids = {id(variable) for variable in randomized.weights}
+    else:
+        randomized = canonical
+        selected_layers = randomization_selected_layers(randomized, normalized)
+        selected_ids = {
+            id(variable)
+            for layer in selected_layers
+            for variable in layer.trainable_weights
+        }
+        rng = np.random.default_rng(int(seed))
+        for variable in randomized.trainable_weights:
+            if id(variable) not in selected_ids:
+                continue
+            old = np.asarray(variable.numpy())
+            replacement = rng.normal(
+                0.0,
+                _randomization_scale(old),
+                size=old.shape,
+            ).astype(old.dtype)
+            variable.assign(replacement)
+    after = _snapshot_model_weights(randomized)
+    if len(before) != len(after):
+        raise RuntimeError("Randomized model does not align with canonical weight structure")
+    owners = _variable_owner_lookup(randomized)
+    audit_rows = []
+    unexpected_changes = 0
+    selected_change_count = 0
+    selected_variable_count = 0
+    for index, (variable, old, new) in enumerate(zip(randomized.weights, before, after)):
+        selected = bool(id(variable) in selected_ids)
+        changed = bool(not np.array_equal(old, new))
+        selected_variable_count += int(selected)
+        selected_change_count += int(selected and changed)
+        unexpected_changes += int((not selected) and changed)
+        audit_rows.append({
+            "weight_index": int(index),
+            "layer_name": owners.get(id(variable), "unknown"),
+            "shape": str(tuple(int(v) for v in new.shape)),
+            "selected_for_randomization": selected,
+            "changed": changed,
+            "max_abs_change": float(np.max(np.abs(new.astype(np.float64) - old.astype(np.float64)))) if new.size else 0.0,
+        })
+    if normalized != "R0" and selected_change_count == 0:
+        raise RuntimeError(f"{normalized} randomization changed no selected variables")
+    if unexpected_changes:
+        raise RuntimeError(f"{normalized} randomization changed {unexpected_changes} unexpected variables")
+    if hasattr(randomized, "_sequence_lime_evaluated_fingerprint"):
+        delattr(randomized, "_sequence_lime_evaluated_fingerprint")
+    setattr(randomized, "_sequence_lime_randomization_level", normalized)
+    setattr(randomized, "_sequence_lime_randomization_seed", int(seed))
+    setattr(randomized, "_sequence_lime_randomization_weight_audit", audit_rows)
+    setattr(randomized, "_sequence_lime_selected_variable_count", selected_variable_count)
+    setattr(randomized, "_sequence_lime_changed_variable_count", selected_change_count)
+    return randomized
 
 
 def run_model_randomization(
@@ -2875,10 +3106,10 @@ def run_model_randomization(
     if not config.do_randomization or not base_results:
         return pd.DataFrame()
     rows = []
-    levels = ["final_layer"] if config.mode == "smoke" else ["final_layer", "final_head", "upper_temporal"]
+    levels = ["R1"] if config.mode == "smoke" else ["R1", "R2", "R4"]
     for level in levels:
         print(f"Randomization sanity: {level}")
-        model = randomized_model(raw_shape, segment_shape, level)
+        model = randomized_model(raw_shape, segment_shape, level, seed=3101)
         for base in base_results[: min(5, len(base_results))]:
             global_idx = int(base["global_epoch_index"])
             epoch = x_raw[global_idx]
