@@ -153,3 +153,11 @@ The authoritative empirical summary is `docs/XAI_FULL_EVALUATION_RESULTS.md`. Ru
 ## Updated current boundary
 
 The historical v1.1.3 result remains `PAPER_LEVEL_INTERPRETABILITY_FAIL`. The isolated two-version candidate is `MF_SEQLIME_PARTIAL_PASS`: deletion/insertion faithfulness and mask-seed stability improve, but validation surrogate fidelity does not, and T1 randomization passes only 1/3 seeds. Explanation-guided training remains prohibited.
+
+## 20. Surrogate-neighborhood optimization and validation stopping
+
+- Risk: better pointwise surrogate error or deterministic zero stability could be mistaken for a jointly better, model-sensitive explanation method.
+- Measure: an isolated validation-only study compared Classic Bernoulli Ridge with structured retention/contiguous sampling, boundary-adaptive sampling, and budget-deducted weak-zero calibration. Every candidate used 1,530 requested queries, a unique 1,506-mask neighborhood, disjoint local train/validation masks, Y2, T0/T1, and three mask/randomization seeds. R7 was compared with a 1,000-permutation null.
+- Evidence: all 144 small-validation shards completed. C1-70 reduced MAE/RMSE to 0.1407/0.2048, but every candidate reduced weighted R² below Classic 0.7685 and worsened both deletion and insertion AUC. Every candidate passed 0/3 T0 and 0/3 T1 seeds; R7 similarity stayed above its null q95. In C3, zero-component stability was 1.0 while LIME-component stability was 0.6171, and increasing alpha increased both final stability and undesirable R7 similarity.
+- Status: `VALIDATION_NO_QUALIFIED_CANDIDATE`. Final-30 validation and fixed-36 test were not run. The prior `MF_SEQLIME_PARTIAL_PASS` boundary remains; feedback training remains prohibited.
+- Guards: final canonical batch-16 parity and the 1,200-forward fixed-graph memory guard passed; the maintained suite passed 79/79 tests.

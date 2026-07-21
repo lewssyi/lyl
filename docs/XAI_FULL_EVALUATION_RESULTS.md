@@ -60,3 +60,11 @@ The audit found `MIXED_A_PLUS_C`: the old randomization route changed zero varia
 On the frozen test, the selected candidate reduced deletion AUC from 0.46233 to 0.40862 and increased insertion AUC from 0.74277 to 0.76950, with mask-seed Spearman increasing from 0.41846 to approximately 1.0. External validation weighted R2 remained exactly 0.66766 for both classic and the candidate. T0 full-model randomization passed 2/3 seeds, whereas T1 passed only 1/3. The resulting scientific status is `MF_SEQLIME_PARTIAL_PASS`, not a paper-level superiority result.
 
 Clinical Concept Annotation is a separate post-attribution layer. It has `IMPLEMENTATION_VALID / EXPERT_VALIDATION_PENDING` status and is excluded from all model-faithfulness scores. Final isolated guards reproduced exact canonical batch-16 probabilities, sequence-wrapper maximum difference `5.960464477539063e-08`, zero current-memory growth across 1,200 fixed-graph forwards, and 58/58 maintained tests.
+
+## Validation-only surrogate-neighborhood follow-up
+
+The subsequent isolated study under `outputs/mf_seqlime_surrogate_improvement/isruc_seed42/` completed corrected smoke (8/8 shards) and 12-sample screening (144/144 shards) without reading test explanation endpoints. It compared C0 Classic with three structured mixtures, boundary-adaptive sampling, and four weak-zero endpoints at the same 1,530-query budget.
+
+No candidate passed the frozen validation hard gates. Classic weighted R² was 0.7685; all new candidates were lower (0.7080–0.7393). Although C1-70 reduced MAE/RMSE, every candidate worsened both deletion and insertion AUC. All candidates passed 0/3 T0 and 0/3 T1 R7 seeds, with observed R7 similarity above the 1,000-permutation q95 null. Weak-zero calibration increased apparent stability by inheriting the deterministic zero component and simultaneously worsened R7 sensitivity as alpha increased.
+
+The decision is `VALIDATION_NO_QUALIFIED_CANDIDATE`. The final-30 validation and fixed-36 test stages were intentionally not run; the earlier `MF_SEQLIME_PARTIAL_PASS` boundary is unchanged. Final guards retained exact canonical probabilities, sequence-wrapper maximum difference `5.960464477539063e-08`, zero memory growth over 1,200 forwards, and 79/79 maintained tests. The detailed report is `docs/MF_SEQLIME_SURROGATE_IMPROVEMENT_REPORT.md`.
