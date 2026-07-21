@@ -121,31 +121,24 @@ def generate_contiguous_block_masks(
     if not lengths:
         raise ValueError("at least one valid block length is required")
     rng = np.random.default_rng(int(seed))
-    rows: list[np.ndarray] = []
-    types: list[str] = []
-    seen: set[bytes] = set()
-    attempts = 0
-    while len(rows) < sample_count:
-        length = lengths[attempts % len(lengths)]
-        start = int(rng.integers(0, segment_count - length + 1))
-        if attempts % 2 == 0:
-            channels = np.asarray([int(rng.integers(0, channel_count))])
-            scope = "single_channel"
-        else:
-            width = int(rng.integers(2, channel_count + 1)) if channel_count > 1 else 1
-            channels = rng.choice(channel_count, size=width, replace=False)
-            scope = "multi_channel"
-        matrix = np.ones((channel_count, segment_count), dtype=np.int8)
-        matrix[channels, start:start + length] = 0
-        candidate = matrix.ravel()
-        key = candidate.tobytes()
-        if key not in seen:
-            seen.add(key)
-            rows.append(candidate)
-            types.append(f"contiguous_{scope}_length_{length}")
-        attempts += 1
-        if attempts > sample_count * 200:
-            raise RuntimeError("unable to generate enough unique contiguous masks")
+    pool_rows: list[np.ndarray] = []
+    pool_types: list[str] = []
+    for length in lengths:
+        for start in range(segment_count - length + 1):
+            for bits in range(1, 1 << channel_count):
+                channels = [channel for channel in range(channel_count) if bits & (1 << channel)]
+                scope = "single_channel" if len(channels) == 1 else "multi_channel"
+                matrix = np.ones((channel_count, segment_count), dtype=np.int8)
+                matrix[channels, start:start + length] = 0
+                pool_rows.append(matrix.ravel())
+                pool_types.append(f"contiguous_{scope}_length_{length}")
+    if sample_count > len(pool_rows):
+        raise ValueError(
+            f"requested {sample_count} unique contiguous masks but only {len(pool_rows)} exist"
+        )
+    selected = rng.choice(len(pool_rows), size=sample_count, replace=False)
+    rows = [pool_rows[int(index)] for index in selected]
+    types = [pool_types[int(index)] for index in selected]
     counts = {kind: int(types.count(kind)) for kind in sorted(set(types))}
     return NeighborhoodMasks(
         masks=np.asarray(rows, dtype=np.int8),

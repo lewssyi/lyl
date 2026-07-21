@@ -58,9 +58,9 @@ def test_contiguous_masks_delete_only_contiguous_time_blocks():
 
 
 def test_structured_masks_are_unique_and_exact_budget():
-    result = generate_structured_masks(3, 30, 1000, seed=16, contiguous_fraction=0.5)
-    assert result.masks.shape == (1000, 90)
-    assert len({row.tobytes() for row in result.masks}) == 1000
+    result = generate_structured_masks(3, 30, 1506, seed=16, contiguous_fraction=0.7)
+    assert result.masks.shape == (1506, 90)
+    assert len({row.tobytes() for row in result.masks}) == 1506
 
 
 def test_structured_mask_mix_records_requested_fraction():
