@@ -237,6 +237,89 @@ def generate_structured_masks(
     )
 
 
+def generate_structured_split_masks(
+    channel_count: int,
+    segment_count: int,
+    train_count: int,
+    validation_count: int,
+    seed: int,
+    contiguous_fraction: float = 0.50,
+    excluded_masks: np.ndarray | None = None,
+) -> NeighborhoodMasks:
+    """Create one unique pool before freezing disjoint train/validation rows."""
+    train_count = int(train_count)
+    validation_count = int(validation_count)
+    total = train_count + validation_count
+    if train_count < 1 or validation_count < 1:
+        raise ValueError("positive train and validation counts are required")
+    feature_count = int(channel_count) * int(segment_count)
+    excluded = (
+        np.empty((0, feature_count), dtype=np.int8)
+        if excluded_masks is None
+        else np.asarray(excluded_masks, dtype=np.int8)
+    )
+    if excluded.ndim != 2 or excluded.shape[1] != feature_count:
+        raise ValueError("excluded_masks have the wrong feature layout")
+    seen = {row.tobytes() for row in excluded}
+    rows: list[np.ndarray] = []
+    types: list[str] = []
+    round_index = 0
+    while len(rows) < total:
+        batch = generate_structured_masks(
+            channel_count,
+            segment_count,
+            total,
+            seed=int(seed) + round_index * 1000003,
+            contiguous_fraction=contiguous_fraction,
+            include_endpoints=True,
+        )
+        for row, kind in zip(batch.masks, batch.mask_types):
+            key = row.tobytes()
+            if key not in seen:
+                seen.add(key)
+                rows.append(row.copy())
+                types.append(kind)
+                if len(rows) == total:
+                    break
+        round_index += 1
+        if round_index > 100:
+            raise RuntimeError("unable to create a disjoint structured split")
+    rng = np.random.default_rng(int(seed) + 900001)
+    endpoint_indices = [
+        index for index, row in enumerate(rows)
+        if np.all(row == 1) or np.all(row == 0)
+    ]
+    other_indices = [index for index in range(total) if index not in endpoint_indices]
+    shuffled = list(rng.permutation(other_indices))
+    order = endpoint_indices + shuffled
+    ordered_rows = np.asarray([rows[index] for index in order], dtype=np.int8)
+    ordered_types = tuple(types[index] for index in order)
+    train_keys = {row.tobytes() for row in ordered_rows[:train_count]}
+    validation_keys = {row.tobytes() for row in ordered_rows[train_count:]}
+    if train_keys.intersection(validation_keys):
+        raise RuntimeError("structured train/validation split is not disjoint")
+    counts = {kind: int(ordered_types.count(kind)) for kind in sorted(set(ordered_types))}
+    return NeighborhoodMasks(
+        masks=ordered_rows,
+        mask_types=ordered_types,
+        provenance={
+            "schema_version": "structured_train_validation_split_v1",
+            "strategy": "S1_STRATIFIED_RETENTION_PLUS_S2_CONTIGUOUS_BLOCK",
+            "seed": int(seed),
+            "query_budget": total,
+            "train_count": train_count,
+            "validation_count": validation_count,
+            "excluded_mask_count": int(len(excluded)),
+            "generation_rounds": round_index,
+            "requested_contiguous_fraction": float(contiguous_fraction),
+            "mask_type_counts": counts,
+            "train_validation_disjoint": True,
+            "true_label_used": False,
+            "stage_prior_used": False,
+        },
+    )
+
+
 def refine_boundary_masks(
     base_masks: np.ndarray,
     logit_margins: np.ndarray,
@@ -246,6 +329,7 @@ def refine_boundary_masks(
     segment_count: int = 30,
     boundary_fraction: float = 0.10,
     maximum_total_queries: int | None = None,
+    excluded_masks: np.ndarray | None = None,
 ) -> NeighborhoodMasks:
     """Generate local neighbors around low-|margin| masks without labels."""
     base = np.asarray(base_masks, dtype=np.int8)
@@ -277,7 +361,15 @@ def refine_boundary_masks(
     rng = np.random.default_rng(int(seed))
     rows: list[np.ndarray] = []
     types: list[str] = []
+    excluded = (
+        np.empty((0, base.shape[1]), dtype=np.int8)
+        if excluded_masks is None
+        else np.asarray(excluded_masks, dtype=np.int8)
+    )
+    if excluded.ndim != 2 or excluded.shape[1] != base.shape[1]:
+        raise ValueError("excluded_masks have the wrong feature layout")
     seen = {row.tobytes() for row in base}
+    seen.update(row.tobytes() for row in excluded)
     attempts = 0
     while len(rows) < additional_count:
         parent = base[int(rng.choice(parent_indices))].reshape(channel_count, segment_count).copy()
@@ -321,6 +413,7 @@ def refine_boundary_masks(
             "boundary_fraction": fraction,
             "boundary_parent_count": boundary_n,
             "absolute_margin_threshold": threshold,
+            "excluded_mask_count": int(len(excluded)),
             "mask_type_counts": counts,
             "true_label_used": False,
             "stage_prior_used": False,

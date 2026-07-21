@@ -11,6 +11,7 @@ from src.xai.neighborhood_sampling import (
     generate_contiguous_block_masks,
     generate_stratified_masks,
     generate_structured_masks,
+    generate_structured_split_masks,
     refine_boundary_masks,
 )
 from src.xai.surrogate_selection import (
@@ -58,9 +59,12 @@ def test_contiguous_masks_delete_only_contiguous_time_blocks():
 
 
 def test_structured_masks_are_unique_and_exact_budget():
-    result = generate_structured_masks(3, 30, 1506, seed=16, contiguous_fraction=0.7)
+    result = generate_structured_split_masks(3, 30, 1200, 306, seed=16, contiguous_fraction=0.7)
     assert result.masks.shape == (1506, 90)
     assert len({row.tobytes() for row in result.masks}) == 1506
+    assert not {
+        row.tobytes() for row in result.masks[:1200]
+    }.intersection(row.tobytes() for row in result.masks[1200:])
 
 
 def test_structured_mask_mix_records_requested_fraction():
@@ -71,11 +75,15 @@ def test_structured_mask_mix_records_requested_fraction():
 
 def test_boundary_refinement_uses_low_absolute_margin_pool():
     base = generate_structured_masks(3, 30, 100, seed=18).masks
+    excluded = generate_structured_masks(3, 30, 20, seed=181).masks
     margins = np.linspace(-2.0, 2.0, len(base))
-    result = refine_boundary_masks(base, margins, 30, seed=19)
+    result = refine_boundary_masks(base, margins, 30, seed=19, excluded_masks=excluded)
     assert result.masks.shape == (30, 90)
     expected = np.sort(np.abs(margins))[:10].max()
     assert result.provenance["absolute_margin_threshold"] == pytest.approx(expected)
+    assert not {row.tobytes() for row in result.masks}.intersection(
+        row.tobytes() for row in excluded
+    )
 
 
 def test_boundary_refinement_repeats_for_same_seed():

@@ -29,7 +29,7 @@ from src.xai.neighborhood_sampling import (  # noqa: E402
     calibration_masks,
     candidate_budget,
     compute_weak_zero_calibration,
-    generate_structured_masks,
+    generate_structured_split_masks,
     refine_boundary_masks,
 )
 from tools import sequence_lime_abc_diagnosis as abc  # noqa: E402
@@ -121,23 +121,18 @@ def sample_frame(stage: str, split: str) -> pd.DataFrame:
     return frame.set_index("global_epoch_index").loc[selected].reset_index()
 
 
-def structured_split(seed: int, fraction: float, train_n: int, val_n: int) -> tuple[np.ndarray, Mapping[str, object]]:
-    train = generate_structured_masks(3, 30, train_n, seed=seed, contiguous_fraction=fraction)
-    validation = generate_structured_masks(
-        3, 30, val_n, seed=seed + 700001, contiguous_fraction=fraction
+def structured_split(
+    seed: int,
+    fraction: float,
+    train_n: int,
+    val_n: int,
+    excluded_masks: np.ndarray | None = None,
+) -> tuple[np.ndarray, Mapping[str, object]]:
+    split = generate_structured_split_masks(
+        3, 30, train_n, val_n, seed=seed,
+        contiguous_fraction=fraction, excluded_masks=excluded_masks,
     )
-    masks = np.vstack([train.masks, validation.masks]).astype(np.int32)
-    provenance = {
-        "schema_version": "train_validation_structured_split_v1",
-        "strategy": train.provenance["strategy"],
-        "seed": int(seed),
-        "train_masks": int(train_n),
-        "validation_masks": int(val_n),
-        "contiguous_fraction": float(fraction),
-        "true_label_used": False,
-        "selection_split": "validation",
-    }
-    return masks, provenance
+    return split.masks.astype(np.int32), dict(split.provenance)
 
 
 def logit_boundary_margin(vectors: np.ndarray) -> np.ndarray:
@@ -235,6 +230,7 @@ def run_sample(sample, model, level: str, seed: int, candidates, artifact, x_raw
         adaptive = refine_boundary_masks(
             base_train, logit_boundary_margin(base_vectors), 360, sample_seed + 2001,
             maximum_total_queries=1200,
+            excluded_masks=heldout,
         )
         masks = np.vstack([base_train, adaptive.masks, heldout]).astype(np.int32)
         vectors = evaluate("C2_BOUNDARY_M50", masks)
@@ -243,22 +239,26 @@ def run_sample(sample, model, level: str, seed: int, candidates, artifact, x_raw
 
     c3_candidates = sorted(candidate_set.intersection({f"C3_WEAK_ZERO_A{int(alpha * 100):02d}" for alpha in ALPHAS}))
     if c3_candidates:
-        model_masks, base_provenance = structured_split(sample_seed + 3000, 0.50, 713, VALIDATION_MASKS)
+        calibration = calibration_masks(90)
+        model_masks, base_provenance = structured_split(
+            sample_seed + 3000, 0.50, 713, VALIDATION_MASKS,
+            excluded_masks=calibration.masks,
+        )
         base_train, heldout = model_masks[:713], model_masks[713:]
         base_vectors = evaluate("C3_BOUNDARY_BASE", base_train)
         adaptive = refine_boundary_masks(
             base_train, logit_boundary_margin(base_vectors), 305, sample_seed + 3001,
             maximum_total_queries=1018,
+            excluded_masks=np.vstack([heldout, calibration.masks]),
         )
-        calibration = calibration_masks(90)
-        masks = np.vstack([base_train, adaptive.masks, calibration.masks, heldout]).astype(np.int32)
+        masks = np.vstack([calibration.masks, base_train, adaptive.masks, heldout]).astype(np.int32)
         if len(masks) != NEIGHBORHOOD_MASKS:
             raise RuntimeError("C3 neighborhood allocation is not 1506")
         vectors = evaluate("C3_WEAK_ZERO_SHARED", masks)
         provenance = {
             **base_provenance, **dict(adaptive.provenance), "base_train_masks": 713,
             "adaptive_train_masks": 305, "zero_calibration_masks": 182,
-            "calibration_offset": 1018, "current_evaluated_model_only": True,
+            "calibration_offset": 0, "current_evaluated_model_only": True,
         }
         for candidate in c3_candidates:
             strategies[candidate] = (masks, vectors, _alpha_from_candidate(candidate), provenance)
@@ -274,7 +274,7 @@ def run_sample(sample, model, level: str, seed: int, candidates, artifact, x_raw
             classic = positive_rank_score(coefficient)
             zero = np.zeros(feature_count, dtype=np.float32)
             if candidate.startswith("C3_"):
-                zero = abc.marginal_score(targets, 1018, feature_count)
+                zero = abc.marginal_score(targets, 0, feature_count)
                 score = compute_weak_zero_calibration(classic, zero, float(alpha))
             else:
                 score = classic
@@ -366,6 +366,10 @@ def run_shard(args) -> None:
         f"{split}_{args.stage}_{args.randomization_level}_seed{args.randomization_seed}_"
         f"shard{args.shard_index + 1}of{args.shard_count}"
     )
+    if args.run_tag:
+        if not args.run_tag.replace("_", "").replace("-", "").isalnum():
+            raise ValueError("run_tag may contain only letters, digits, underscores, and hyphens")
+        run_id = f"{run_id}_{args.run_tag}"
     out_dir = ROOT / "runs" / run_id
     out_dir.mkdir(parents=True, exist_ok=True)
     sample_path = out_dir / "sample_level_metrics.csv"
@@ -443,6 +447,7 @@ def parse_args():
     parser.add_argument("--shard-index", type=int, default=0)
     parser.add_argument("--shard-count", type=int, default=1)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--run-tag", default="")
     args = parser.parse_args()
     if args.shard_count < 1 or not 0 <= args.shard_index < args.shard_count:
         parser.error("shard index/count are invalid")
