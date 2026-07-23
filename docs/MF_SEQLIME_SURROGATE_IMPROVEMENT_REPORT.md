@@ -81,3 +81,12 @@ The final isolated guard passed: canonical batch-16 maximum probability differen
 ## 中文总结（不超过 500 字）
 
 候选方法：C1 分层保留率/连续块、C2 边界自适应、C3 弱零校准。邻域采样改进：所有候选均采用唯一掩码、训练/局部验证隔离及相同 1530 查询预算。Surrogate fidelity：C1-70 的 MAE/RMSE 最低，但所有候选 weighted R² 均低于 Classic。Faithfulness：所有候选的 deletion AUC 与 insertion AUC 均劣于 Classic。Stability：弱零权重越大越稳定，但主要来自稳定度 1.0 的确定性 zero 分量。T0 randomization：全部 0/3。T1 randomization：全部 0/3。相比 Classic LIME：无候选通过综合硬门槛。论文级判定：`VALIDATION_NO_QUALIFIED_CANDIDATE`，保留 `MF_SEQLIME_PARTIAL_PASS`。是否允许 feedback pilot：否。下一步唯一建议：停止本阶段，不运行测试或训练；若开展新研究，应重新设计模型驱动的局部响应，而非继续增加 zero 权重。
+
+## Protocol-consistency update
+
+A subsequent audit confirmed that newer validation C0 0/3 is not an isolated sample
+anomaly. The historical 12 diagnostic samples also pass 0/3 T0 and 0/3 T1 under the
+same current 1,530-query protocol; A-C bootstrap intervals include zero. Historical
+Classic M0 3/3 evidence used an incompatible protocol and is superseded. The phrase
+"retain the prior `MF_SEQLIME_PARTIAL_PASS` boundary" above is historical; the current
+boundary is `MF_SEQLIME_PARTIAL_PASS_SUPERSEDED_BY_PROTOCOL_CONSISTENCY_AUDIT`.

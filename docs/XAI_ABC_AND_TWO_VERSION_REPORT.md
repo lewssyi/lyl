@@ -116,3 +116,13 @@ A/B/C 判定：MIXED_A_PLUS_C（主 A、次 C，B 不成立）。
 论文不可声明内容：总体优越、临床有效、因果贡献、paper-level PASS。
 是否允许反馈训练：否。
 下一步唯一优先事项：在独立 validation 设计能提高 surrogate fidelity 且同时通过 T0/T1 2/3 seeds 的候选，再做新的预注册测试。
+
+## Protocol-consistency supersession (2026-07-23)
+
+The historical Classic Sequence-LIME M0 3/3 sanity statement above is superseded by
+`docs/SEQUENCE_LIME_PROTOCOL_CONSISTENCY_REPORT.md`. The old A/B/C and newer validation
+runs differed in mask configuration, seed, query budget, null/similarity handling,
+faithfulness, pass aggregation and cache protocol identity. Under one current evaluator,
+both the old 12-sample group and new 12-sample group pass 0/3 T0 and 0/3 T1, with no
+material A-C difference. The old conclusion is `superseded_by_protocol_consistency_audit`.
+Feedback training remains prohibited.

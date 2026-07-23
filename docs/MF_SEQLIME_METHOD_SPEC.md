@@ -59,3 +59,12 @@ Paper-level PASS additionally requires validation surrogate fidelity to improve 
 - Fixed test: `paper_comparison_table.csv`, `test_model_faithfulness.csv`, `test_stability.csv`, `test_randomization_sanity.csv`.
 - Guards: `final_validation/final_guard_summary.json` and `fixed_graph_memory_1200.json`.
 - Implementation: `src/xai/model_faithful_sequence_lime.py`, `tools/sequence_lime_two_version_evaluation.py`.
+
+## Protocol-consistency boundary
+
+The 2026-07-23 audit found the historical A/B/C and newer validation randomization
+results protocol-incompatible. The future entry is `classic_sequence_lime_consistency_v1`:
+1,200/306 Bernoulli masks, Y2, 1,530 queries, T0/T1, R0/R3/R5/R7, seeds 3101-3103,
+a 1,000-permutation null and protocol-versioned cache identity. Both independent
+12-sample groups pass 0/3 T0 and 0/3 T1. The former `MF_SEQLIME_PARTIAL_PASS`
+randomization support is superseded, and feedback training remains forbidden.

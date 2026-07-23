@@ -161,3 +161,11 @@ The historical v1.1.3 result remains `PAPER_LEVEL_INTERPRETABILITY_FAIL`. The is
 - Evidence: all 144 small-validation shards completed. C1-70 reduced MAE/RMSE to 0.1407/0.2048, but every candidate reduced weighted R² below Classic 0.7685 and worsened both deletion and insertion AUC. Every candidate passed 0/3 T0 and 0/3 T1 seeds; R7 similarity stayed above its null q95. In C3, zero-component stability was 1.0 while LIME-component stability was 0.6171, and increasing alpha increased both final stability and undesirable R7 similarity.
 - Status: `VALIDATION_NO_QUALIFIED_CANDIDATE`. Final-30 validation and fixed-36 test were not run. The prior `MF_SEQLIME_PARTIAL_PASS` boundary remains; feedback training remains prohibited.
 - Guards: final canonical batch-16 parity and the 1,200-forward fixed-graph memory guard passed; the maintained suite passed 79/79 tests.
+
+## 21. Classic Sequence-LIME protocol consistency
+
+- Risk: historical M0 3/3 and newer C0 0/3 outcomes could be compared as one protocol.
+- Measure: recover exact samples and rerun both groups through one versioned 1,530-query evaluator.
+- Evidence: all 288 A/C shards completed; both groups pass 0/3 T0 and 0/3 T1, and A-C bootstrap intervals include zero. Six A and four C samples are context-dominated, but sample attributes do not explain the historical gap.
+- Status: `CASE_PROTOCOL_DRIFT`. Historical 3/3 evidence and `MF_SEQLIME_PARTIAL_PASS` randomization support are `superseded_by_protocol_consistency_audit`; B was not triggered and feedback training remains prohibited.
+- Guards: canonical probability max difference 0, argmax agreement 1.0, metric differences 0, sequence-wrapper maximum difference `5.960464477539063e-08`.
