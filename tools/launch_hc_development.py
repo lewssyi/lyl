@@ -12,6 +12,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 
 PROJECT = Path(__file__).resolve().parents[1]
+if str(PROJECT) not in sys.path:
+    sys.path.insert(0, str(PROJECT))
 ROOT = PROJECT / "outputs/hierarchical_context_xai_feasibility/isruc_seed42"
 PYTHON = Path("/home/b502/app/anaconda3/envs/l_venv/bin/python")
 GPU_COUNT = 8
