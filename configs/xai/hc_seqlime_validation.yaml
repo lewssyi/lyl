@@ -1,0 +1,20 @@
+protocol_version: hc_seqlime_feasibility_v1
+stage: validation
+data_split: validation
+minimum_sample_count: 30
+maximum_candidates: 2
+group_schemes: [G15, G9, G25]
+candidates: [H0, H1, H2, H3]
+feature_counts: [30, 45]
+classic_feature_count: 90
+replacement_primary: zero
+replacement_robustness: [local_temporal_mean, recording_neutral_epoch]
+randomization_levels: [R0, R3, R5, R7]
+randomization_seeds: [3101, 3102, 3103]
+target_protocols: [T0, T1]
+permutation_null_count: 1000
+required_seed_pass_count: 2
+total_queries_per_candidate: 1530
+test_data_used_for_selection: false
+stage_prior: false
+feedback_training: false
