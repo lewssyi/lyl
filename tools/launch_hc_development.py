@@ -127,6 +127,18 @@ def main() -> None:
         "gpu_workers": GPU_COUNT,
         "automatic_retry": False,
     }
+    # Build each recording cache once, serially and without a visible GPU.
+    # Worker processes then only read complete atomically published archives.
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+    from tools.hierarchical_context_xai_feasibility import load_sample
+    development = read_json(ROOT / "development_samples.json")
+    state["status"] = "PREBUILDING_CACHES"
+    write_json(ROOT / "development_launcher_status.json", state)
+    for row in development["samples"]:
+        load_sample("development", int(row["global_epoch_index"]))
+    state["status"] = "RUNNING"
+    state["cache_prebuild_complete"] = True
+    write_json(ROOT / "development_launcher_status.json", state)
     assignments = [all_tasks[gpu::GPU_COUNT] for gpu in range(GPU_COUNT)]
     with ThreadPoolExecutor(max_workers=GPU_COUNT) as executor:
         futures = [executor.submit(worker, gpu, assignments[gpu], state) for gpu in range(GPU_COUNT)]
