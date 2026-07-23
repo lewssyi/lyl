@@ -333,6 +333,9 @@ def run_one(args: argparse.Namespace) -> None:
 
     candidates = tuple(value.strip() for value in args.candidates.split(",") if value.strip())
     output_rows, context_rows, within_rows, runtime_rows = [], [], [], []
+    # Zero replacement does not depend on the target class. Reuse identical
+    # perturbation responses across T0/T1, while fitting separate Y2 targets.
+    within_vector_cache = {}
     for protocol in PROTOCOLS:
         target_class = int(protocols[protocol])
         context_score, context_fidelity, context_response = fit_y2(context_masks, context_vectors, target_class, 240)
@@ -362,8 +365,11 @@ def run_one(args: argparse.Namespace) -> None:
             all_scores, all_fidelity, all_vectors = [], [], []
             for position, epoch_id in enumerate(epoch_ids):
                 masks = deterministic_masks(args.feature_count, per_epoch_count, context_seed + 1009 * (position + 1) + 31 * args.feature_count)
-                modifiers = epoch_mask_modifiers(x_raw, x_seg, epoch_id, masks, target_class, args.feature_count)
-                vectors, accounting = predict_specs(model, x_raw, x_seg, target_id, modifiers)
+                vector_key = (int(epoch_id), int(per_epoch_count), int(args.feature_count), int(position))
+                if vector_key not in within_vector_cache:
+                    modifiers = epoch_mask_modifiers(x_raw, x_seg, epoch_id, masks, protocols["T0"], args.feature_count)
+                    within_vector_cache[vector_key] = predict_specs(model, x_raw, x_seg, target_id, modifiers)
+                vectors, accounting = within_vector_cache[vector_key]
                 score, fidelity, response = fit_y2(masks, vectors, target_class, int(round(per_epoch_count * 0.8)))
                 all_scores.append(score); all_fidelity.append(fidelity); all_vectors.append(vectors)
                 within_rows.append({
