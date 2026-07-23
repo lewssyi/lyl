@@ -231,7 +231,23 @@ def load_sample(split: str, sample_id: int):
     if split == "development":
         cache = ROOT / "cache/development" / (Path(row["source_recording"]).stem + ".npz")
         cache.parent.mkdir(parents=True, exist_ok=True)
-        if not cache.exists():
+        cached_arrays = None
+        if cache.exists():
+            try:
+                with np.load(cache) as cached:
+                    cached_arrays = (
+                        cached["x_raw"].astype(np.float32),
+                        cached["x_seg"].astype(np.float32),
+                        cached["labels"].astype(np.int16),
+                    )
+            except Exception:
+                quarantine = cache.with_name(f"{cache.stem}.corrupt.{int(time.time())}.{os.getpid()}.npz")
+                try:
+                    os.replace(cache, quarantine)
+                except FileNotFoundError:
+                    pass
+                cached_arrays = None
+        if cached_arrays is None:
             evaluator.ensure_lime_imports()
             from src.data_processing import load_npz_data
             spec = evaluator.load_split_spec()
@@ -242,8 +258,15 @@ def load_sample(split: str, sample_id: int):
                 enable_amplitude_clipping=False, return_quality=True,
             )
             features = [evaluator.extract_segment_features(epoch, evaluator.semantic_segmentation(epoch, target_segments=30), max_segments=30, include_spectral=True) for epoch in x_raw]
-            np.savez_compressed(cache, x_raw=np.asarray(x_raw, dtype=np.float32), x_seg=np.asarray(features, dtype=np.float32), labels=np.asarray(labels, dtype=np.int16))
-        cached = np.load(cache); x_raw, x_seg = cached["x_raw"].astype(np.float32), cached["x_seg"].astype(np.float32)
+            x_raw = np.asarray(x_raw, dtype=np.float32)
+            x_seg = np.asarray(features, dtype=np.float32)
+            labels = np.asarray(labels, dtype=np.int16)
+            temporary = cache.with_name(f"{cache.name}.tmp.{os.getpid()}")
+            with temporary.open("wb") as stream:
+                np.savez_compressed(stream, x_raw=x_raw, x_seg=x_seg, labels=labels)
+            os.replace(temporary, cache)
+            cached_arrays = (x_raw, x_seg, labels)
+        x_raw, x_seg, _labels = cached_arrays
     else:
         cached = np.load(FULL_VALIDATION_CACHE if split == "validation" else FULL_TEST_CACHE)
         x_raw, x_seg = cached["x_raw"][start:stop].astype(np.float32), cached["x_seg"][start:stop].astype(np.float32)
