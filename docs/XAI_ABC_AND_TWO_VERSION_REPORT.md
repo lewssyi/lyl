@@ -1,5 +1,11 @@
 # PC-SeqLIME A/B/C 根因筛查与条件化双版本报告
 
+> **STATUS: SUPERSEDED HISTORICAL CANDIDATE**
+>
+> This report is preserved as diagnostic history. The candidate did not
+> establish model faithfulness under the authoritative protocol and is not the
+> current paper method or a permitted training target.
+
 ## 结论摘要
 
 本次审计的唯一主判定为 `MIXED_A_PLUS_C`：原 model-randomization sanity failure 同时包含真实实现/缓存缺陷（CASE C）和历史 PC 融合中 predicted-stage prior 对模型无关证据的污染（CASE A）。修复路由、图捕获和缓存身份后，Classic Sequence-LIME（M0）通过诊断集 full-model randomization sanity，历史 PC-SeqLIME（M4）失败；因此 CASE B 不成立。

@@ -1,3 +1,8 @@
+> **STATUS: SUPERSEDED HISTORICAL CANDIDATE**
+>
+> The candidate did not establish model faithfulness under the authoritative
+> protocol. Original negative and diagnostic results remain preserved below.
+
 # MF-SeqLIME Surrogate Improvement Report
 
 ## Scientific decision

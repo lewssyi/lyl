@@ -1,3 +1,9 @@
+> **STATUS: SUPERSEDED HISTORICAL CANDIDATE**
+>
+> The candidate did not establish model faithfulness under the authoritative
+> protocol. The specification below is retained as provenance and does not
+> define the current paper method.
+
 # Context-Preserving Model-Faithful Sequence-LIME Specification
 
 ## Status and scope

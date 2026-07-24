@@ -1,3 +1,9 @@
+> **STATUS: VALIDATION FAILED HISTORICAL CANDIDATE**
+>
+> Validation decision: `VALIDATION_NO_QUALIFIED_HIERARCHICAL_CANDIDATE`.
+> Paper-level decision: `HC_SEQLIME_FAIL`. The fixed 36-sample test was not
+> executed. Results below are preserved as a negative feasibility study.
+
 # Hierarchical Context Attribution Feasibility Study
 
 ## Executive decision
