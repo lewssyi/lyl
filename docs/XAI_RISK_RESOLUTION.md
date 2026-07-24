@@ -169,3 +169,29 @@ The historical v1.1.3 result remains `PAPER_LEVEL_INTERPRETABILITY_FAIL`. The is
 - Evidence: all 288 A/C shards completed; both groups pass 0/3 T0 and 0/3 T1, and A-C bootstrap intervals include zero. Six A and four C samples are context-dominated, but sample attributes do not explain the historical gap.
 - Status: `CASE_PROTOCOL_DRIFT`. Historical 3/3 evidence and `MF_SEQLIME_PARTIAL_PASS` randomization support are `superseded_by_protocol_consistency_audit`; B was not triggered and feedback training remains prohibited.
 - Guards: canonical probability max difference 0, argmax agreement 1.0, metric differences 0, sequence-wrapper maximum difference `5.960464477539063e-08`.
+
+## 22. Hierarchical context attribution feasibility
+
+- Risk: within-target Sequence-LIME failure could be attributed to contextual
+  model dependence without directly measuring context, or a two-level
+  surrogate could be promoted based on context R² alone despite inferior
+  faithfulness, stability, or model-randomization sensitivity.
+- Measure: a strictly post-hoc study used physically disjoint development,
+  validation, and frozen-test recordings; context groups G15/G9/G25;
+  H0/H1/H2/H3; 30/45 local features; an equal-budget Classic-90 baseline; T0
+  and T1 under R0/R3/R5/R7 and three seeds; and a 1,000-permutation null.
+  Development only removed obvious failures. Validation required all ten hard
+  gates and preserved every unreliable sample in coverage reporting.
+- Evidence: smoke completed 8/8, development 384/384, and validation
+  1,080/1,080 jobs. H3-G9-F45 raised context-only R² to 0.8639 but combined
+  hierarchical R² was 0.7818 versus Classic 0.8106. H3-G25-F45 improved only
+  deletion, not insertion. Candidate stability was 0.8135/0.8602 versus
+  Classic 0.8955. Both candidates passed 0/3 T0 and 0/3 T1, with R7
+  similarity above null q95. Best reliable coverage was 16.7%.
+- Status: `VALIDATION_NO_QUALIFIED_HIERARCHICAL_CANDIDATE`;
+  `HC_SEQLIME_FAIL`. The fixed 36 test and CCA rerun were not executed.
+  Feedback training remains `BLOCKED`.
+- Guards: exact canonical probability difference 0, argmax agreement 1.0,
+  Accuracy/Macro-F1/Kappa differences 0, sequence-wrapper maximum difference
+  `5.960464477539063e-08`, 1,200-forward measured memory growth 0, and
+  122/122 maintained checks passed.

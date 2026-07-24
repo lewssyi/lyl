@@ -12,6 +12,10 @@ their incompatible model-randomization claims.
 - Protocol audit: `CASE_PROTOCOL_DRIFT`.
 - Unified Classic Sequence-LIME randomization: T0 `0/3`, T1 `0/3`.
 - Classic Sequence-LIME generalization: not supported.
+- HC-SeqLIME feasibility:
+  `VALIDATION_NO_QUALIFIED_HIERARCHICAL_CANDIDATE`.
+- HC-SeqLIME fixed-test execution count: `0`.
+- HC-SeqLIME paper-level decision: `HC_SEQLIME_FAIL`.
 - Current method boundary:
   `MF_SEQLIME_PARTIAL_PASS_SUPERSEDED_BY_PROTOCOL_CONSISTENCY_AUDIT`.
 - Feedback training: `BLOCKED`.
@@ -28,14 +32,24 @@ paper-level method claim.
 
 1. `outputs/xai_authoritative_status/isruc_seed42/CURRENT_XAI_STATUS.json`
 2. `docs/XAI_CURRENT_PAPER_CONCLUSION.md`
-3. `docs/SEQUENCE_LIME_PROTOCOL_CONSISTENCY_REPORT.md`
-4. `outputs/sequence_lime_protocol_consistency_audit/isruc_seed42/`
+3. `docs/HIERARCHICAL_CONTEXT_XAI_FEASIBILITY_REPORT.md`
+4. `outputs/hierarchical_context_xai_feasibility/isruc_seed42/`
+5. `docs/SEQUENCE_LIME_PROTOCOL_CONSISTENCY_REPORT.md`
+6. `outputs/sequence_lime_protocol_consistency_audit/isruc_seed42/`
 
 The protocol-consistency audit completed 288/288 unified A/C shards. Both
 independent 12-sample groups passed 0/3 for T0 and 0/3 for T1, and the A-C
 bootstrap intervals included zero. The conditional old fixed-36 rerun was not
 triggered. Canonical batch-16 parity, sequence-wrapper parity, the 1,200-forward
 memory guard, and 95/95 maintained checks passed.
+
+The later HC-SeqLIME study completed 1,080/1,080 validation jobs under equal
+1,530-query budgets. H3-G25-F45 and H3-G9-F45 both passed 0/3 T0 and 0/3 T1
+seeds, retained R7 similarity above their 1,000-permutation null q95, and were
+inferior to Classic-90 on joint faithfulness and seed stability. No candidate
+passed all ten validation gates, so the fixed 36-sample test and CCA rerun were
+not executed. Final isolated parity and memory guards passed, as did 122/122
+maintained checks.
 
 ## Allowed and prohibited use
 
