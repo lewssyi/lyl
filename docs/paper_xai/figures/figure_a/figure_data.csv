@@ -1,0 +1,21 @@
+record_type,source,target,edge_style
+node,Frozen A1-zero Model,,
+node,Target Epoch,,
+node,Context-Preserving Perturbation,,
+node,Covering Sequence Windows,,
+node,Repeated Frozen Inference,,
+node,Weighted Local Surrogate,,
+node,Local Perturbation Sensitivity,,
+node,Reliability Audit,,
+node,Optional Clinical Annotation,,
+edge,Frozen A1-zero Model,Target Epoch,forward
+edge,Target Epoch,Context-Preserving Perturbation,forward
+edge,Context-Preserving Perturbation,Covering Sequence Windows,forward
+edge,Covering Sequence Windows,Repeated Frozen Inference,forward
+edge,Repeated Frozen Inference,Weighted Local Surrogate,forward
+edge,Weighted Local Surrogate,Local Perturbation Sensitivity,forward
+edge,Local Perturbation Sensitivity,Reliability Audit,forward
+edge,Reliability Audit,Optional Clinical Annotation,optional
+boundary_badge,Pre-HMM Neural Response,,
+boundary_badge,No Gradient,,
+boundary_badge,No Training Feedback,,

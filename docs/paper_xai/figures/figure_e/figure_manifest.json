@@ -1,0 +1,41 @@
+{
+  "schema_version": "paper_xai_figure_manifest_v1",
+  "generated_at_utc": "2026-07-24T09:15:07.708990+00:00",
+  "generator": "tools/build_paper_xai_materials.py",
+  "canonical_method": "CONTEXT_PRESERVING_CLASSIC_SEQUENCE_LIME",
+  "method_role": "EXPLORATORY_LOCAL_PERTURBATION_SENSITIVITY",
+  "scientific_status": "MODEL_FAITHFULNESS_NOT_ESTABLISHED",
+  "note": "Protocol-separated decision trail. Numeric endpoints from incompatible protocols are not pooled or compared on a shared axis.",
+  "source_files": [
+    {
+      "path": "outputs/sequence_lime_protocol_consistency_audit/isruc_seed42/group_level_randomization_summary.csv",
+      "sha256": "3bbed96b891355542b5635134a3c40e75e30593a80caf79d547f5d970ec5ec9d"
+    },
+    {
+      "path": "outputs/sequence_lime_two_versions/isruc_seed42/final_scientific_decision.json",
+      "sha256": "16540dad1aae0d9f6d45731e38e9a1d0f4b63aa4217aada2c26471036068debc"
+    },
+    {
+      "path": "outputs/mf_seqlime_surrogate_improvement/isruc_seed42/surrogate_candidate_summary.csv",
+      "sha256": "69249d17c4b1aff3444723ff65b158d1d7299c77b60cc54a1cb1ae13008b3e88"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/final_scientific_decision.json",
+      "sha256": "0a91ab11682cf6e2a2feb3c412ff017a27d43a65cf911f575c0d8851b7bf9ce8"
+    }
+  ],
+  "artifacts": {
+    "png": {
+      "path": "figure.png",
+      "sha256": "5585cf2986b195d611904c64b64b791f6c61f0d7344e4343042c51a6ad7ca421"
+    },
+    "pdf": {
+      "path": "figure.pdf",
+      "sha256": "7792079a98d406b4a4d4d0fd7f3eca66d462699d2fb68d52e358227f643dbf09"
+    },
+    "data": {
+      "path": "figure_data.csv",
+      "sha256": "51791ea44472fe022bea4d90f36527d882277d9d5cf8ca26d95b29b9c10f7a23"
+    }
+  }
+}

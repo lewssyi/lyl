@@ -1,0 +1,6 @@
+method,protocol,decision,reason
+Classic,Unified A/C protocol,0/3 T0; 0/3 T1,Canonical sensitivity reference; model faithfulness not established
+MF historical,Historical two-version + later audit,Superseded,No external fidelity uplift; incompatible old randomization result superseded
+Structured sampling,MF surrogate-improvement validation,No qualified candidate,Sampling changes did not clear joint hard gates
+HC-G9,HC equal-budget validation,0/3 T0; 0/3 T1,No joint fidelity/faithfulness/stability/randomization uplift
+HC-G25,HC equal-budget validation,0/3 T0; 0/3 T1,No joint fidelity/faithfulness/stability/randomization uplift

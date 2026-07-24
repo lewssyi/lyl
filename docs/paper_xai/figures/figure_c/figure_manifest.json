@@ -1,0 +1,29 @@
+{
+  "schema_version": "paper_xai_figure_manifest_v1",
+  "generated_at_utc": "2026-07-24T09:15:07.708990+00:00",
+  "generator": "tools/build_paper_xai_materials.py",
+  "canonical_method": "CONTEXT_PRESERVING_CLASSIC_SEQUENCE_LIME",
+  "method_role": "EXPLORATORY_LOCAL_PERTURBATION_SENSITIVITY",
+  "scientific_status": "MODEL_FAITHFULNESS_NOT_ESTABLISHED",
+  "note": "Canonical B0 validation T0 reliability coverage only; zero-count states are retained. Local Perturbation Sensitivity terminology applies.",
+  "source_files": [
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/reliability_sample_level.csv",
+      "sha256": "eeee6650c39332a4be8dc20f42e59900b58d364639e6fc477893fe6ef7b7b312"
+    }
+  ],
+  "artifacts": {
+    "png": {
+      "path": "figure.png",
+      "sha256": "7d9c25c448393ea679fbf66888bebe095d233906db06018c3ac7f617eff5b14f"
+    },
+    "pdf": {
+      "path": "figure.pdf",
+      "sha256": "dc2b9d4c73c350ae50937f6d4d6d73a19e1730f8085ae0a494c6e8ca18c25cd2"
+    },
+    "data": {
+      "path": "figure_data.csv",
+      "sha256": "36b8c3bf73a42f7444861aceb3ae3619d7c5c354c100361919c9833655f85e3f"
+    }
+  }
+}

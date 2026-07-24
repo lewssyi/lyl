@@ -1,0 +1,5 @@
+case,sample_id,selection_source,selection_rule,true_stage,predicted_stage,correct,transition_boundary,reliability_state,attribution_seed
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,3101

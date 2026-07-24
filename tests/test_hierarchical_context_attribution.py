@@ -147,7 +147,10 @@ class HierarchicalContextTests(unittest.TestCase):
     def test_feedback_status_remains_blocked(self):
         path = pathlib.Path("outputs/xai_authoritative_status/isruc_seed42/CURRENT_XAI_STATUS.json")
         payload = json.loads(path.read_text())
-        self.assertEqual(payload["feedback_training_status"], "BLOCKED")
+        self.assertEqual(
+            payload["feedback_training_status"],
+            "PERMANENTLY_BLOCKED_FOR_CURRENT_METHOD",
+        )
         self.assertFalse(payload["explanation_guided_training_allowed"])
 
 
