@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-"""Generate offline, train-only Sequence-LIME targets for the XAI feedback head.
+"""Generate random/shuffled dummy targets for isolated XAI unit controls.
 
-The canonical default is deliberately label-free: it explains the frozen
-model's own predicted class, uses class-independent physiological
-perturbations, and does not inject a predicted-stage or ground-truth-stage
-concept prior.  The resulting artifact is aligned to ``[epoch, 30, 3]``.
+Real post-hoc sensitivity targets are permanently prohibited from training.
+The resulting dummy artifact is aligned to ``[epoch, 30, 3]`` and must not be
+used to optimize the frozen classifier.
 """
 from __future__ import annotations
 
@@ -29,6 +28,7 @@ if str(TOOLS_DIR) not in sys.path:
 
 import sequence_lime_paper_evaluation as evaluation  # noqa: E402
 from src.data_processing import load_npz_data  # noqa: E402
+from src.xai.posthoc_freeze import assert_offline_target_is_dummy_control  # noqa: E402
 
 TARGET_TYPES = (
     "classic_sequence_lime",
@@ -200,6 +200,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    assert_offline_target_is_dummy_control(args.target_type)
     feedback_config = json.loads(args.config.read_text(encoding="utf-8"))
     if feedback_config.get("schema_version") != "xai_feedback_experiments_v1":
         raise ValueError("Feedback config must use xai_feedback_experiments_v1")

@@ -4,9 +4,68 @@ import numpy as np
 import tensorflow as tf
 
 from src.model_training import make_xai_alignment_loss, scheduled_xai_loss_weight
+from src.xai.posthoc_freeze import (
+    CANONICAL_POSTHOC_METHOD,
+    DUMMY_CONTROL_TARGETS,
+    FEEDBACK_BLOCK_MESSAGE,
+    FEEDBACK_TRAINING_STATUS,
+    assert_feedback_training_disabled,
+    assert_model_xai_loss_is_zero,
+    assert_offline_target_is_dummy_control,
+)
 
 
 class XAIFeedbackTest(unittest.TestCase):
+    def test_canonical_method_is_frozen(self):
+        self.assertEqual(
+            CANONICAL_POSTHOC_METHOD,
+            "CONTEXT_PRESERVING_CLASSIC_SEQUENCE_LIME",
+        )
+
+    def test_feedback_status_is_permanent(self):
+        self.assertEqual(
+            FEEDBACK_TRAINING_STATUS,
+            "PERMANENTLY_BLOCKED_FOR_CURRENT_METHOD",
+        )
+
+    def test_default_zero_feedback_configuration_is_allowed(self):
+        assert_feedback_training_disabled(enabled=False, loss_weight=0.0)
+
+    def test_feedback_enabled_fails_fast(self):
+        with self.assertRaisesRegex(RuntimeError, FEEDBACK_BLOCK_MESSAGE):
+            assert_feedback_training_disabled(enabled=True, loss_weight=0.0)
+
+    def test_positive_feedback_lambda_fails_fast(self):
+        with self.assertRaisesRegex(RuntimeError, FEEDBACK_BLOCK_MESSAGE):
+            assert_feedback_training_disabled(enabled=False, loss_weight=1e-6)
+
+    def test_real_target_path_fails_fast(self):
+        with self.assertRaisesRegex(RuntimeError, FEEDBACK_BLOCK_MESSAGE):
+            assert_feedback_training_disabled(
+                enabled=False,
+                loss_weight=0.0,
+                target_path="classic_sequence_lime_targets.npz",
+            )
+
+    def test_model_head_forward_lambda_zero_is_allowed(self):
+        assert_model_xai_loss_is_zero(0.0)
+
+    def test_model_positive_xai_loss_is_blocked(self):
+        with self.assertRaisesRegex(RuntimeError, FEEDBACK_BLOCK_MESSAGE):
+            assert_model_xai_loss_is_zero(0.001)
+
+    def test_only_random_and_shuffled_dummy_targets_are_allowed(self):
+        self.assertEqual(
+            DUMMY_CONTROL_TARGETS,
+            {"random_target_control", "shuffled_target_control"},
+        )
+        for target in DUMMY_CONTROL_TARGETS:
+            assert_offline_target_is_dummy_control(target)
+
+    def test_real_lime_target_is_blocked(self):
+        with self.assertRaisesRegex(RuntimeError, FEEDBACK_BLOCK_MESSAGE):
+            assert_offline_target_is_dummy_control("classic_sequence_lime")
+
     def test_schedule_has_zero_warmup_and_linear_ramp(self):
         values = [scheduled_xai_loss_weight(epoch, 0.001, 3, 5) for epoch in range(9)]
         self.assertEqual(values[:3], [0.0, 0.0, 0.0])

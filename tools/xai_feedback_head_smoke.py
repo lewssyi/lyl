@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Smoke-test the default-off differentiable XAI feedback head."""
+"""Forward/parity and random-target unit control for the dormant XAI head."""
 from __future__ import annotations
 
 import argparse
@@ -20,6 +20,7 @@ if str(TOOLS_DIR) not in sys.path:
 
 import sequence_lime_paper_evaluation as evaluation  # noqa: E402
 from src.model_training import make_xai_alignment_loss  # noqa: E402
+from src.xai.posthoc_freeze import FEEDBACK_BLOCK_MESSAGE  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -34,7 +35,7 @@ def parse_args() -> argparse.Namespace:
         "--offline-target-path",
         type=Path,
         default=None,
-        help="Optional train-only targets.npz used for a real gated XAI-only step.",
+        help="Deprecated. Real post-hoc targets are permanently blocked.",
     )
     return parser.parse_args()
 
@@ -123,6 +124,8 @@ def load_offline_training_example(target_path: Path):
 
 def main() -> None:
     args = parse_args()
+    if args.offline_target_path is not None:
+        raise RuntimeError(FEEDBACK_BLOCK_MESSAGE)
     out_dir = args.output_dir.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     split_spec = evaluation.load_split_spec()
@@ -135,7 +138,7 @@ def main() -> None:
         tuple(x_raw.shape[1:]),
         tuple(x_seg.shape[1:]),
         enable_xai_feedback_head=True,
-        xai_feedback_loss_weight=1e-3,
+        xai_feedback_loss_weight=0.0,
         xai_alignment_loss_name="normalized_mse",
         xai_gradient_scope="head_only",
     )
@@ -160,19 +163,17 @@ def main() -> None:
         for variable in feedback.trainable_variables
         if variable.name.startswith("xai_") or "/xai_" in variable.name
     }
-    if args.offline_target_path is not None:
-        training_inputs, xai_target, xai_epoch_weight, target_provenance = (
-            load_offline_training_example(args.offline_target_path)
-        )
-    else:
-        training_inputs = inputs
-        rng = np.random.default_rng(42)
-        xai_target = rng.random(
-            feedback_outputs["xai_importance_logits"].shape, dtype=np.float32
-        )
-        xai_target /= np.maximum(np.sum(xai_target, axis=(-2, -1), keepdims=True), 1e-8)
-        xai_epoch_weight = np.ones((1, 75), dtype=np.float32)
-        target_provenance = {"kind": "synthetic_shape_and_gradient_smoke"}
+    training_inputs = inputs
+    rng = np.random.default_rng(42)
+    xai_target = rng.random(
+        feedback_outputs["xai_importance_logits"].shape, dtype=np.float32
+    )
+    xai_target /= np.maximum(np.sum(xai_target, axis=(-2, -1), keepdims=True), 1e-8)
+    xai_epoch_weight = np.ones((1, 75), dtype=np.float32)
+    target_provenance = {
+        "kind": "random_target_unit_control",
+        "training_allowed": False,
+    }
     loss_fn = make_xai_alignment_loss("normalized_mse")
     with tf.GradientTape() as tape:
         # This is an XAI-only isolation step. Use inference-state backbone

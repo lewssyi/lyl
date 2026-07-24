@@ -29,18 +29,30 @@ class XAIConfigTest(unittest.TestCase):
         self.assertIn("incorrect", payload["required_populations"])
         self.assertIn("population_random", payload["required_populations"])
 
-    def test_feedback_profile_is_default_off_and_label_free(self):
+    def test_feedback_profile_is_permanently_blocked(self):
         payload = json.loads(
             (CONFIG_DIR / "xai_feedback_experiments.yaml").read_text(encoding="utf-8")
         )
         self.assertFalse(payload["default_enabled"])
+        self.assertEqual(
+            payload["feedback_training_status"],
+            "PERMANENTLY_BLOCKED_FOR_CURRENT_METHOD",
+        )
         self.assertFalse(payload["label_conditioned_targets_allowed"])
         self.assertEqual(payload["teacher_target_split"], "train")
         self.assertEqual(payload["canonical_baseline"], "E0")
-        self.assertTrue(
-            payload["experiments"]["E7"]["requires_explicit_stage_prior_ablation_flag"]
-        )
         self.assertEqual(payload["experiments"]["E1"]["xai_loss_weight"], 0.0)
+        self.assertEqual(payload["lambda_sweep"], [0.0])
+        self.assertEqual(
+            set(payload["permitted_unit_controls"]),
+            {"E0", "E1", "E2", "E3"},
+        )
+        self.assertTrue(
+            all(
+                payload["experiments"][key].get("training_allowed") is False
+                for key in payload["experiments"]
+            )
+        )
         gate = payload["reliability_gate"]
         self.assertEqual(gate["validation_weighted_r2_min"], 0.70)
         self.assertEqual(gate["mask_seed_stability_spearman_min"], 0.50)

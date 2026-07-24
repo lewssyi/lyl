@@ -3,6 +3,10 @@ import os
 
 import numpy as np
 import tensorflow as tf
+try:
+    from .xai.posthoc_freeze import assert_model_xai_loss_is_zero
+except ImportError:  # run_main.py also supports importing src modules by path
+    from xai.posthoc_freeze import assert_model_xai_loss_is_zero
 from tensorflow.keras.layers import (
     Activation,
     Add,
@@ -2823,10 +2827,7 @@ def create_sequence_sleep_model(
     xai_gradient_scope="head_only",
 ):
     xai_feedback_loss_weight = float(xai_feedback_loss_weight)
-    if xai_feedback_loss_weight < 0.0:
-        raise ValueError("xai_feedback_loss_weight must be non-negative")
-    if xai_feedback_loss_weight > 0.0 and not enable_xai_feedback_head:
-        raise ValueError("A positive XAI loss weight requires enable_xai_feedback_head=True")
+    assert_model_xai_loss_is_zero(xai_feedback_loss_weight)
     xai_gradient_scope = str(xai_gradient_scope or "head_only").strip().lower()
     if xai_gradient_scope not in {"head_only", "fusion_and_head", "full_backbone"}:
         raise ValueError(

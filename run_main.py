@@ -3,6 +3,8 @@
 #之前加上，跑的较好的版本
 import os
 
+from src.xai.posthoc_freeze import assert_feedback_training_disabled
+
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))  # LIME-for-Time-Series directory
 TARGET_GPU_IDS = os.environ.get("LFTS_CUDA_VISIBLE_DEVICES", "7")
 REQUESTED_GPU_COUNT = len([gpu_id for gpu_id in TARGET_GPU_IDS.split(",") if gpu_id.strip()])
@@ -321,12 +323,11 @@ XAI_ALLOW_STAGE_PRIOR_ABLATION = parse_bool_env(
 )
 XAI_FEEDBACK_WARMUP_EPOCHS = int(os.environ.get("LFTS_XAI_FEEDBACK_WARMUP_EPOCHS", "3"))
 XAI_FEEDBACK_RAMP_EPOCHS = int(os.environ.get("LFTS_XAI_FEEDBACK_RAMP_EPOCHS", "5"))
-if XAI_FEEDBACK_LOSS_WEIGHT < 0.0:
-    raise ValueError("LFTS_XAI_FEEDBACK_LOSS_WEIGHT must be non-negative")
-if XAI_FEEDBACK_LOSS_WEIGHT > 0.0 and not XAI_FEEDBACK_ENABLED:
-    raise ValueError(
-        "LFTS_XAI_FEEDBACK_LOSS_WEIGHT > 0 requires LFTS_XAI_FEEDBACK_ENABLED=1"
-    )
+assert_feedback_training_disabled(
+    enabled=XAI_FEEDBACK_ENABLED,
+    loss_weight=XAI_FEEDBACK_LOSS_WEIGHT,
+    target_path=XAI_FEEDBACK_TARGET_PATH,
+)
 SAVE_PREDICTION_PROBS = parse_bool_env("LFTS_SAVE_PREDICTION_PROBS", True)
 SAVE_SPLIT_PREDICTION_PROBS = parse_bool_env("LFTS_SAVE_SPLIT_PREDICTION_PROBS", False)
 SPLIT_PREDICT_BATCH_SIZE = int(os.environ.get("LFTS_SPLIT_PREDICT_BATCH_SIZE", "0"))
@@ -537,6 +538,16 @@ def uses_lime_dccs_feedback(mode):
         "clinical_calibrated_lime_dccs",
         "clinically_calibrated_lime_dccs",
     }
+
+
+assert_feedback_training_disabled(
+    enabled=(
+        EXPLANATION_FEEDBACK_TRAINING
+        or uses_lime_dccs_feedback(EXPLANATION_FEEDBACK_MODE)
+    ),
+    loss_weight=0.0,
+    target_path=LIME_DCCS_TARGET_PATH,
+)
 
 
 OT_TACB_DISABLED_LIME_FEEDBACK_MODE = None
