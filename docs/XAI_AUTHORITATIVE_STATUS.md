@@ -7,8 +7,17 @@ their incompatible model-randomization claims.
 
 ## Current status
 
+- Engineering status: `IMPLEMENTATION_AND_AUDIT_PIPELINE_VALID`.
 - Classifier: frozen A1-zero checkpoint; read-only.
 - Scientific status: `MODEL_FAITHFULNESS_NOT_ESTABLISHED`.
+- Canonical post-hoc method:
+  `CONTEXT_PRESERVING_CLASSIC_SEQUENCE_LIME`.
+- Display name: **Context-Preserving Classic Sequence-LIME**.
+- Method role: `EXPLORATORY_LOCAL_PERTURBATION_SENSITIVITY`.
+- MF-SeqLIME status: `SUPERSEDED_HISTORICAL_CANDIDATE`.
+- HC-SeqLIME status: `VALIDATION_FAILED_HISTORICAL_CANDIDATE`.
+- Clinical annotation status:
+  `IMPLEMENTATION_VALID_EXPERT_VALIDATION_PENDING`.
 - Protocol audit: `CASE_PROTOCOL_DRIFT`.
 - Unified Classic Sequence-LIME randomization: T0 `0/3`, T1 `0/3`.
 - Classic Sequence-LIME generalization: not supported.
@@ -16,9 +25,7 @@ their incompatible model-randomization claims.
   `VALIDATION_NO_QUALIFIED_HIERARCHICAL_CANDIDATE`.
 - HC-SeqLIME fixed-test execution count: `0`.
 - HC-SeqLIME paper-level decision: `HC_SEQLIME_FAIL`.
-- Current method boundary:
-  `MF_SEQLIME_PARTIAL_PASS_SUPERSEDED_BY_PROTOCOL_CONSISTENCY_AUDIT`.
-- Feedback training: `BLOCKED`.
+- Feedback training: `PERMANENTLY_BLOCKED_FOR_CURRENT_METHOD`.
 - Explanation-guided training: prohibited.
 - Clinical Concept Annotation: a separate derived annotation only; it cannot
   alter model attribution, prediction, ranking, or training.
@@ -53,12 +60,20 @@ maintained checks.
 
 ## Allowed and prohibited use
 
-Future post-hoc feasibility work may query the frozen model and use isolated
-development/validation/test splits. It must not overwrite historical formal
-outputs, select on test data, weaken randomization gates, use stage priors,
-modify normal inference, feed explanations into loss, or start feedback
-training. A new explanation prototype remains unvalidated until it passes its
-preregistered validation and fixed-test gates.
+The frozen paper method is a post-hoc local perturbation sensitivity analysis:
+it applies channel-by-segment perturbations to the target epoch inside a
+75-epoch context-preserving wrapper, reruns every covering sequence window
+through the frozen A1-zero model, aggregates overlapping pre-HMM neural
+probabilities, and fits a weighted local Ridge surrogate. It uses no stage or
+concept prior, fusion, hierarchical context attribution, gradient, or
+explanation feedback.
+
+Future post-hoc work may query the frozen model and use isolated
+development/validation/test splits. It must not overwrite historical outputs,
+select on test data, weaken gates, use stage priors, modify normal inference,
+feed explanations into loss, or start feedback training. The canonical method
+must not be described as Model-Faithful, Validated Model Attribution, or Causal
+Attribution.
 
 Authoritative correction base: branch `codex/a1-zero-mainline`, commit
 `72b4258fafa32f6579e7eb4de9c2bd6621cc70f1`.
