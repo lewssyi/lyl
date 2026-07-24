@@ -1,0 +1,32 @@
+{
+  "schema_version": "xai_final_guard_audit_v1",
+  "engineering_status": "IMPLEMENTATION_AND_AUDIT_PIPELINE_VALID",
+  "scientific_status": "MODEL_FAITHFULNESS_NOT_ESTABLISHED",
+  "authoritative_guards": {
+    "root": "outputs/sequence_lime_protocol_consistency_audit/isruc_seed42/guard",
+    "canonical_batch16_parity": "EXACT_ARTIFACT_PARITY_PASS",
+    "sequence_wrapper_parity": "SEQUENCE_WRAPPER_PARITY_PASS",
+    "sequence_window_batch_size": 16,
+    "fixed_graph_memory_1200": "PASS",
+    "current_memory_growth_bytes": 0,
+    "checkpoint_unchanged": true
+  },
+  "final_test_execution": {
+    "unittest": "PASS_131_OF_131",
+    "pytest": "PASS_21_OF_21",
+    "total": "PASS_152_OF_152"
+  },
+  "final_cpu_parity_diagnostic": {
+    "root": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/guards/parity_cpu_driver_mismatch_20260724",
+    "authoritative": false,
+    "exact_artifact_parity": "NOT_MET",
+    "probability_max_abs_diff": 0.0008518397808074951,
+    "argmax_agreement": 1.0,
+    "accuracy_abs_diff": 0.0,
+    "macro_f1_abs_diff": 0.0,
+    "kappa_abs_diff": 0.0,
+    "sequence_wrapper_parity": "PASS",
+    "environment_reason": "NVIDIA user-space library 580.173 did not match kernel driver 580.159; CPU and historical GPU numerical backends are not threshold-equivalent."
+  },
+  "interpretation": "The CPU diagnostic is preserved and does not replace the authoritative same-backend GPU guard. No classifier, checkpoint, normal-inference path, mask, surrogate, or method result was changed."
+}

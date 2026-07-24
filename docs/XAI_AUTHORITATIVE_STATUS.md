@@ -56,7 +56,16 @@ seeds, retained R7 similarity above their 1,000-permutation null q95, and were
 inferior to Classic-90 on joint faithfulness and seed stability. No candidate
 passed all ten validation gates, so the fixed 36-sample test and CCA rerun were
 not executed. Final isolated parity and memory guards passed, as did 122/122
-maintained checks.
+maintained checks. The final freeze added 30 focused guard checks and completed
+152/152 maintained checks in total (131 unittest checks plus 21 pytest checks).
+
+At final freeze, the server NVIDIA user-space library (580.173) did not match
+the loaded kernel driver (580.159), so a same-backend GPU rerun was not
+possible. A CPU batch-16 diagnostic preserved 100% argmax agreement, zero
+Accuracy/Macro-F1/Kappa differences, and wrapper parity, but its probability
+rounding exceeded the GPU artifact threshold; it is isolated as a
+non-authoritative backend diagnostic. The authoritative GPU batch-16 parity
+and 1,200-forward memory guards remain the frozen evidence.
 
 ## Allowed and prohibited use
 

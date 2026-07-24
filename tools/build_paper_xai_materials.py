@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -529,15 +530,20 @@ def main():
         "axes.spines.top": False, "axes.spines.right": False,
         "pdf.fonttype": 42, "ps.fonttype": 42,
     })
-    build_tables()
-    build_figure_a()
-    build_figure_b()
-    build_figure_c()
-    summary = build_figure_d()
-    write_case_protocol(summary)
-    build_figure_e()
+    if "--manifest-only" not in sys.argv:
+        build_tables()
+        build_figure_a()
+        build_figure_b()
+        build_figure_c()
+        summary = build_figure_d()
+        write_case_protocol(summary)
+        build_figure_e()
+    # A manifest cannot truthfully hash itself: writing the manifest changes
+    # the bytes that would have been hashed. Keep the inventory closed over
+    # every other paper artifact and exclude only the manifest itself.
+    manifest_path = DOC / "CURRENT_RESULTS_MANIFEST.json"
     inventory = sorted(
-        p for p in DOC.rglob("*") if p.is_file()
+        p for p in DOC.rglob("*") if p.is_file() and p != manifest_path
     )
     payload = {
         "schema_version": "paper_xai_materials_manifest_v1",
@@ -548,7 +554,7 @@ def main():
             for p in inventory
         ],
     }
-    (DOC / "CURRENT_RESULTS_MANIFEST.json").write_text(
+    manifest_path.write_text(
         json.dumps(payload, indent=2) + "\n", encoding="utf-8"
     )
     print(json.dumps({"status": "PASS", "artifacts": len(inventory)}, indent=2))

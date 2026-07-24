@@ -54,8 +54,26 @@
   "latest_feasibility_result_root": "outputs/hierarchical_context_xai_feasibility/isruc_seed42",
   "maintained_checks": {
     "failed": 0,
-    "passed": 122
+    "passed": 152
   },
+  "final_freeze_validation": {
+    "unittest": "PASS_131_OF_131",
+    "pytest": "PASS_21_OF_21",
+    "total": "PASS_152_OF_152",
+    "authoritative_gpu_batch16_parity": "PASS",
+    "authoritative_fixed_graph_memory_1200": "PASS",
+    "cpu_backend_diagnostic": {
+      "status": "NON_AUTHORITATIVE_BACKEND_DIAGNOSTIC",
+      "argmax_agreement": 1.0,
+      "accuracy_abs_diff": 0.0,
+      "macro_f1_abs_diff": 0.0,
+      "kappa_abs_diff": 0.0,
+      "probability_max_abs_diff": 0.0008518397808074951,
+      "sequence_wrapper_parity": "PASS",
+      "reason": "NVIDIA user-space/kernel driver mismatch prevented same-backend GPU rerun"
+    }
+  },
+  "latest_freeze_content_commit": "bd7d5f7",
   "model_faithfulness_supported": false,
   "paper_level_interpretability_supported": false,
   "protocol_consistency_decision": "CASE_PROTOCOL_DRIFT",

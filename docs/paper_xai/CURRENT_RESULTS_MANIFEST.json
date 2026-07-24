@@ -1,13 +1,8 @@
 {
   "schema_version": "paper_xai_materials_manifest_v1",
-  "generated_at_utc": "2026-07-24T09:15:07.708990+00:00",
+  "generated_at_utc": "2026-07-24T09:26:28.926049+00:00",
   "generator": "tools/build_paper_xai_materials.py",
   "artifacts": [
-    {
-      "path": "docs/paper_xai/CURRENT_RESULTS_MANIFEST.json",
-      "bytes": 5769,
-      "sha256": "388ba1ee1fd57a60b3d51ed0fbabc6e9dcd89dfa4af1d1e7989803718d842141"
-    },
     {
       "path": "docs/paper_xai/TABLE_XAI_ENGINEERING_VALIDATION.md",
       "bytes": 732,
@@ -37,6 +32,11 @@
       "path": "docs/paper_xai/XAI_FIGURE_CAPTIONS.md",
       "bytes": 1912,
       "sha256": "80fb9394bf5a464d8f4d1529dfacccf07f52624c940450bf3c1e1b88318a8f3d"
+    },
+    {
+      "path": "docs/paper_xai/XAI_FINAL_GUARD_AUDIT.json",
+      "bytes": 1518,
+      "sha256": "6a99ecba6f430a940f6029c6f40bc4acaae659ed1013695cd1cb7a6665e553e6"
     },
     {
       "path": "docs/paper_xai/XAI_FINAL_POSITIONING.md",
