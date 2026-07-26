@@ -1,6 +1,6 @@
 {
   "schema_version": "paper_xai_materials_manifest_v1",
-  "generated_at_utc": "2026-07-26T02:30:49.022944+00:00",
+  "generated_at_utc": "2026-07-26T03:22:13.902031+00:00",
   "generator": "tools/build_paper_xai_materials.py",
   "artifacts": [
     {
@@ -34,6 +34,41 @@
       "sha256": "2746cb131e65fc47187fdfa6f6ed31a41e447ad16db5840b6d1e2232b0b45448"
     },
     {
+      "path": "docs/paper_xai/PR_SEQXAI_CLAIM_MATRIX.csv",
+      "bytes": 3478,
+      "sha256": "422e333f9661bdae2d46e54ef8a3d1ecb69ba0d625f06c34da12fb8d8a82c7d5"
+    },
+    {
+      "path": "docs/paper_xai/PR_SEQXAI_FINAL_CLAIM_AUDIT.csv",
+      "bytes": 31375,
+      "sha256": "2c47625d585cea3cd87680f74b43b6030a0b683de561dfeabdf306966e09706b"
+    },
+    {
+      "path": "docs/paper_xai/PR_SEQXAI_FINAL_POSITIONING_REPORT.md",
+      "bytes": 7380,
+      "sha256": "3bf89578d0f3c617026ea1dd9c522e011625c214aceea885494084f6445b294f"
+    },
+    {
+      "path": "docs/paper_xai/PR_SEQXAI_RESULTS_NARRATIVE.md",
+      "bytes": 4617,
+      "sha256": "93d4738da00d4e96da48c9863dd0a349c40f9c3e2f9f1ad01bc1e6e4f0545fa7"
+    },
+    {
+      "path": "docs/paper_xai/PR_SEQXAI_REVIEWER_QA.md",
+      "bytes": 3660,
+      "sha256": "28245ea02349a6a4ce86f8f252dbcce866b2a30b59dda9858ab69f2897d58bd1"
+    },
+    {
+      "path": "docs/paper_xai/PR_SEQXAI_STORYLINE.md",
+      "bytes": 8044,
+      "sha256": "a4f016fb80efd1a2b28cd878e2860f9253a3796a5bd34eae76544e6b4dd34955"
+    },
+    {
+      "path": "docs/paper_xai/PR_SEQXAI_VISUALIZATION_CONTRIBUTION.md",
+      "bytes": 2801,
+      "sha256": "4fad7343d61aaa0d7f044e39046226fa4277f11f6b5b61bb8401b11dfb8e74cb"
+    },
+    {
       "path": "docs/paper_xai/RESEARCHER_USER_TASKS.md",
       "bytes": 2140,
       "sha256": "19d2aac6a897040528c93e1636d516501d0b0a9e114d2b91384fffd4be155ea1"
@@ -65,8 +100,8 @@
     },
     {
       "path": "docs/paper_xai/XAI_FIGURE_CAPTIONS.md",
-      "bytes": 1912,
-      "sha256": "80fb9394bf5a464d8f4d1529dfacccf07f52624c940450bf3c1e1b88318a8f3d"
+      "bytes": 2338,
+      "sha256": "676e16d8ccef18a80776655f27eaa7df01abd06a7d609415bae0a5a13ae14cec"
     },
     {
       "path": "docs/paper_xai/XAI_FINAL_GUARD_AUDIT.json",
@@ -75,23 +110,23 @@
     },
     {
       "path": "docs/paper_xai/XAI_FINAL_POSITIONING.md",
-      "bytes": 1150,
-      "sha256": "300fc2834dcbf86e27e8ce515268f462a3758a6db7a034dec59c48b94433cca3"
+      "bytes": 1532,
+      "sha256": "cb3f717f6213c56c65b7a28bf6e54da6d4336f40d35cab2aa4d02abc2cfd6107"
     },
     {
       "path": "docs/paper_xai/XAI_LIMITATIONS_SECTION.md",
-      "bytes": 1485,
-      "sha256": "013cf9246297cdb6fd072bc214ccf47161950abc9e5dfa70e5c7717e59b03f15"
+      "bytes": 2261,
+      "sha256": "3301129f61f1124c27a64d36ef542baaf4bd272d62bad9df5667e6e4e3180bb8"
     },
     {
       "path": "docs/paper_xai/XAI_METHOD_SECTION.md",
-      "bytes": 2216,
-      "sha256": "2eb6393b1096f2c502fcb2abd31d01ed4fd15f44d0235ddfd864506cc66954d0"
+      "bytes": 2251,
+      "sha256": "7506fbca9b8f977eedb28a3251f396af0b4d49bf892c88a24de84cff6424edbd"
     },
     {
       "path": "docs/paper_xai/XAI_RESULTS_SECTION.md",
-      "bytes": 1972,
-      "sha256": "8979dba84031c2d3fd4600690745263ca893c79ffbf744f6603570766de480aa"
+      "bytes": 2874,
+      "sha256": "acbc82b040ca0dcebfd89994ddc17aaeb8952114da57dda5aacc5d9a21483e99"
     },
     {
       "path": "docs/paper_xai/expert_evaluation_package/CASE-001/panel_pair.pdf",
