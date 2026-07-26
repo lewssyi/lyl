@@ -7,7 +7,20 @@ their incompatible model-randomization claims.
 
 ## Current status
 
+- Framework display name: **Physiology-Aware and Reliability-Controlled
+  Post-hoc Sequence Explanation Framework (PR-SeqXAI)**.
+- Framework definition: Context-Preserving Classic Sequence-LIME +
+  independent Clinical Concept Annotation + Reliability-Aware Visualization.
 - Engineering status: `IMPLEMENTATION_AND_AUDIT_PIPELINE_VALID`.
+- Sequence adaptation status:
+  `CONTEXT_PRESERVING_SEQUENCE_INFERENCE_ESTABLISHED`.
+- Physiology annotation status:
+  `AUTOMATIC_PHYSIOLOGY_CONSISTENCY_SUPPORTED`.
+- Visualization status:
+  `PHYSIOLOGY_AND_RELIABILITY_ENHANCED_PRESENTATION_IMPLEMENTED`.
+- Human interpretability status: `NOT_EVALUATED`.
+- Clinical validation status: `NOT_VALIDATED`.
+- Model faithfulness status: `NOT_ESTABLISHED`.
 - Classifier: frozen A1-zero checkpoint; read-only.
 - Scientific status: `MODEL_FAITHFULNESS_NOT_ESTABLISHED`.
 - Canonical post-hoc method:
@@ -29,6 +42,14 @@ their incompatible model-randomization claims.
 - Explanation-guided training: prohibited.
 - Clinical Concept Annotation: a separate derived annotation only; it cannot
   alter model attribution, prediction, ranking, or training.
+- Physiology-aware visualization decision:
+  `PHYSIOLOGY_AWARE_VISUALIZATION_NOT_YET_VALIDATED`.
+
+The visualization decision records that genuine human evaluation has not been
+performed. It does not mark the engineering pipeline, automatic physiology
+audit, or display implementation as failed. PR-SeqXAI is a framework name,
+not a new attribution algorithm; the underlying attribution name and role
+remain unchanged.
 
 `PAPER_LEVEL_INTERPRETABILITY_FAIL`, historical Classic 3/3 results, and the
 former `MF_SEQLIME_PARTIAL_PASS` remain historical records. They are not the
@@ -38,11 +59,13 @@ paper-level method claim.
 ## Evidence priority
 
 1. `outputs/xai_authoritative_status/isruc_seed42/CURRENT_XAI_STATUS.json`
-2. `docs/XAI_CURRENT_PAPER_CONCLUSION.md`
-3. `docs/HIERARCHICAL_CONTEXT_XAI_FEASIBILITY_REPORT.md`
-4. `outputs/hierarchical_context_xai_feasibility/isruc_seed42/`
-5. `docs/SEQUENCE_LIME_PROTOCOL_CONSISTENCY_REPORT.md`
-6. `outputs/sequence_lime_protocol_consistency_audit/isruc_seed42/`
+2. `docs/paper_xai/PR_SEQXAI_FINAL_POSITIONING_REPORT.md`
+3. `docs/paper_xai/PHYSIOLOGY_AWARE_DISPLAY_REPORT.md`
+4. `docs/XAI_CURRENT_PAPER_CONCLUSION.md`
+5. `docs/HIERARCHICAL_CONTEXT_XAI_FEASIBILITY_REPORT.md`
+6. `outputs/hierarchical_context_xai_feasibility/isruc_seed42/`
+7. `docs/SEQUENCE_LIME_PROTOCOL_CONSISTENCY_REPORT.md`
+8. `outputs/sequence_lime_protocol_consistency_audit/isruc_seed42/`
 
 The protocol-consistency audit completed 288/288 unified A/C shards. Both
 independent 12-sample groups passed 0/3 for T0 and 0/3 for T1, and the A-C

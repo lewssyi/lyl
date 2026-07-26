@@ -1,7 +1,22 @@
 {
   "authoritative_report": "docs/SEQUENCE_LIME_PROTOCOL_CONSISTENCY_REPORT.md",
   "authoritative_result_root": "outputs/sequence_lime_protocol_consistency_audit/isruc_seed42",
+  "framework_display_name": "Physiology-Aware and Reliability-Controlled Post-hoc Sequence Explanation Framework",
+  "framework_short_name": "PR-SeqXAI",
+  "framework_definition": [
+    "CONTEXT_PRESERVING_CLASSIC_SEQUENCE_LIME",
+    "INDEPENDENT_CLINICAL_CONCEPT_ANNOTATION",
+    "RELIABILITY_AWARE_VISUALIZATION"
+  ],
   "engineering_status": "IMPLEMENTATION_AND_AUDIT_PIPELINE_VALID",
+  "sequence_adaptation_status": "CONTEXT_PRESERVING_SEQUENCE_INFERENCE_ESTABLISHED",
+  "physiology_annotation_status": "AUTOMATIC_PHYSIOLOGY_CONSISTENCY_SUPPORTED",
+  "visualization_status": "PHYSIOLOGY_AND_RELIABILITY_ENHANCED_PRESENTATION_IMPLEMENTED",
+  "human_interpretability_status": "NOT_EVALUATED",
+  "clinical_validation_status": "NOT_VALIDATED",
+  "model_faithfulness_status": "NOT_ESTABLISHED",
+  "physiology_aware_visualization_decision": "PHYSIOLOGY_AWARE_VISUALIZATION_NOT_YET_VALIDATED",
+  "physiology_aware_visualization_decision_scope": "GENUINE_HUMAN_EVALUATION_NOT_PERFORMED",
   "canonical_batch16_parity": "PASS",
   "cca_policy": "DERIVED_ANNOTATION_ONLY_NO_ATTRIBUTION_MODIFICATION",
   "classic_sequence_lime_unified_randomization": {
@@ -72,6 +87,18 @@
       "sequence_wrapper_parity": "PASS",
       "reason": "NVIDIA user-space/kernel driver mismatch prevented same-backend GPU rerun"
     }
+  },
+  "narrative_reconstruction_validation": {
+    "static_guard_tests": "PASS_10_OF_10",
+    "claim_audit": {
+      "current_allowed": 64,
+      "historical_with_warning": 43,
+      "prohibited_current_claim": 0
+    },
+    "new_lime_experiment": false,
+    "new_model_inference": false,
+    "model_training": false,
+    "expert_evaluation_package_modified": false
   },
   "latest_freeze_content_commit": "bd7d5f7",
   "model_faithfulness_supported": false,
