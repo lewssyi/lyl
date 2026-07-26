@@ -1,0 +1,11 @@
+{
+  "bootstrap_replicates": 10000,
+  "bootstrap_seed": 20260726,
+  "human_results_available": false,
+  "missing_rating_handling": "complete_pairs_no_imputation",
+  "paired_design": true,
+  "primary_multiplicity": "Holm",
+  "registration_commit": "e80c2805e09098ed92594a6313f4cca3f3d68fce",
+  "risk_of_misleading_direction": "lower_is_better_analyzed_separately",
+  "subjective_multiplicity": "Benjamini-Hochberg FDR"
+}

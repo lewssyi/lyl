@@ -1,0 +1,20 @@
+{
+  "artifacts": {
+    "physiology_metric_summary.csv": {
+      "bytes": 222,
+      "sha256": "6de3f2c6dd5f6e2ad1145d7e1afe58db5a81b6dd82d404f17fa18d092f54b5eb"
+    },
+    "physiology_metric_summary.pdf": {
+      "bytes": 13123,
+      "sha256": "74da10b7f8073cda5b29aa999fd95738ddb0bd8cc950199eb932237c39097cc7"
+    },
+    "physiology_metric_summary.png": {
+      "bytes": 102479,
+      "sha256": "5a8a4a87a9d97fcb4615bffc087e41e667c9d924819a1b22c21bfd158646cdbc"
+    }
+  },
+  "human_validation_result_included": false,
+  "render_backend": "matplotlib_native_vector",
+  "scientific_status": "AUTOMATIC_AUDIT_ONLY",
+  "source": "physiology_metrics.csv"
+}

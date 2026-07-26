@@ -90,7 +90,7 @@ def save_figure(fig, directory: Path, data: pd.DataFrame, sources, note: str):
 
 def build_figure_a():
     nodes = [
-        "Frozen A1-zero\nModel", "Target\nEpoch",
+        "Frozen Model\n(A1-zero)", "Target\nEpoch",
         "Context-Preserving\nPerturbation", "Covering Sequence\nWindows",
         "Repeated Frozen\nInference", "Weighted Local\nSurrogate",
         "Local Perturbation\nSensitivity", "Reliability\nAudit",
@@ -105,7 +105,12 @@ def build_figure_a():
                      "target": b.replace("\n", " "), "edge_style": "forward"})
     rows.append({"record_type": "edge", "source": "Reliability Audit",
                  "target": "Optional Clinical Annotation", "edge_style": "optional"})
-    for badge in ("Pre-HMM Neural Response", "No Gradient", "No Training Feedback"):
+    for badge in (
+        "Pre-HMM Neural Response",
+        "No Gradient",
+        "No Training Feedback",
+        "Post-hoc Only",
+    ):
         rows.append({"record_type": "boundary_badge", "source": badge,
                      "target": "", "edge_style": ""})
     data = pd.DataFrame(rows)
@@ -128,8 +133,12 @@ def build_figure_a():
     ax.annotate("", xy=(x2 + 0.75, y2 + 0.9), xytext=(x1 + 0.75, y1),
                 arrowprops=dict(arrowstyle="-|>", color=ORANGE, lw=1.4,
                                 linestyle="--"))
-    badges = [("Pre-HMM Neural Response", 4.9), ("No Gradient", 7.6),
-              ("No Training Feedback", 9.7)]
+    badges = [
+        ("Pre-HMM Neural Response", 4.6),
+        ("No Gradient", 6.9),
+        ("No Training Feedback", 8.9),
+        ("Post-hoc Only", 10.9),
+    ]
     for text, x in badges:
         ax.text(x, 4.55, text, ha="center", va="center", fontsize=8.5,
                 color="#333333", bbox=dict(boxstyle="round,pad=0.3",
@@ -141,6 +150,12 @@ def build_figure_a():
         [ROOT / "docs" / "XAI_ARCHITECTURE_CLAIM_BOUNDARIES.md"],
         "Code-native vector fallback used because the remote AI schematic "
         "generator had no OPENROUTER_API_KEY. Exact boundary text was preserved.",
+    )
+    manifest_path = FIG / "figure_a" / "figure_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["render_backend"] = "native_vector_fallback"
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
     )
 
 
@@ -530,7 +545,9 @@ def main():
         "axes.spines.top": False, "axes.spines.right": False,
         "pdf.fonttype": 42, "ps.fonttype": 42,
     })
-    if "--manifest-only" not in sys.argv:
+    if "--figure-a-only" in sys.argv:
+        build_figure_a()
+    elif "--manifest-only" not in sys.argv:
         build_tables()
         build_figure_a()
         build_figure_b()

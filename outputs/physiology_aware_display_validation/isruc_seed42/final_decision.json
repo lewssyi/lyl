@@ -1,0 +1,14 @@
+{
+  "attribution_bitwise_unchanged": true,
+  "automatic_metrics_complete": true,
+  "clinical_validation_claim_allowed": false,
+  "decision": "PHYSIOLOGY_AWARE_VISUALIZATION_NOT_YET_VALIDATED",
+  "evaluator_count": 0,
+  "expert_agreement": null,
+  "human_blinded_evaluation_completed": false,
+  "model_faithfulness_claim_allowed": false,
+  "reason": "Automatic audits and a blinded package are complete, but no genuine blinded evaluator ratings exist.",
+  "v1_misinterpretation_noninferior": null,
+  "v1_physiological_interpretability_improved": null,
+  "v1_reliability_judgment_accuracy_improved": null
+}

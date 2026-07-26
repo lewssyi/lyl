@@ -1,0 +1,990 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1112,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/annotation_conflicts.csv",
+      "sha256": "ae7c4a131bfd3b7634606698e34c045e39f02ffc881fb1d149303e2031914da4"
+    },
+    {
+      "bytes": 2360,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/annotation_coverage.csv",
+      "sha256": "fe63db98f7bbc63fe3c91893325f02ef59b8486e8589f63b2304f67a4745cc59"
+    },
+    {
+      "bytes": 21582,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/attribution_identity_guard.json",
+      "sha256": "56e5ebcd5af70ba400e7018af173407ee26a0ef4cb1607a0a71b060493ad3fdf"
+    },
+    {
+      "bytes": 2234,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pair_manifest.csv",
+      "sha256": "d6de9b5f55958bd685f69b90b94843ce25347144ee2dcce720f6e618e90ba1de"
+    },
+    {
+      "bytes": 8583,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pair_manifest.json",
+      "sha256": "adf59db7c4fa6a36704b150ea73a9ab270b5c76a004732ae35fa6368ff90a697"
+    },
+    {
+      "bytes": 1133394,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-001.pdf",
+      "sha256": "570d313e61b303e3ee383bdab88f1f4e8780c17f9083fb405685081c095f533c"
+    },
+    {
+      "bytes": 506651,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-001.png",
+      "sha256": "28ed65526f1d02d89ad68c11b7dd46c44557228f889387757daa49b6ccb8c75f"
+    },
+    {
+      "bytes": 1156492,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-002.pdf",
+      "sha256": "2d90c10d1fd0cb6af999320ce1ee0123e4de1a7f80eac86286be2217a1a18c28"
+    },
+    {
+      "bytes": 510548,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-002.png",
+      "sha256": "e79b5e8b31daf44e66a29b5ffec5c1e5064958ee15104e065c5d9f8e2abd1f26"
+    },
+    {
+      "bytes": 1166150,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-003.pdf",
+      "sha256": "e74c123055da6b3f61f2d51b1071706182b9bf6c1028eeb64251ab5dd91f2f33"
+    },
+    {
+      "bytes": 509509,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-003.png",
+      "sha256": "24da0e54f5dc74e2fbc01ca58ed5e73eed2aeba3777e7905773c3b3569404910"
+    },
+    {
+      "bytes": 1116205,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-004.pdf",
+      "sha256": "f0ac23ca72d54cbe6ebf42f3e62dd890a7d6b8efb8a821533e00b180bedfc92d"
+    },
+    {
+      "bytes": 507580,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-004.png",
+      "sha256": "f222fdbd7275b3cfa705191e8391a366aa5fe3fcb4d19b95783fb9998e797e41"
+    },
+    {
+      "bytes": 1163016,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-005.pdf",
+      "sha256": "dda9762fbecf52f9c80d655a7a2c3a09942306a2b0543685dc451a25fcc7d221"
+    },
+    {
+      "bytes": 509441,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-005.png",
+      "sha256": "698be9c229e365f8f89dfe9f2bd5ff80ab1d3142907eff37c0b2fb75757899c5"
+    },
+    {
+      "bytes": 1153211,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-006.pdf",
+      "sha256": "ceb7df488fda420cba58346ba2dabc1b4bc8676c5f7251df01be4d7eb0e5c461"
+    },
+    {
+      "bytes": 509379,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-006.png",
+      "sha256": "f3144631fd05e42c96973ce37f333485c39ecc1c049339f57656558a0ea0c0f6"
+    },
+    {
+      "bytes": 1083497,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-007.pdf",
+      "sha256": "790a2ac1033af76d2f3b8fd098b7a3b81cd2a9bd3aafa4f86b2f062fad20fd8f"
+    },
+    {
+      "bytes": 504299,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-007.png",
+      "sha256": "4212058cf94e99ad603f9d3eb8fd43ee75f458f0aab16781abf3570d1fb1dc75"
+    },
+    {
+      "bytes": 1072625,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-008.pdf",
+      "sha256": "9fecc7be72137dafee2a69f3c7249bc044b505936587fdebd0cb5b57ec69bc1c"
+    },
+    {
+      "bytes": 501080,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-008.png",
+      "sha256": "d33238f127a3527068b945a637599525c7bdd88b9e93d124230f9d67a6031c91"
+    },
+    {
+      "bytes": 1213651,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-009.pdf",
+      "sha256": "3b98237716106d8a5f5a75f0a84d30ba55e7a63f480d946896d9892dd3b3680f"
+    },
+    {
+      "bytes": 523031,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-009.png",
+      "sha256": "597943bfe68e29b1293fd04c852fa6ae56e0ff6c235c2e5913bc8111e4602839"
+    },
+    {
+      "bytes": 1118536,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-010.pdf",
+      "sha256": "3dc79b2252d81eaafd57b64e1237712a602f10377e9b3a1a35e38b76a1ddfb24"
+    },
+    {
+      "bytes": 507201,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-010.png",
+      "sha256": "6a49b38802f8d0469b96477235f2d7bedf55032510ed9a4e16455485b865a646"
+    },
+    {
+      "bytes": 1146508,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-011.pdf",
+      "sha256": "cdcbf4e1138bafce44a1cbd46228e5898f8d6a59a717454689bc38f79fe3fb7d"
+    },
+    {
+      "bytes": 504331,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-011.png",
+      "sha256": "84118410bff06ffd33f7c2925da52bfb0efdf708b4590c3fcdeb0e5d6d126a90"
+    },
+    {
+      "bytes": 1050795,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-012.pdf",
+      "sha256": "b8e12129c65bd5348411b0aa3af92f35d72d21dac2384d6acf692c6d1745a8fa"
+    },
+    {
+      "bytes": 498835,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-012.png",
+      "sha256": "a9441f6170a0b7a59f7e95a59cbc7758aa72703d14ca4c203e1006ad585423d3"
+    },
+    {
+      "bytes": 1136675,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-013.pdf",
+      "sha256": "01af145ff445f4c935208d3a915b36a4093ce4f999583bb25b3cf99e91e0aada"
+    },
+    {
+      "bytes": 506507,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-013.png",
+      "sha256": "543edc22c19b7d9d12226f507234366454b21eeb28cb9236338bcc452f5eff33"
+    },
+    {
+      "bytes": 1178837,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-014.pdf",
+      "sha256": "6bfcab1657e448a8673adfd1123ecf8a5f5e8824454a9489fe9443b262f7361d"
+    },
+    {
+      "bytes": 510548,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-014.png",
+      "sha256": "3b125390cd3495641b425799e5e4679f4380618825d1d85e2cde3c840410b421"
+    },
+    {
+      "bytes": 1124589,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-015.pdf",
+      "sha256": "41ca0a8a6f2be2bdd611fae08a6373e14928b0a418e373234c37d95a9e9fb6c7"
+    },
+    {
+      "bytes": 499863,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-015.png",
+      "sha256": "d5596f89c0280c8e37be8db740fd11077840833f8e07e02e9b0bd42211017aa5"
+    },
+    {
+      "bytes": 1047634,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-016.pdf",
+      "sha256": "340426a0fb956a2b6888c1c8395419d5492bf97e5aed189e851277d1e53ea520"
+    },
+    {
+      "bytes": 497145,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-016.png",
+      "sha256": "6ae04765ad98420db3de470e39c426f52a79637dfd07d616774962a5f217fdd7"
+    },
+    {
+      "bytes": 1063448,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-017.pdf",
+      "sha256": "4683adaab80cc22cbdc1280fce83abbd48d2a56961192683377a4e8429df83ad"
+    },
+    {
+      "bytes": 504782,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-017.png",
+      "sha256": "a326c278a2a54b2c7b7b7060e6be471e5ed01d807123821301a3dc4359337baf"
+    },
+    {
+      "bytes": 1105970,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-018.pdf",
+      "sha256": "31748aa2322176f360d5ad6bee880d0cd2d004c20b1d0cc9b2d13f3d8a2e492e"
+    },
+    {
+      "bytes": 515709,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-018.png",
+      "sha256": "dcd587cd7fbb6b8ab35cea0d6ee441c2ac9d1d03dad6ab8d2be3ea33f54c4036"
+    },
+    {
+      "bytes": 1066408,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-019.pdf",
+      "sha256": "8b95a651421f053a34255b9550fee775ab024929142c417e05a3ed6bbd84a08f"
+    },
+    {
+      "bytes": 497874,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-019.png",
+      "sha256": "34604bf7dac1c2df0310ccf9f11f965a84ebbca53c19b70f10d604354fbee3fe"
+    },
+    {
+      "bytes": 1179130,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-020.pdf",
+      "sha256": "7e5b71f6dbf445ef1302c5b19ef5f1106967a4fd97ad4f961c65dce4418cc08f"
+    },
+    {
+      "bytes": 508707,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-020.png",
+      "sha256": "1782af72cee1c68e6ade8240b562df44f1c412637e208db3e537e72057e59e8f"
+    },
+    {
+      "bytes": 1166192,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-021.pdf",
+      "sha256": "e52b771ecd5b30243a3f9ed81e7ab14d0a8309875acb939961f3e6dc9929714e"
+    },
+    {
+      "bytes": 506211,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-021.png",
+      "sha256": "ccc7d2bb1efb34812eb5a874482230a3e98774f0a4e1f8ee81e6681c5fb5d8ab"
+    },
+    {
+      "bytes": 1087852,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-022.pdf",
+      "sha256": "d80386386be660414bf523ce860557b3324eeaf44eb96ac73aa61c2d71d850a1"
+    },
+    {
+      "bytes": 503867,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-022.png",
+      "sha256": "3b65e18ba2be423ce8ad8ca1a2f111dfdd3fdec557c4bd4c857906aa9829cb9b"
+    },
+    {
+      "bytes": 1146105,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-023.pdf",
+      "sha256": "ec169a4ea92b0a921e4dcee339eda410490f1d17e1bb45f4379fc2aa0fc6d6a4"
+    },
+    {
+      "bytes": 514649,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-023.png",
+      "sha256": "4a1779403c127cbd0e1420c52d91885ead708f24f846ad53711cbec19426859e"
+    },
+    {
+      "bytes": 1092727,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-024.pdf",
+      "sha256": "0824ff70370f9bb65e80ee899599dc02f823a94e6ec5bba65ee03df9004cdb1b"
+    },
+    {
+      "bytes": 505281,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-024.png",
+      "sha256": "b4bd5da651e6edfbed7915a53d7da783813c92b0ae2065e1015b190e77169dbc"
+    },
+    {
+      "bytes": 1121947,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-025.pdf",
+      "sha256": "62bf5bc52486194e47173f839d85ba778f366ac2c0ead3f2e50972799c98bc88"
+    },
+    {
+      "bytes": 505689,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-025.png",
+      "sha256": "994dc5959686177a09f7ce9f2be6a09708829701b2e10393a2675797a74dc6a2"
+    },
+    {
+      "bytes": 1106320,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-026.pdf",
+      "sha256": "e789e74dc76e9c0f63035174e173d0c80f33e5e3b163bb0ef737bc2d0a3e5edd"
+    },
+    {
+      "bytes": 504125,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-026.png",
+      "sha256": "72954a1b8cbfbd0544355a5bb9d7db67519194a0c0134e687f6db097bd7974f9"
+    },
+    {
+      "bytes": 1142461,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-027.pdf",
+      "sha256": "8da52481ad04652670f6c3d5fe583a86db5aaf88eab2e4cb2f93ee1ff1a7246a"
+    },
+    {
+      "bytes": 511182,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-027.png",
+      "sha256": "93525280151ef92ee671d1619c840d71eb63ef206d5a8e3f92acd9b3b4dfc64a"
+    },
+    {
+      "bytes": 1133375,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-028.pdf",
+      "sha256": "69afeeef1199fa1160a904695962b59849f2150c42477bdc8c04c5ae2f85cf55"
+    },
+    {
+      "bytes": 514868,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-028.png",
+      "sha256": "070c44f7f1b92fcccfb6aa779ce1131a61cf7073509838729b87aa48369a3939"
+    },
+    {
+      "bytes": 1136565,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-029.pdf",
+      "sha256": "30fb61c69dbcdba27ccb336a4d685e341897abd85b31a30e680ab5171997a73b"
+    },
+    {
+      "bytes": 510123,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-029.png",
+      "sha256": "190677aa39cc215677f308346e7f954754867246b249b218f5da55f725a5cb56"
+    },
+    {
+      "bytes": 1136129,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-030.pdf",
+      "sha256": "9cb71b27c85ee0e7aeb999f0914de899971b7f35977ca2edb97aa9e743268c96"
+    },
+    {
+      "bytes": 506722,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/blinded_pairs/CASE-030.png",
+      "sha256": "becc3770d733fac7d6a6c542ad96f74b02bb5e2344e06dfc1af6101f82dafbfa"
+    },
+    {
+      "bytes": 24686,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/case_selection.json",
+      "sha256": "941013d777b3d4df943c710f3e2d22ae5d58d62f030313d2ec79d109d26b2ab8"
+    },
+    {
+      "bytes": 1626,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/expert_rating_template.csv",
+      "sha256": "207e3f02bd8e34b322a2603cf19752d1b6e3ef47669c328f2857f7ee188b9f7a"
+    },
+    {
+      "bytes": 222,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/figures/physiology_metric_summary.csv",
+      "sha256": "6de3f2c6dd5f6e2ad1145d7e1afe58db5a81b6dd82d404f17fa18d092f54b5eb"
+    },
+    {
+      "bytes": 13123,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/figures/physiology_metric_summary.pdf",
+      "sha256": "74da10b7f8073cda5b29aa999fd95738ddb0bd8cc950199eb932237c39097cc7"
+    },
+    {
+      "bytes": 102479,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/figures/physiology_metric_summary.png",
+      "sha256": "5a8a4a87a9d97fcb4615bffc087e41e667c9d924819a1b22c21bfd158646cdbc"
+    },
+    {
+      "bytes": 654,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/figures/physiology_metric_summary_manifest.json",
+      "sha256": "73977f1316ee09494bd8d60e6fe5aecd041258e586f13fda233b37069a54f49c"
+    },
+    {
+      "bytes": 605,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/final_decision.json",
+      "sha256": "799fb9fea453402af7ab5276974e73c1409e94ab89480eae866b4c2c19a86e8e"
+    },
+    {
+      "bytes": 20062,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/physiology_metrics.csv",
+      "sha256": "b2d96be12bf76f793e58b51abbc2885fdb7adcfb4b753b984b72816a2fdb62f2"
+    },
+    {
+      "bytes": 30775,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/run_manifest.json",
+      "sha256": "6da9a7ceebbc3b4704f2211a30397d9f0c85404ee0c4899e57f3a44973f30148"
+    },
+    {
+      "bytes": 10494,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/scoring_key_restricted.json",
+      "sha256": "bc51f3924bfcc26a548f1c0e06813a12b0da944d1efe800d2d7783d6eaf756d2"
+    },
+    {
+      "bytes": 419,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/statistical_analysis_plan.json",
+      "sha256": "0994d5d710ae2c6f6d5fe8c3a6949d067089211dae1901138e4217dda7983214"
+    },
+    {
+      "bytes": 1616,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/user_task_template.csv",
+      "sha256": "01fb6ea4fed034846e5898fbb6b3bd03752903c2b36941e356f09307c2217d42"
+    },
+    {
+      "bytes": 27114,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-001.pdf",
+      "sha256": "7d70d1c576537ff28252ceec4a03f0db5e5ce2a9b8dde245438fb6a25166ea86"
+    },
+    {
+      "bytes": 127479,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-001.png",
+      "sha256": "82fd9d9aeafc90942928557a84b1714439144c61a570f0593897e047228b2955"
+    },
+    {
+      "bytes": 28681,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-002.pdf",
+      "sha256": "39746e51973b6fbc872bbcd96fac84820e5c7fb1828e25cde6a6d8bc4e553901"
+    },
+    {
+      "bytes": 128257,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-002.png",
+      "sha256": "46e7fcae8d0921262e6be585cc3ce68714db79ead2dab226d1fb859824557415"
+    },
+    {
+      "bytes": 27850,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-003.pdf",
+      "sha256": "0f4aef06780a360a4ef8bab004ecab00c5b6037c033a226a86759df9333e8617"
+    },
+    {
+      "bytes": 128735,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-003.png",
+      "sha256": "5dd4f7a9e18a6f70d31b222f2046d42029f07138cc6f9c29a42d2fb9284be79e"
+    },
+    {
+      "bytes": 24991,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-004.pdf",
+      "sha256": "62444085002dfc51bf85f59ef6f3ff63dea0847495d1c8d2835522c850309c06"
+    },
+    {
+      "bytes": 127362,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-004.png",
+      "sha256": "0aedc8061bddc5bb1ecc93ac8a7a3b49fabb8d1be965a779b66bd781668362f0"
+    },
+    {
+      "bytes": 28931,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-005.pdf",
+      "sha256": "74afa246183b366da29b46c537545aa9712a4a4b87f541b8cd03be83f2059b36"
+    },
+    {
+      "bytes": 127853,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-005.png",
+      "sha256": "c3e5431ba50d41c9478c99a4fd69050b1cdab166afc177603c69c9b3f07c4400"
+    },
+    {
+      "bytes": 26117,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-006.pdf",
+      "sha256": "898ba26f2f1c40e89f2210939bede26fdad8c56930f88c6669c7aed816ecd2b5"
+    },
+    {
+      "bytes": 128977,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-006.png",
+      "sha256": "c5ced0130e219ccda84788fafac6e0f6888d20d26d2b49ec300dd11c4ac16a33"
+    },
+    {
+      "bytes": 25129,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-007.pdf",
+      "sha256": "7b84b6ee5d034af4dbbd873bf19ce773bee954436880ae3963bd104e2ca2856d"
+    },
+    {
+      "bytes": 127216,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-007.png",
+      "sha256": "9b8ac63cf3be208f2b5eb83694b9cefdf18ea16426767fed1804c663f32314b7"
+    },
+    {
+      "bytes": 24322,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-008.pdf",
+      "sha256": "8151c89e301834bcdd7c4163273ffd043459ca2d89b5a8d41a1ae9c67509ec57"
+    },
+    {
+      "bytes": 128023,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-008.png",
+      "sha256": "7794eacc7b1e4c162a52bb2608de479644c2d59821a8c9e896cea3397df33977"
+    },
+    {
+      "bytes": 31271,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-009.pdf",
+      "sha256": "29c0954104bf57fa017a8e4df6d44b1a51d5256fd7bee239851b4946244391a1"
+    },
+    {
+      "bytes": 128996,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-009.png",
+      "sha256": "d22f626d8fac1a3c3587ecf04acb7d4d3b24001b6caeddd59fcabab4691c77fb"
+    },
+    {
+      "bytes": 25709,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-010.pdf",
+      "sha256": "4a4282287b118ef7bbc0531793c56ad575b1f6afb797e420137715200fec1fa1"
+    },
+    {
+      "bytes": 127645,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-010.png",
+      "sha256": "809da1793a7a0f4f9e6d505e16a64e9b0e1bf47e1ca42ae3e1c579782b8d5cf0"
+    },
+    {
+      "bytes": 25841,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-011.pdf",
+      "sha256": "7d76d3ceaed5be611a5c283a84376045131617b312c09e5eade458258f25a31f"
+    },
+    {
+      "bytes": 127222,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-011.png",
+      "sha256": "39709202faad102d57c4b56962a8518bc10c8075d16b84a1dd5c152484be0541"
+    },
+    {
+      "bytes": 20272,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-012.pdf",
+      "sha256": "5fa94a13a71fd9d0357bb1fb31a053d8cb14b5afc43f7f73dac062e43e49765f"
+    },
+    {
+      "bytes": 126208,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-012.png",
+      "sha256": "47398ce13f4ab3ea7900c827241e2a2abe540a2208fc749376f3c9fa1402205b"
+    },
+    {
+      "bytes": 28881,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-013.pdf",
+      "sha256": "e4d47903577b7d1aeb99f264f5b964370c4e876fa132e65af46aa3d9b565f556"
+    },
+    {
+      "bytes": 128007,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-013.png",
+      "sha256": "db3300294a3ac8c989d284d6e3c30957720853f93e56b3e2e2b8ad8d3ac239f7"
+    },
+    {
+      "bytes": 26184,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-014.pdf",
+      "sha256": "1978389e901bffa775efb51156685068428da1774f499635ff4b68443b902bf5"
+    },
+    {
+      "bytes": 127861,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-014.png",
+      "sha256": "0ef2a519448a63509f4d562a34448885df920b51eae1b44c595213a4a35e0ef2"
+    },
+    {
+      "bytes": 27324,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-015.pdf",
+      "sha256": "5682c7876181a53e8f8960c524c8b83ad7a8946f2ac97b71a984e045e7a07586"
+    },
+    {
+      "bytes": 127544,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-015.png",
+      "sha256": "8a7534a37d685f75c4c40f3c661430c24fce0b0bb87b365f31fd2bba70c5cb9e"
+    },
+    {
+      "bytes": 20467,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-016.pdf",
+      "sha256": "33d3893479aa88327b38aff0000f4c09f79ba363db2b3bb2b42c3a78836d7ae9"
+    },
+    {
+      "bytes": 126739,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-016.png",
+      "sha256": "cad5ad23a36d2f7d1bc8eed4098168f5e62ce56bbc07515d21a33429451f3554"
+    },
+    {
+      "bytes": 20453,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-017.pdf",
+      "sha256": "f1d2d5fbbf75edd2c00963883324c16abdcfd8d29fc0f15b4068f8bd05c1019b"
+    },
+    {
+      "bytes": 127107,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-017.png",
+      "sha256": "ba307ecef5e5bd3a46a9b395070e99acc5443188e587e87e12f4e097a4f292b4"
+    },
+    {
+      "bytes": 25208,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-018.pdf",
+      "sha256": "e044f9563898bc703ae3861408dd037c6ac7757d5bbf50711ad7b1a77629d738"
+    },
+    {
+      "bytes": 127299,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-018.png",
+      "sha256": "0b73e7bedc0d3a1d7b466991b2d551475f2e78066cd2e56eaeef71101ec8fd13"
+    },
+    {
+      "bytes": 26767,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-019.pdf",
+      "sha256": "0672214eb913d71cb00dc05ceb5b71e79de240652c98e4e65ab3a4033e64e347"
+    },
+    {
+      "bytes": 128089,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-019.png",
+      "sha256": "8f7608d1f2620709e8b6ccb91658cb757441ebe545e3b3ff3cf1e7ae73f44567"
+    },
+    {
+      "bytes": 27673,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-020.pdf",
+      "sha256": "2bd39a927c06a2c58b2e8e9d382576a1cd147f114c376bda852daa94463b01c6"
+    },
+    {
+      "bytes": 127860,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-020.png",
+      "sha256": "93421544a861b612f1d948ae3dc49fb6c02d09734d5f02eba225a3f0f9046191"
+    },
+    {
+      "bytes": 28857,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-021.pdf",
+      "sha256": "393ae9e7bf2103c127c12568592a3c60d6559df546aa8138f7c246fe71cd3fd7"
+    },
+    {
+      "bytes": 127494,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-021.png",
+      "sha256": "fa77da8c1d076c9e9a4d46aba824fcdac1ba0e02d80954e09b02d923b5574596"
+    },
+    {
+      "bytes": 23425,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-022.pdf",
+      "sha256": "0e4c8c66a67968891988f34110e36eef94e055440eb39cee8870ece30b5d7e69"
+    },
+    {
+      "bytes": 128304,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-022.png",
+      "sha256": "3d8facabe2d80b2a4507458cdd02a57ebda20adf75b4b9cad8f6020ad1e9aa03"
+    },
+    {
+      "bytes": 26390,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-023.pdf",
+      "sha256": "7ede1f67ae386d3a03ace4f3ea23353be52ba135961e7370902fd64a7e03e483"
+    },
+    {
+      "bytes": 128133,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-023.png",
+      "sha256": "817d81c1c0066ac32abf111db70f3b402845b87540f381e7387732a178b157de"
+    },
+    {
+      "bytes": 27333,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-024.pdf",
+      "sha256": "7232203f0858904446e17fdd70ede5dcc6dece373dcfe6b77fc546c49bd0bc2a"
+    },
+    {
+      "bytes": 128046,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-024.png",
+      "sha256": "132e34f95ed294460b9645b2b5433e1f4e1aa52de159814d6235f7924e10bb58"
+    },
+    {
+      "bytes": 30258,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-025.pdf",
+      "sha256": "d1eecf431234082653465afb93b5c30ca0af236ad1fcdb475c0b97102321394b"
+    },
+    {
+      "bytes": 127745,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-025.png",
+      "sha256": "25a9235ff4b54a916b41d8f36c08591dc5dc79fd7823563159c46241c2df565d"
+    },
+    {
+      "bytes": 25107,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-026.pdf",
+      "sha256": "142b5be80953bc024867bdb1658acd55e9805750ba804b22025ec28b722f41a4"
+    },
+    {
+      "bytes": 128818,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-026.png",
+      "sha256": "63f939f6ecae18f8e900e92f6de50e111274fdcb38ad1ffdd97a67b4d38a85b3"
+    },
+    {
+      "bytes": 25123,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-027.pdf",
+      "sha256": "392a0aaa1770de0fb37b65f35986b49b5ff5ee7226685ee93ea724856aabb37e"
+    },
+    {
+      "bytes": 127730,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-027.png",
+      "sha256": "2f3dd79cddae73edeca90c84eb2620fe2b75d9abdb765c2334e781135db25202"
+    },
+    {
+      "bytes": 26184,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-028.pdf",
+      "sha256": "94d1758a457a77172272ec8ee99f70c1e3554357a89f6e4aaeba30166f1335f8"
+    },
+    {
+      "bytes": 128170,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-028.png",
+      "sha256": "f2cb54c3832868709c0a9e9568585cdc315309281e14326a53edda8c31689f17"
+    },
+    {
+      "bytes": 26203,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-029.pdf",
+      "sha256": "54044a2b52535dd409ca8d5b97b1c2c210d67249901a66e61b5ad732c774f4db"
+    },
+    {
+      "bytes": 128390,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-029.png",
+      "sha256": "b65a61d788deae170ed73a35c89a58e21c2c773e027f7ccbe44bbda123b09cd6"
+    },
+    {
+      "bytes": 28853,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-030.pdf",
+      "sha256": "618b8c0e7624e6520511b0e3b5feb0d3e3ef7e232bb7da5ea01ef3519be75e4a"
+    },
+    {
+      "bytes": 128887,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v0_panels/CASE-030.png",
+      "sha256": "196aeec3c2d6c4c61caf1649000ee28daffa9baa9812813f368a3600f62f2c6a"
+    },
+    {
+      "bytes": 27712,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-001.pdf",
+      "sha256": "27924aeb8dded54b67346250ef879c002262bca594b6a75ce41244b33d1d5f66"
+    },
+    {
+      "bytes": 280597,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-001.png",
+      "sha256": "0b31d2d145e10ccc3d9afa0a078e83ce533e7e1d6a99c88dd665275d9a23bf40"
+    },
+    {
+      "bytes": 29016,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-002.pdf",
+      "sha256": "76a68d80f097ce37708de89f6a772458c63f14a8e9a8c46aa22bcfadfe53de9b"
+    },
+    {
+      "bytes": 279536,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-002.png",
+      "sha256": "2d0da18daa5a468c77f5468ad82baad1f7204f1066520a3effb4c2215932f758"
+    },
+    {
+      "bytes": 28387,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-003.pdf",
+      "sha256": "ec4b9e5bec56d5d5b0895130282cf8089d528e2673067858d777461aa4cfecb5"
+    },
+    {
+      "bytes": 285094,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-003.png",
+      "sha256": "313145187ed8d4148b5269c3b0166aa0acb6575e33be0cd76e792ffb5ebec349"
+    },
+    {
+      "bytes": 27577,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-004.pdf",
+      "sha256": "f5c3aff22264d2a9c21c8a71350b3cadfa6aa4dfee21487223a2672206d562e9"
+    },
+    {
+      "bytes": 282886,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-004.png",
+      "sha256": "c63bc7d9d72cc1b06a3ddef382635af5539af295ad8d60aad25bfb08440b1c34"
+    },
+    {
+      "bytes": 28173,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-005.pdf",
+      "sha256": "a00d7818c98e3e81405c0ffc22965be772a28bcbbb472fd6ad18ea91f4eeafba"
+    },
+    {
+      "bytes": 283866,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-005.png",
+      "sha256": "002e25eeb6609bfa15294afeb14e804864a8f0de44e52219c540b3976997392b"
+    },
+    {
+      "bytes": 27323,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-006.pdf",
+      "sha256": "917837a1cc8987c285bcd54dfc02829b88d5588462f645fb64b5403d042b3df5"
+    },
+    {
+      "bytes": 285334,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-006.png",
+      "sha256": "5bfac424cc3e9824336653e167374b3a0dfec56a47f1b2b570fda05151326088"
+    },
+    {
+      "bytes": 26997,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-007.pdf",
+      "sha256": "e50287a9c0ded6208822ee8ba9334414b476de19ea75f14123168e659964cbcd"
+    },
+    {
+      "bytes": 282410,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-007.png",
+      "sha256": "c87ed9cf58c98f5ae950d4803953f51e580ea1fff68499c7c984c3daf1026db8"
+    },
+    {
+      "bytes": 26269,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-008.pdf",
+      "sha256": "d7380e3f957385d52106baa6ace5f206c9b3da0bcdd32414620bf183561bf8d6"
+    },
+    {
+      "bytes": 280221,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-008.png",
+      "sha256": "b64be29d77cd39a3e8dfb9fcc0df7122fffb55db996c30ebfa70fff70290c01d"
+    },
+    {
+      "bytes": 28341,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-009.pdf",
+      "sha256": "8339bcd24a67f89629b58eb0abde1e5add68f0f7fe0bcc3f0c16a795dcbc59cd"
+    },
+    {
+      "bytes": 286584,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-009.png",
+      "sha256": "98f17f648dce6df9a92ab2b639f6ba24a7327863f03a994bb61846505b72932a"
+    },
+    {
+      "bytes": 26758,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-010.pdf",
+      "sha256": "da6ddb8e0ab3a6f7d58b675e0aa7158dccdcf471ab245b283d14b1093269fb3d"
+    },
+    {
+      "bytes": 284914,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-010.png",
+      "sha256": "785839251f339649b7fb42858539059f58e2f409f8ba99143b43a3c92440cb35"
+    },
+    {
+      "bytes": 27909,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-011.pdf",
+      "sha256": "256a5a0fed32c2e7ac74f63291f89f5c60d762e791337c683a071a609e54535e"
+    },
+    {
+      "bytes": 281660,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-011.png",
+      "sha256": "c8b72f6566621958f105cf052b369e5e67ba897f5378f2492c8ac8de15d45355"
+    },
+    {
+      "bytes": 22867,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-012.pdf",
+      "sha256": "e030a5e0d21bddc27248dbcc10c21449e4a6fe46e2d549ba62b016ab46de0e58"
+    },
+    {
+      "bytes": 277918,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-012.png",
+      "sha256": "31129429178e5ace0edafcf64c85ec8478d958febd12d952abf5d1fde02f6fed"
+    },
+    {
+      "bytes": 29638,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-013.pdf",
+      "sha256": "8a86d3aa7aabe85ec2b3c1b5049dd1e0ae5624eba88b55d8e93970a4147d2865"
+    },
+    {
+      "bytes": 284694,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-013.png",
+      "sha256": "135f5c5b58c7f4a3efe0ba12c8aca6efaf1d2c60078c30f4602470688f128cb6"
+    },
+    {
+      "bytes": 27302,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-014.pdf",
+      "sha256": "64c6403c272ec02ee1264bddb850f3f54ddabad37d17b66e4b9f4dba7dba1869"
+    },
+    {
+      "bytes": 287125,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-014.png",
+      "sha256": "4bba22d7d5cf4c4820adfed55a49fadaf46272635e40a1fcfef500cfc427b34d"
+    },
+    {
+      "bytes": 27940,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-015.pdf",
+      "sha256": "5d6328a22fef405d671d44f5241519da499d7b92f62813d03f597afba93ce905"
+    },
+    {
+      "bytes": 282033,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-015.png",
+      "sha256": "2ec5256bc28af5d269fe6d8f85161227f7a363584772706add9ab7db95327bb2"
+    },
+    {
+      "bytes": 23007,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-016.pdf",
+      "sha256": "8e5988f8bee482f388bd7628d0490fc98190fcba9150e8eb3681675841667a1d"
+    },
+    {
+      "bytes": 279856,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-016.png",
+      "sha256": "2ca3710d098134edb11674382203a07405e35ecf00dbd2fe3b150756ebbbdeb2"
+    },
+    {
+      "bytes": 22618,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-017.pdf",
+      "sha256": "12578129ee91fc01991a5f8a9b57151b5c92fa0c528b0b2350e25f7de1ee68af"
+    },
+    {
+      "bytes": 283695,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-017.png",
+      "sha256": "6ad2e72773cc40323d4a3f576074c2d788e5e2e5b6f5eddc6fe9d9a7a0cffa8e"
+    },
+    {
+      "bytes": 26110,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-018.pdf",
+      "sha256": "c2ea1e1080ae35cff039b54b6c32c780923d42327d1bdbd4b40dedbf03963aa9"
+    },
+    {
+      "bytes": 295470,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-018.png",
+      "sha256": "a236f36391347c10711c21b9f75c82d424180ca54a2eb96cc9071f40e5dbee70"
+    },
+    {
+      "bytes": 27253,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-019.pdf",
+      "sha256": "6b727dcaa9beb98d2315213484fb05bb1bdcbe0fcb718a265f2ea3e959bc8f75"
+    },
+    {
+      "bytes": 281355,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-019.png",
+      "sha256": "ace7ef73d40d523972eb9c214e75271820a792989da502156920fca97cfb08af"
+    },
+    {
+      "bytes": 28637,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-020.pdf",
+      "sha256": "6bfa78c8db57696350d303eb2104779d07abe72d1e9bc0b4a71eb51438137239"
+    },
+    {
+      "bytes": 282479,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-020.png",
+      "sha256": "41d4e7f834cfe4d8790abdc7fc3f37188e4115ac214aa3afc9a7c1909649f2d5"
+    },
+    {
+      "bytes": 29404,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-021.pdf",
+      "sha256": "5e6fd410fa2e65790b6baffdaa1c9533b80bc1c8bffc7d549aa8f4685fc3ea34"
+    },
+    {
+      "bytes": 284087,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-021.png",
+      "sha256": "bfe505c412f23524243bf8ec4011b735dbfaa2d6651cec71b013ae17ee6c5811"
+    },
+    {
+      "bytes": 25372,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-022.pdf",
+      "sha256": "7bd495d4b0b71f4db6427d9f05c2fc074926a0ac4b0a47eb069e0887c974baa2"
+    },
+    {
+      "bytes": 280864,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-022.png",
+      "sha256": "2391def8c6e18e7c8307358f2d798f1e01402859cf006bd2e702a8f9e394991c"
+    },
+    {
+      "bytes": 27571,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-023.pdf",
+      "sha256": "e4463bc4183456bf995859f197fe80b496175ad74cb7da090c787694faafc6fb"
+    },
+    {
+      "bytes": 292989,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-023.png",
+      "sha256": "f4dd7bd220041a06ca4708f4c768673a95a4cabd04ffcf63cae743ff709eea47"
+    },
+    {
+      "bytes": 27959,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-024.pdf",
+      "sha256": "80dbacea054f863cd9b340a7a61d45addff40eaadb4482f5db08c0f99936459f"
+    },
+    {
+      "bytes": 281589,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-024.png",
+      "sha256": "96c7067b24006104434b03e3ca1a7589c8880ef68e978bd9955d92a1cda0b635"
+    },
+    {
+      "bytes": 28875,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-025.pdf",
+      "sha256": "02df76ac72d846b423e01d440988558860256ee9c36c0f50a112f482570dbca7"
+    },
+    {
+      "bytes": 281081,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-025.png",
+      "sha256": "d48f168fd4ab2d510093a8c71c3b2f66042a7bf3d9feb7ff4750a84e4de5c7c5"
+    },
+    {
+      "bytes": 26207,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-026.pdf",
+      "sha256": "58c25b4afd81d3d46bc9d9ea7891914f848cc4fe5a5ed6393bf62470d11862c1"
+    },
+    {
+      "bytes": 286450,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-026.png",
+      "sha256": "0737bc3d04662ce711e82ea63a1ced018f0ba234690d14af2ba7f8039fc32942"
+    },
+    {
+      "bytes": 27709,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-027.pdf",
+      "sha256": "c4ec6e6b46266e8ce00a81990a356eca11d8d561b32ec03268938514624abc48"
+    },
+    {
+      "bytes": 284173,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-027.png",
+      "sha256": "9ed089888d06e14d4f83371c7a50c545efcecc195501e3a58c9b74326ce201ac"
+    },
+    {
+      "bytes": 27293,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-028.pdf",
+      "sha256": "4a701ba65a21f3fa2a12fce0f189f678da71812e091fb502f9a3fb23918e9da9"
+    },
+    {
+      "bytes": 288166,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-028.png",
+      "sha256": "cc8fc1599259770539f11d01df778a4c8cd4d934faedbe979f0e8d57035224f2"
+    },
+    {
+      "bytes": 27101,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-029.pdf",
+      "sha256": "e53cf7900a296b3aa92f9476ed07d59f6c3e6bdf5513627e476601b566b6a9cf"
+    },
+    {
+      "bytes": 284806,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-029.png",
+      "sha256": "0855efcebfa99bcdcc3f6847b637587a18164dac4b5b61cfc66cfe113454c117"
+    },
+    {
+      "bytes": 30795,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-030.pdf",
+      "sha256": "004bb7a77d053ffe3d2a882297348e91522034ff4c046bbe4e52a073130cb803"
+    },
+    {
+      "bytes": 280446,
+      "path": "outputs/physiology_aware_display_validation/isruc_seed42/v1_panels/CASE-030.png",
+      "sha256": "e6c910f88e664c9bd76be6e5d3e00f9c45b8c0953d853ceb4d83641e2b8bcf84"
+    }
+  ],
+  "schema_version": "physiology_aware_display_results_manifest_v1"
+}
