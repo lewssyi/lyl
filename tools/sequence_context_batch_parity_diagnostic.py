@@ -876,6 +876,12 @@ def render_report() -> None:
     runtime = json.loads((OUTPUT_ROOT / "runtime_memory_profile.json").read_text(encoding="utf-8"))
     access = json.loads((OUTPUT_ROOT / "access_audit.json").read_text(encoding="utf-8"))
     stats = batch["final_probability_stats"]
+    raw_stats = batch["stages"]["raw_encoder"]
+    segment_stats = batch["stages"]["segment_encoder"]
+    logits_stats = batch["stages"]["logits"]
+    aggregate_stats = aggregation["probability_stats"]
+    memory1_mib = runtime["batch1_formal_peak_allocated_bytes"] / (1024 * 1024)
+    memory16_mib = runtime["batch16_formal_peak_allocated_bytes"] / (1024 * 1024)
     lines = [
         "# Sequence Context Influence — Batch Parity Failure Diagnostic Run 1",
         "",
@@ -886,15 +892,45 @@ def render_report() -> None:
         "## 诊断结论",
         "",
         f"- 精确最大概率绝对差：`{stats['max_abs_diff']:.17g}`。",
-        f"- 首个差异阶段：`{batch['first_divergent_stage']}`。",
+        (
+            f"- 首个有序 probe 差异阶段：`{batch['first_divergent_stage']}` "
+            f"（max `{raw_stats['max_abs_diff']:.17g}`）；并行 `segment_encoder` "
+            f"也已差异（max `{segment_stats['max_abs_diff']:.17g}`），因此层级结论是"
+            "两条 epoch encoder 分支已经出现 batch-shape 差异。"
+        ),
         f"- 根因分类：`{batch['root_cause_classification']}`。",
         f"- 输入、窗口顺序、target position：`{batch['input_identity']} / {batch['window_order']} / {batch['target_positions']}`。",
         f"- batch-1 A1/A2 exact stable：`{repeat1['stable_exactly']}`。",
         f"- batch-16 B1/B2 exact stable：`{repeat16['stable_exactly']}`。",
-        f"- argmax 改变：`{aggregation['argmax_changed']}`；influence 符号改变：`{aggregation['influence_sign_changed']}`。",
-        f"- batch-1 TensorFlow allocator peak：`{runtime['batch1_formal_peak_allocated_bytes']}` bytes。",
-        f"- batch-16 TensorFlow allocator peak：`{runtime['batch16_formal_peak_allocated_bytes']}` bytes。",
+        (
+            f"- 最大概率差位于 window start `{stats['max_window_start']}`、target position "
+            f"`{stats['max_target_position']}`、class `W`：batch-1 "
+            f"`{stats['left_at_max']:.17g}`，batch-16 `{stats['right_at_max']:.17g}`。"
+        ),
+        f"- logits 最大绝对差：`{logits_stats['max_abs_diff']:.17g}`。",
+        (
+            f"- 聚合概率最大绝对差：`{aggregate_stats['max_abs_diff']:.17g}`；response "
+            f"`{aggregation['aggregated_response_batch1']:.17g}` → "
+            f"`{aggregation['aggregated_response_batch16']:.17g}`。"
+        ),
+        (
+            f"- signed influence `{aggregation['signed_influence_batch1']:.17g}` → "
+            f"`{aggregation['signed_influence_batch16']:.17g}`；argmax 改变："
+            f"`{aggregation['argmax_changed']}`；influence 符号改变："
+            f"`{aggregation['influence_sign_changed']}`。"
+        ),
+        (
+            f"- batch-1 TensorFlow allocator peak："
+            f"`{runtime['batch1_formal_peak_allocated_bytes']}` bytes "
+            f"(`{memory1_mib:.3f}` MiB)。"
+        ),
+        (
+            f"- batch-16 TensorFlow allocator peak："
+            f"`{runtime['batch16_formal_peak_allocated_bytes']}` bytes "
+            f"(`{memory16_mib:.3f}` MiB)。"
+        ),
         "- TensorFlow allocator 不暴露与 PyTorch `max_memory_reserved` 等价的 reserved 指标，因此该项明确记为 N/A。",
+        "- 原 smoke 设置保持不变：float32、TF32 enabled、无 mixed precision 切换、training=False、seed=42。",
         "",
         "## 边界与资产",
         "",
