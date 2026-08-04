@@ -1,0 +1,52 @@
+{
+  "artifacts": [
+    {
+      "bytes": 3109,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/batch_shape_numerical_protocol_v1/numerical_equivalence_protocol.json",
+      "sha256": "18948a8030754a8364430d3af52c544c2e6cc19f9d54ffb229a6b0de1acca299"
+    },
+    {
+      "bytes": 21468,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/batch_shape_numerical_protocol_v1/diagnostic_offline_reassessment.json",
+      "sha256": "0590f042e1a8765b1d4be22326d0d792ea618d55337858cda679a0af399545b1"
+    },
+    {
+      "bytes": 14398,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/batch_shape_numerical_protocol_v1/tolerance_boundary_tests.json",
+      "sha256": "c2becf4ae09b972b1adecdb04bb4ccf231f088c976d5a2f2592d7b23ffdbd08a"
+    },
+    {
+      "bytes": 6518,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/batch_shape_numerical_protocol_v1/source_evidence_manifest.json",
+      "sha256": "88f0cef2c994582f4d9e7a69cba336cb1da6573c1f120e18f99a1442a957cb4d"
+    },
+    {
+      "bytes": 150,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/batch_shape_numerical_protocol_v1/README.md",
+      "sha256": "2066ebdb1a4f7c0993c016af9043b09da1195e01b3012010c6a63724e6d52753"
+    }
+  ],
+  "created_at": "2026-08-04T04:03:55.818265+00:00",
+  "historical_failure_retroactively_changed": false,
+  "historical_smoke_status": "DEVELOPMENT_SMOKE_BLOCKED",
+  "near_tolerance_warning": "BATCH_SHAPE_NEAR_TOLERANCE_WARNING",
+  "new_model_inference_performed": false,
+  "offline_reassessment_overall_pass_for_future_protocol": false,
+  "protected_historical_hashes_after": {
+    "diagnostic_report": "2f007f885ff7db751586a9c67df6bfd8c43e73fd9b550bd4ef799e82af616791",
+    "original_smoke_report": "d85a7400f4b5a9b26cf7ae9a86bd25afe6d4978c41b86c2d84a9ac8d7d53ccc6",
+    "original_smoke_run_manifest": "bdda7a96d45ae0cf85d8381fb26c9b6a17cfe5c0aedb029ec0edf8ae7ced4781"
+  },
+  "protocol_name": "BATCH_SHAPE_NUMERICAL_EQUIVALENCE_V1",
+  "report": {
+    "bytes": 3639,
+    "path": "docs/paper_xai/SEQUENCE_CONTEXT_INFLUENCE_BATCH_NUMERICAL_PROTOCOL.md",
+    "sha256": "07d79db32af504c3abdcb7508f21f5d8066f898933dfe728638e9ff21c0119e8"
+  },
+  "sample_58657_accessed": false,
+  "schema_version": "batch_shape_numerical_protocol_run_manifest_v1",
+  "source_git_head": "0ffa1d784eb0721a9e1d7ed9bef84eba5015ed94",
+  "status": "BATCH_SHAPE_NUMERICAL_PROTOCOL_FROZEN",
+  "test_accessed": false,
+  "validation_accessed": false
+}

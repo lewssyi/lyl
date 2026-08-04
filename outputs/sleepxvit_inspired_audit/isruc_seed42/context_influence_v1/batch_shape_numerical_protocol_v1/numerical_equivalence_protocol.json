@@ -1,0 +1,88 @@
+{
+  "cross_batch_probability_equivalence_gate": {
+    "all_elements_required": true,
+    "atol": 1e-05,
+    "candidate": "batch16 corresponding element",
+    "finite_range_argmax_and_response_class_required": true,
+    "formula": "abs(p_batch16-p_batch1) <= 1e-5 + 1e-5*abs(p_batch1)",
+    "near_tolerance_warning_formula": "abs(diff)/(1e-5+1e-5*abs(reference)) > 0.8",
+    "probability_sum_atol": 1e-05,
+    "reference": "batch1",
+    "rtol": 1e-05,
+    "warning_does_not_expand_tolerance": true
+  },
+  "derived_response_equivalence_gate": {
+    "epsilon_I": "epsilon_R(R_original_batch1) + epsilon_R(R_counterfactual_batch1)",
+    "epsilon_R": "1e-5 + 1e-5*abs(x)",
+    "influence_formula": "abs(I16-I1) <= epsilon_I",
+    "response_formula": "abs(R16-R1) <= epsilon_R(R1)",
+    "sign_rule": "sign must match only when both abs(influence) > epsilon_I; otherwise NUMERICALLY_NEAR_ZERO"
+  },
+  "diagnostic_only_intermediate_stages": [
+    "raw_encoder",
+    "segment_encoder",
+    "fusion",
+    "TCN",
+    "Transformer",
+    "decoder",
+    "logits"
+  ],
+  "fallback_provenance": {
+    "not_derived_from_observed_1_84178e_5": true,
+    "rule": "If the project has no defined parity standard, freeze atol=1e-5, rtol=1e-5 before inference; never loosen after seeing results.",
+    "smoke_protocol_frozen_utc": "2026-08-03T09:28:49.222959+00:00",
+    "source": "pre-smoke user authorization attachment 8f24a85b.../pasted-text.txt lines 211-215",
+    "source_bytes": 13836,
+    "source_created_utc": "2026-08-03T08:59:19Z",
+    "source_sha256": "327f0e4c21172c4b74cb9557c1835345a5f4acb7ba7f6460983a864583eb9d16"
+  },
+  "frozen_at": "2026-08-04T04:03:55.814168+00:00",
+  "future_scope_only": true,
+  "historical_failure_retroactively_changed": false,
+  "historical_smoke_status": "DEVELOPMENT_SMOKE_BLOCKED",
+  "new_model_inference_performed": false,
+  "protocol_name": "BATCH_SHAPE_NUMERICAL_EQUIVALENCE_V1",
+  "same_shape_repeatability_gate": {
+    "batch16_B1_vs_B2": "max_abs_diff == 0",
+    "batch1_A1_vs_A2": "max_abs_diff == 0",
+    "relaxation_allowed": false
+  },
+  "schema_version": "batch_shape_numerical_equivalence_protocol_v1",
+  "source_git_head": "0ffa1d784eb0721a9e1d7ed9bef84eba5015ed94",
+  "status": "FROZEN_FOR_FUTURE_NEW_SMOKE_RUNS_ONLY",
+  "structural_identity_gate": {
+    "comparison": "EXACT",
+    "failure": "STRUCTURAL_IDENTITY_FAIL",
+    "fields": [
+      "sample_id",
+      "subject_id",
+      "recording_id",
+      "physical_epoch",
+      "offset",
+      "replacement",
+      "raw_input_hash",
+      "segment_input_hash",
+      "window_id_order",
+      "target_position",
+      "class_order",
+      "response_class",
+      "window_count",
+      "input_shape",
+      "input_dtype"
+    ]
+  },
+  "unchanged_gates": [
+    "canonical_baseline_parity",
+    "no_op_control",
+    "single_physical_epoch_isolation",
+    "raw_segment_synchronized_update",
+    "overlapping_window_integrity",
+    "target_position_mapping",
+    "determinism",
+    "finite_checks",
+    "data_access_boundary",
+    "asset_hashes",
+    "no_HMM_training_gradient",
+    "canonical_LIME_and_authoritative_states"
+  ]
+}

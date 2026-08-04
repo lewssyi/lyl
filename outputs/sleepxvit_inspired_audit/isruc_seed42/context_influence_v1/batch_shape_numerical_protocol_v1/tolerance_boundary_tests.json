@@ -1,0 +1,489 @@
+{
+  "cases": [
+    {
+      "detail": {
+        "actual_diff_at_max_tolerance_usage": 0.0,
+        "actual_difference": [
+          0.0,
+          0.0
+        ],
+        "allowed_diff_at_max": 1.2e-05,
+        "allowed_diff_at_max_tolerance_usage": 1.2e-05,
+        "allowed_difference": [
+          1.2e-05,
+          1.8000000000000004e-05
+        ],
+        "candidate": [
+          0.2,
+          0.8
+        ],
+        "candidate_at_max_abs_diff": 0.2,
+        "candidate_at_max_tolerance_usage": 0.2,
+        "failure_reason": null,
+        "finite": true,
+        "max_abs_diff": 0.0,
+        "max_abs_diff_flat_index": 0,
+        "max_abs_diff_location": [
+          0
+        ],
+        "max_tolerance_usage": 0.0,
+        "max_tolerance_usage_flat_index": 0,
+        "max_tolerance_usage_location": [
+          0
+        ],
+        "near_tolerance_warning": false,
+        "normalized_tolerance_usage": [
+          0.0,
+          0.0
+        ],
+        "pass": true,
+        "reference": [
+          0.2,
+          0.8
+        ],
+        "reference_at_max_abs_diff": 0.2,
+        "reference_at_max_tolerance_usage": 0.2,
+        "shape": [
+          2
+        ],
+        "shape_match": true,
+        "tolerance_usage_at_max_abs_diff": 0.0,
+        "warning_status": "NONE"
+      },
+      "expected_pass": true,
+      "name": "exact_match",
+      "observed_pass": true,
+      "test_pass": true
+    },
+    {
+      "detail": {
+        "actual_diff_at_max_tolerance_usage": 1.0000000000287557e-06,
+        "actual_difference": [
+          1.0000000000287557e-06
+        ],
+        "allowed_diff_at_max": 1.5000000000000002e-05,
+        "allowed_diff_at_max_tolerance_usage": 1.5000000000000002e-05,
+        "allowed_difference": [
+          1.5000000000000002e-05
+        ],
+        "candidate": [
+          0.500001
+        ],
+        "candidate_at_max_abs_diff": 0.500001,
+        "candidate_at_max_tolerance_usage": 0.500001,
+        "failure_reason": null,
+        "finite": true,
+        "max_abs_diff": 1.0000000000287557e-06,
+        "max_abs_diff_flat_index": 0,
+        "max_abs_diff_location": [
+          0
+        ],
+        "max_tolerance_usage": 0.0666666666685837,
+        "max_tolerance_usage_flat_index": 0,
+        "max_tolerance_usage_location": [
+          0
+        ],
+        "near_tolerance_warning": false,
+        "normalized_tolerance_usage": [
+          0.0666666666685837
+        ],
+        "pass": true,
+        "reference": [
+          0.5
+        ],
+        "reference_at_max_abs_diff": 0.5,
+        "reference_at_max_tolerance_usage": 0.5,
+        "shape": [
+          1
+        ],
+        "shape_match": true,
+        "tolerance_usage_at_max_abs_diff": 0.0666666666685837,
+        "warning_status": "NONE"
+      },
+      "expected_pass": true,
+      "name": "clearly_below_tolerance",
+      "observed_pass": true,
+      "test_pass": true
+    },
+    {
+      "detail": {
+        "actual_diff_at_max_tolerance_usage": 1e-05,
+        "actual_difference": [
+          1e-05
+        ],
+        "allowed_diff_at_max": 1e-05,
+        "allowed_diff_at_max_tolerance_usage": 1e-05,
+        "allowed_difference": [
+          1e-05
+        ],
+        "candidate": [
+          1e-05
+        ],
+        "candidate_at_max_abs_diff": 1e-05,
+        "candidate_at_max_tolerance_usage": 1e-05,
+        "failure_reason": null,
+        "finite": true,
+        "max_abs_diff": 1e-05,
+        "max_abs_diff_flat_index": 0,
+        "max_abs_diff_location": [
+          0
+        ],
+        "max_tolerance_usage": 1.0,
+        "max_tolerance_usage_flat_index": 0,
+        "max_tolerance_usage_location": [
+          0
+        ],
+        "near_tolerance_warning": true,
+        "normalized_tolerance_usage": [
+          1.0
+        ],
+        "pass": true,
+        "reference": [
+          0.0
+        ],
+        "reference_at_max_abs_diff": 0.0,
+        "reference_at_max_tolerance_usage": 0.0,
+        "shape": [
+          1
+        ],
+        "shape_match": true,
+        "tolerance_usage_at_max_abs_diff": 1.0,
+        "warning_status": "BATCH_SHAPE_NEAR_TOLERANCE_WARNING"
+      },
+      "expected_pass": true,
+      "name": "exact_tolerance_boundary",
+      "observed_pass": true,
+      "test_pass": true
+    },
+    {
+      "detail": {
+        "actual_diff_at_max_tolerance_usage": 1.0000000000000003e-05,
+        "actual_difference": [
+          1.0000000000000003e-05
+        ],
+        "allowed_diff_at_max": 1e-05,
+        "allowed_diff_at_max_tolerance_usage": 1e-05,
+        "allowed_difference": [
+          1e-05
+        ],
+        "candidate": [
+          1.0000000000000003e-05
+        ],
+        "candidate_at_max_abs_diff": 1.0000000000000003e-05,
+        "candidate_at_max_tolerance_usage": 1.0000000000000003e-05,
+        "failure_reason": "ELEMENT_EXCEEDS_TOLERANCE",
+        "finite": true,
+        "max_abs_diff": 1.0000000000000003e-05,
+        "max_abs_diff_flat_index": 0,
+        "max_abs_diff_location": [
+          0
+        ],
+        "max_tolerance_usage": 1.0000000000000002,
+        "max_tolerance_usage_flat_index": 0,
+        "max_tolerance_usage_location": [
+          0
+        ],
+        "near_tolerance_warning": true,
+        "normalized_tolerance_usage": [
+          1.0000000000000002
+        ],
+        "pass": false,
+        "reference": [
+          0.0
+        ],
+        "reference_at_max_abs_diff": 0.0,
+        "reference_at_max_tolerance_usage": 0.0,
+        "shape": [
+          1
+        ],
+        "shape_match": true,
+        "tolerance_usage_at_max_abs_diff": 1.0000000000000002,
+        "warning_status": "BATCH_SHAPE_NEAR_TOLERANCE_WARNING"
+      },
+      "expected_pass": false,
+      "name": "just_above_tolerance",
+      "observed_pass": false,
+      "test_pass": true
+    },
+    {
+      "detail": {
+        "actual_diff_at_max_tolerance_usage": 1.799999999996249e-05,
+        "actual_difference": [
+          1.799999999996249e-05
+        ],
+        "allowed_diff_at_max": 1.9e-05,
+        "allowed_diff_at_max_tolerance_usage": 1.9e-05,
+        "allowed_difference": [
+          1.9e-05
+        ],
+        "candidate": [
+          0.900018
+        ],
+        "candidate_at_max_abs_diff": 0.900018,
+        "candidate_at_max_tolerance_usage": 0.900018,
+        "failure_reason": null,
+        "finite": true,
+        "max_abs_diff": 1.799999999996249e-05,
+        "max_abs_diff_flat_index": 0,
+        "max_abs_diff_location": [
+          0
+        ],
+        "max_tolerance_usage": 0.9473684210506573,
+        "max_tolerance_usage_flat_index": 0,
+        "max_tolerance_usage_location": [
+          0
+        ],
+        "near_tolerance_warning": true,
+        "normalized_tolerance_usage": [
+          0.9473684210506573
+        ],
+        "pass": true,
+        "reference": [
+          0.9
+        ],
+        "reference_at_max_abs_diff": 0.9,
+        "reference_at_max_tolerance_usage": 0.9,
+        "shape": [
+          1
+        ],
+        "shape_match": true,
+        "tolerance_usage_at_max_abs_diff": 0.9473684210506573,
+        "warning_status": "BATCH_SHAPE_NEAR_TOLERANCE_WARNING"
+      },
+      "expected_pass": true,
+      "name": "high_confidence_relative_tolerance",
+      "observed_pass": true,
+      "test_pass": true
+    },
+    {
+      "detail": {
+        "actual_diff_at_max_tolerance_usage": 9e-06,
+        "actual_difference": [
+          9e-06
+        ],
+        "allowed_diff_at_max": 1e-05,
+        "allowed_diff_at_max_tolerance_usage": 1e-05,
+        "allowed_difference": [
+          1e-05
+        ],
+        "candidate": [
+          9e-06
+        ],
+        "candidate_at_max_abs_diff": 9e-06,
+        "candidate_at_max_tolerance_usage": 9e-06,
+        "failure_reason": null,
+        "finite": true,
+        "max_abs_diff": 9e-06,
+        "max_abs_diff_flat_index": 0,
+        "max_abs_diff_location": [
+          0
+        ],
+        "max_tolerance_usage": 0.8999999999999999,
+        "max_tolerance_usage_flat_index": 0,
+        "max_tolerance_usage_location": [
+          0
+        ],
+        "near_tolerance_warning": true,
+        "normalized_tolerance_usage": [
+          0.8999999999999999
+        ],
+        "pass": true,
+        "reference": [
+          0.0
+        ],
+        "reference_at_max_abs_diff": 0.0,
+        "reference_at_max_tolerance_usage": 0.0,
+        "shape": [
+          1
+        ],
+        "shape_match": true,
+        "tolerance_usage_at_max_abs_diff": 0.8999999999999999,
+        "warning_status": "BATCH_SHAPE_NEAR_TOLERANCE_WARNING"
+      },
+      "expected_pass": true,
+      "name": "near_zero_probability_absolute_tolerance",
+      "observed_pass": true,
+      "test_pass": true
+    },
+    {
+      "detail": {
+        "actual_difference": null,
+        "allowed_diff_at_max": null,
+        "allowed_difference": null,
+        "candidate": null,
+        "failure_reason": "NONFINITE",
+        "finite": false,
+        "max_abs_diff": null,
+        "max_tolerance_usage": null,
+        "near_tolerance_warning": false,
+        "normalized_tolerance_usage": null,
+        "pass": false,
+        "reference": null,
+        "shape": [
+          2
+        ],
+        "shape_match": true,
+        "warning_status": "NONE"
+      },
+      "expected_pass": false,
+      "name": "nan_inf",
+      "observed_pass": false,
+      "test_pass": true
+    },
+    {
+      "detail": {
+        "argmax_equal_for_every_window": false,
+        "candidate_argmax": [
+          1
+        ],
+        "candidate_max_probability_sum_error": 0.0,
+        "finite": true,
+        "five_class_shape": true,
+        "pass": false,
+        "probability_sum_atol": 1e-05,
+        "probability_sum_valid": true,
+        "range_valid": true,
+        "reference_argmax": [
+          0
+        ],
+        "reference_max_probability_sum_error": 0.0
+      },
+      "expected_pass": false,
+      "name": "argmax_change",
+      "observed_pass": false,
+      "test_pass": true
+    },
+    {
+      "detail": {
+        "actual_difference": 1.999999999990898e-05,
+        "allowed_difference_epsilon_I": 3.7000000000000005e-05,
+        "counterfactual_response_batch1": 0.8,
+        "counterfactual_response_batch16": 0.80002,
+        "epsilon_R_counterfactual_batch1": 1.8000000000000004e-05,
+        "epsilon_R_original_batch1": 1.9e-05,
+        "failure_reason": null,
+        "normalized_tolerance_usage": 0.5405405405380804,
+        "numerically_near_zero": false,
+        "original_response_batch1": 0.9,
+        "pass": true,
+        "sign_equal": true,
+        "sign_rule_pass": true,
+        "signed_influence_batch1": 0.09999999999999998,
+        "signed_influence_batch16": 0.09998000000000007
+      },
+      "expected_pass": true,
+      "name": "influence_error_propagation",
+      "observed_pass": true,
+      "test_pass": true
+    },
+    {
+      "detail": {
+        "actual_difference": 2.000000000002e-06,
+        "allowed_difference_epsilon_I": 2.9999990000000003e-05,
+        "counterfactual_response_batch1": 0.499999,
+        "counterfactual_response_batch16": 0.500001,
+        "epsilon_R_counterfactual_batch1": 1.4999990000000001e-05,
+        "epsilon_R_original_batch1": 1.5000000000000002e-05,
+        "failure_reason": null,
+        "normalized_tolerance_usage": 0.06666668888896296,
+        "numerically_near_zero": true,
+        "original_response_batch1": 0.5,
+        "pass": true,
+        "sign_equal": false,
+        "sign_rule_pass": true,
+        "signed_influence_batch1": 9.999999999732445e-07,
+        "signed_influence_batch16": -1.0000000000287557e-06
+      },
+      "expected_pass": true,
+      "name": "near_zero_influence_sign_change",
+      "observed_pass": true,
+      "test_pass": true
+    },
+    {
+      "detail": {
+        "actual_difference": 0.0020000000000000018,
+        "allowed_difference_epsilon_I": 2.9990000000000003e-05,
+        "counterfactual_response_batch1": 0.499,
+        "counterfactual_response_batch16": 0.501,
+        "epsilon_R_counterfactual_batch1": 1.499e-05,
+        "epsilon_R_original_batch1": 1.5000000000000002e-05,
+        "failure_reason": "INFLUENCE_EQUIVALENCE_FAIL",
+        "normalized_tolerance_usage": 66.68889629876631,
+        "numerically_near_zero": false,
+        "original_response_batch1": 0.5,
+        "pass": false,
+        "sign_equal": false,
+        "sign_rule_pass": false,
+        "signed_influence_batch1": 0.0010000000000000009,
+        "signed_influence_batch16": -0.0010000000000000009
+      },
+      "expected_pass": false,
+      "name": "non_near_zero_influence_sign_change",
+      "observed_pass": false,
+      "test_pass": true
+    },
+    {
+      "detail": {
+        "failure_reason": "STRUCTURAL_IDENTITY_FAIL"
+      },
+      "expected_pass": false,
+      "name": "structural_identity_mismatch",
+      "observed_pass": false,
+      "test_pass": true
+    },
+    {
+      "detail": {
+        "actual_diff_at_max_tolerance_usage": 1.3499999999999623e-05,
+        "actual_difference": [
+          1.3499999999999623e-05
+        ],
+        "allowed_diff_at_max": 1.5000000000000002e-05,
+        "allowed_diff_at_max_tolerance_usage": 1.5000000000000002e-05,
+        "allowed_difference": [
+          1.5000000000000002e-05
+        ],
+        "candidate": [
+          0.5000135
+        ],
+        "candidate_at_max_abs_diff": 0.5000135,
+        "candidate_at_max_tolerance_usage": 0.5000135,
+        "failure_reason": null,
+        "finite": true,
+        "max_abs_diff": 1.3499999999999623e-05,
+        "max_abs_diff_flat_index": 0,
+        "max_abs_diff_location": [
+          0
+        ],
+        "max_tolerance_usage": 0.8999999999999748,
+        "max_tolerance_usage_flat_index": 0,
+        "max_tolerance_usage_location": [
+          0
+        ],
+        "near_tolerance_warning": true,
+        "normalized_tolerance_usage": [
+          0.8999999999999748
+        ],
+        "pass": true,
+        "reference": [
+          0.5
+        ],
+        "reference_at_max_abs_diff": 0.5,
+        "reference_at_max_tolerance_usage": 0.5,
+        "shape": [
+          1
+        ],
+        "shape_match": true,
+        "tolerance_usage_at_max_abs_diff": 0.8999999999999748,
+        "warning_status": "BATCH_SHAPE_NEAR_TOLERANCE_WARNING"
+      },
+      "expected_pass": true,
+      "name": "near_tolerance_warning_without_hard_fail",
+      "observed_pass": true,
+      "test_pass": true
+    }
+  ],
+  "count": 13,
+  "failed": 0,
+  "passed": 13,
+  "schema_version": "batch_shape_numerical_protocol_boundary_tests_v1"
+}
