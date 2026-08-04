@@ -693,7 +693,9 @@ def render_report(reassessment: Mapping[str, Any]) -> str:
             "",
             "历史诊断记录的 TensorFlow allocator peak 为 batch-1 `139143936` bytes、batch-16 `1659473408` bytes；reserved-memory 为 N/A。这些 allocator 指标不能与外部观察的整个 GPU 进程 `22582 MiB`直接等同，也不能据此宣称 development-16 资源门通过。",
             "",
-            "本轮没有导入 TensorFlow、加载 checkpoint/原始波形、执行模型 forward，也没有访问第二个 development 样本、validation 或 test。该协议不证明 Context Influence 有效，不建立 model faithfulness，也不改变 canonical LIME 或三项权威科学状态。",
+            "离线复核工具本身没有导入 TensorFlow，也没有加载 checkpoint/原始波形或执行模型 forward。相关协议测试共 79 项通过：其中 75 项为纯数组/协议测试，另 4 项既有 batch-cap 单元测试仅导入 TensorFlow 并运行测试桩，显式禁用 GPU，未加载 checkpoint、波形或研究样本。",
+            "",
+            "本轮没有访问第二个 development 样本、sample 58657、validation 或 test。该协议不证明 Context Influence 有效，不建立 model faithfulness，也不改变 canonical LIME 或三项权威科学状态。",
             "",
         ]
     )
