@@ -1,0 +1,30 @@
+# 论文证据索引 V1
+
+下表只登记可定位到现有文件的事实。`TO_VERIFY` 表示当前资产不足以支撑该条论文结论，而不是缺失值的推测性补全。
+
+| 论文结论 | 精确数值 | 数据集 / seed | 来源文件 | 使用章节 |
+|---|---|---|---|---|
+| ISRUC 数据规模 | 100 subjects；100 recordings；87,187 epochs | ISRUC / split seed42 | `dataset_protocols/ISRUC/protocol_report.json` | 数据集、Table I |
+| ISRUC 固定划分 | 70/15/15 subjects；61,115/13,000/13,072 epochs | ISRUC / split seed42 | `dataset_protocols/ISRUC/split.json`；`outputs/final_evidence_synthesis/isruc/canonical_mainline.json` | 数据集、实验设置 |
+| A1-zero 冻结主结果 | Accuracy 0.830860；Macro-F1 0.819873；kappa 0.782580；test N=13,072 | ISRUC / training seed42, split seed42 | `outputs/final_evidence_synthesis/isruc/canonical_mainline.json`；`outputs/final_evidence_synthesis/isruc/paired_isruc_result_table.csv` | 主结果、Table II |
+| A1-zero 类别 F1 | W 0.918388；N1 0.594013；N2 0.805556；N3 0.882239；REM 0.899167 | ISRUC / seed42 | `outputs/final_evidence_synthesis/isruc/canonical_mainline.json` | 主结果、补充表 |
+| A1-zero 两训练 seed 描述 | Accuracy mean 0.826614, std 0.006004；Macro-F1 mean 0.814582, std 0.007482；kappa mean 0.776941, std 0.007974 | ISRUC / seeds 42, 2024 | `outputs/final_evidence_synthesis/isruc/cross_seed_result_table.csv` | 稳定性说明、补充材料；仅 n=2 |
+| 同协议 SCR seed42 负比较 | Accuracy 0.830707；Macro-F1 0.819024；kappa 0.782055；相对 A1-zero 的 Macro-F1 Δ=-0.000849 | ISRUC / seed42 | `outputs/final_evidence_synthesis/isruc/paired_isruc_result_table.csv` | 消融、Table III |
+| Epoch-UTF-Lite 负比较 | Accuracy 0.826882；Macro-F1 0.814291；kappa 0.777152；Macro-F1 Δ=-0.005582 | ISRUC / seed2024 | `outputs/final_evidence_synthesis/isruc/paired_isruc_result_table.csv` | 消融、Table III；seed 不同须注明 |
+| N1/N2 Pair SupCon 负比较 | Accuracy 0.830401；Macro-F1 0.819073；kappa 0.781481；Macro-F1 Δ=-0.000800 | ISRUC / seed42 | `outputs/final_evidence_synthesis/isruc/paired_isruc_result_table.csv` | 补充消融 |
+| N1 context local contrast 负比较 | Accuracy 0.830248；Macro-F1 0.819614；kappa 0.781461；Macro-F1 Δ=-0.000259 | ISRUC / seed42 | `outputs/final_evidence_synthesis/isruc/paired_isruc_result_table.csv` | 补充消融 |
+| 缺失的基础消融 | Base multimodal encoder、isolated sequence backbone 均为 `MISSING_REQUIRED_ABLATION` | ISRUC | `outputs/final_evidence_synthesis/isruc/recommended_ablation_structure.md` | Table III 缺口、Limitations |
+| SleepEDF 数据资产 | 78 subjects；153 recordings；187,311 epochs | SleepEDF / protocol seed42 | `dataset_protocols/SleepEDF/protocol_report.json` | 数据集、Table I |
+| SleepEDF 同构 A1-zero 主结果 | **TO_VERIFY**；现有 SCR-Lite 为另一模型，`edf_c0` 日志实际列出 ISRUC 划分 | SleepEDF | `outputs/logs/result_20260710_070633_edf_A1_scr_lite_seed42.txt`；`outputs/logs/result_20260627_180622_edf_c0_no_concept.txt`；`outputs/final_evidence_synthesis/isruc/cross_dataset_evidence_gap.csv` | Table II 暂不得填数 |
+| Reliability primary | ECE equal-mass 0.010686；ECE equal-width 0.009938；NLL 0.424695；Brier 0.241856；AURC 0.050646 | ISRUC validation / A1-zero seed42, N=13,000, 15 subjects | `outputs/sleepxvit_inspired_audit/isruc_seed42/reliability_v1/overall_metrics.json` | Reliability Results、Table IV、Fig.5 |
+| Reliability bootstrap | NLL [0.382625, 0.463887]；Brier [0.215918, 0.266965]；equal-mass ECE [0.007074, 0.021069]；AURC [0.039866, 0.063314] | ISRUC validation / bootstrap seed20260802, 2,000 subject resamples | `outputs/sleepxvit_inspired_audit/isruc_seed42/reliability_v1/bootstrap_confidence_intervals.json` | Table IV、补充材料 |
+| Risk-coverage 描述点 | risk：100% 0.169846；90% 0.135385；80% 0.104519；70% 0.074835；50% 0.030769；30% 0.008462 | ISRUC validation / seed42 | `outputs/sleepxvit_inspired_audit/isruc_seed42/reliability_v1/coverage_operating_points.csv` | Reliability Results、Fig.5；非阈值选择 |
+| Selected-30 seed 一致性 | mean Spearman 0.895459；cosine 0.976508；top-10 overlap 0.854444 | ISRUC validation / 30 cases；seeds 3101/3102/3103 为重复测量 | `outputs/sleepxvit_inspired_audit/isruc_seed42/reliability_v1/overall_metrics.json`；`outputs/sleepxvit_inspired_audit/isruc_seed42/reliability_v1/selected30_seed_consistency_pairs.csv` | 探索性补充材料；不得外推 |
+| Canonical LIME 当前可靠性状态 | local weighted R² 0.811；median mask-seed stability 0.906；complete reliable coverage 1/30=3.3%；randomization passes 0/3 | ISRUC validation T0 / seeds 3101/3102/3103 | `docs/paper_xai/TABLE_XAI_RELIABILITY_RESULTS.md`；`docs/paper_xai/XAI_RESULTS_SECTION.md` | XAI Results、Table IV |
+| Canonical LIME 统一 randomization | T0 0/3；T1 0/3；`MODEL_FAITHFULNESS_NOT_ESTABLISHED` | ISRUC diagnostic A 与 validation C / seeds 3101–3103 | `docs/SEQUENCE_LIME_PROTOCOL_CONSISTENCY_REPORT.md`；`outputs/xai_authoritative_status/isruc_seed42/CURRENT_XAI_STATUS.json` | XAI Results、Limitations |
+| Context Influence 工程 smoke | 2/2 samples 完成；十项检查均 PASS；baseline max diff 1.56e-6 与 3.01e-6；no-op 0；repeat max diff 0 | ISRUC development / samples 8809, 58657 | `docs/paper_xai/CONTEXT_INFLUENCE_PAPER_CONVERGENCE_REPORT.md` | 辅助分析、Fig.5/补充材料 |
+| Context Influence 定位 | `PAPER_IMPLEMENTATION_READY`；正式 batch=1；历史 `BATCH_SHAPE_NUMERICAL_EQUIVALENCE_V1=FAIL` | ISRUC development | `docs/paper_xai/CONTEXT_INFLUENCE_PAPER_CONVERGENCE_REPORT.md` | Methods、Limitations |
+| 生理自动审计 | coverage 30/30=100.0%；unsupported 0/30=0.0%；conflict 3/30=10.0%；channel consistency 29/30=96.7%；cross-seed stability 0.973 | ISRUC validation / frozen 30 cases | `docs/paper_xai/PHYSIOLOGY_AWARE_DISPLAY_REPORT.md`；`outputs/physiology_aware_display_validation/isruc_seed42/physiology_metrics.csv` | 辅助分析、Table IV、Fig.5 |
+| 生理盲评 | evaluator count 0；human blinded evaluation completed=false；expert agreement=null | ISRUC / frozen 30-case package | `outputs/physiology_aware_display_validation/isruc_seed42/final_decision.json` | Results、Limitations；不得宣称人因收益 |
+| XAI 不反馈训练 | feedback training `PERMANENTLY_BLOCKED_FOR_CURRENT_METHOD` | ISRUC / A1-zero | `outputs/xai_authoritative_status/isruc_seed42/CURRENT_XAI_STATUS.json` | Methods、Ethics/Limitations |
+| Canonical 解码边界 | classification: validation-selected temperature argmax；HMM non-canonical candidate；LIME endpoint: Pre-HMM raw probability | ISRUC / seed42 | `outputs/sequence_lime_paper_evaluation/isruc_seed42/CURRENT_RESULTS_MANIFEST.json` | Methods、实验设置 |
