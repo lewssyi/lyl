@@ -172,6 +172,8 @@ def elementwise_equivalence(
     usage = difference / allowed
     max_difference_index = int(np.argmax(difference)) if difference.size else 0
     max_usage_index = int(np.argmax(usage)) if usage.size else 0
+    max_difference_location = np.unravel_index(max_difference_index, difference.shape) if difference.size else ()
+    max_usage_location = np.unravel_index(max_usage_index, usage.shape) if usage.size else ()
     passed = bool(np.all(difference <= allowed))
     return {
         "shape_match": True,
@@ -183,12 +185,18 @@ def elementwise_equivalence(
         "normalized_tolerance_usage": usage.tolist(),
         "max_abs_diff": float(np.max(difference)) if difference.size else 0.0,
         "max_abs_diff_flat_index": max_difference_index,
+        "max_abs_diff_location": [int(value) for value in max_difference_location],
         "reference_at_max_abs_diff": float(left.flat[max_difference_index]) if difference.size else None,
         "candidate_at_max_abs_diff": float(right.flat[max_difference_index]) if difference.size else None,
         "allowed_diff_at_max": float(allowed.flat[max_difference_index]) if difference.size else 0.0,
         "tolerance_usage_at_max_abs_diff": float(usage.flat[max_difference_index]) if difference.size else 0.0,
         "max_tolerance_usage": float(np.max(usage)) if usage.size else 0.0,
         "max_tolerance_usage_flat_index": max_usage_index,
+        "max_tolerance_usage_location": [int(value) for value in max_usage_location],
+        "reference_at_max_tolerance_usage": float(left.flat[max_usage_index]) if usage.size else None,
+        "candidate_at_max_tolerance_usage": float(right.flat[max_usage_index]) if usage.size else None,
+        "actual_diff_at_max_tolerance_usage": float(difference.flat[max_usage_index]) if usage.size else None,
+        "allowed_diff_at_max_tolerance_usage": float(allowed.flat[max_usage_index]) if usage.size else None,
         "near_tolerance_warning": bool(np.any(usage > NEAR_TOLERANCE_THRESHOLD)),
         "warning_status": (
             "BATCH_SHAPE_NEAR_TOLERANCE_WARNING"
@@ -662,7 +670,19 @@ def render_report(reassessment: Mapping[str, Any]) -> str:
             "",
             f"- 历史协议：FAIL；per-window max `{historical['per_window_max_abs_diff']:.17g}`，超过元素数 `{historical['per_window_count_exceeding']}`；聚合 max `{historical['aggregated_max_abs_diff']:.17g}`。",
             f"- 新协议概率门：`{amended['probability_equivalence_pass']}`；max diff `{probability['max_abs_diff']:.17g}`，该位置 allowed `{probability['allowed_diff_at_max']:.17g}`。",
-            f"- 最大 normalized tolerance usage：`{probability['max_tolerance_usage']:.17g}`。",
+            (
+                f"- 绝对差最大元素自身 usage 为 `{probability['tolerance_usage_at_max_abs_diff']:.17g}`，"
+                "该元素通过并触发 near-tolerance warning。"
+            ),
+            (
+                f"- 全局最大 normalized tolerance usage：`{probability['max_tolerance_usage']:.17g}`，"
+                f"位置 `{probability['max_tolerance_usage_location']}`；reference "
+                f"`{probability['reference_at_max_tolerance_usage']:.17g}`，candidate "
+                f"`{probability['candidate_at_max_tolerance_usage']:.17g}`，actual diff "
+                f"`{probability['actual_diff_at_max_tolerance_usage']:.17g}`，allowed "
+                f"`{probability['allowed_diff_at_max_tolerance_usage']:.17g}`。该元素超过硬门，"
+                "所以当前诊断在 V1 下整体仍为 FAIL。"
+            ),
             f"- Near-tolerance warning：`{amended['warning_status']}`。",
             f"- 聚合响应门：`{amended['response_equivalence_pass']}`；actual `{response['max_abs_diff']:.17g}`，allowed `{response['allowed_diff_at_max']:.17g}`。",
             f"- Influence 门：`{amended['influence_equivalence_pass']}`；actual `{influence['actual_difference']:.17g}`，epsilon_I `{influence['allowed_difference_epsilon_I']:.17g}`。",

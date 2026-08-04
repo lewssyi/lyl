@@ -95,6 +95,7 @@ class BatchNumericalProtocolTests(unittest.TestCase):
         result = MODULE.elementwise_equivalence(reference, candidate)
         self.assertTrue(result["pass"])
         self.assertTrue(result["near_tolerance_warning"])
+        self.assertIn("allowed_diff_at_max_tolerance_usage", result)
 
     def test_all_thirteen_embedded_boundary_cases_pass(self):
         cases = MODULE.boundary_cases()
