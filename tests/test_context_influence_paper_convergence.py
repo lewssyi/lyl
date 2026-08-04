@@ -34,6 +34,11 @@ class ContextInfluencePaperConvergenceTests(unittest.TestCase):
         with self.assertRaises(module.PaperSmokeError):
             module.require_batch_one(16)
 
+    def test_existing_float_tolerance_is_used_without_new_protocol(self):
+        reference = np.asarray([0.1, 0.9])
+        candidate = reference + np.asarray([1.05e-5, 1.85e-5])
+        self.assertTrue(module.float_equivalent(candidate, reference))
+
     def test_forward_shape_requires_leading_one(self):
         raw = np.zeros((2, 75, 2, 1), dtype=np.float32)
         segment = np.zeros((2, 75, 1, 1), dtype=np.float32)

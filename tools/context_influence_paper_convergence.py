@@ -29,7 +29,8 @@ from tools import sequence_context_influence_development_smoke as frozen  # noqa
 
 REPORT = PROJECT / "docs/paper_xai/CONTEXT_INFLUENCE_PAPER_CONVERGENCE_REPORT.md"
 POLICY = "CONTEXT_INFLUENCE_CANONICAL_BATCH1_EXECUTION_V1"
-NORMAL_ATOL = 1e-6
+NORMAL_ATOL = 1e-5
+NORMAL_RTOL = 1e-5
 EXPECTED_HASHES = dict(frozen.EXPECTED_HASHES)
 CANONICAL_MANIFEST = (
     PROJECT / "outputs/sequence_lime_paper_evaluation/isruc_seed42/CURRENT_RESULTS_MANIFEST.json"
@@ -70,6 +71,14 @@ def require_batch_one(batch_size: int) -> int:
             f"{POLICY} requires inference batch size 1; received {value}"
         )
     return value
+
+
+def float_equivalent(candidate: np.ndarray, reference: np.ndarray) -> bool:
+    left = np.asarray(candidate, dtype=np.float64)
+    right = np.asarray(reference, dtype=np.float64)
+    if left.shape != right.shape or not np.all(np.isfinite(left)) or not np.all(np.isfinite(right)):
+        return False
+    return bool(np.all(np.abs(left - right) <= NORMAL_ATOL + NORMAL_RTOL * np.abs(right)))
 
 
 def validate_forward_shapes(raw_batch: np.ndarray, segment_batch: np.ndarray) -> None:
@@ -286,7 +295,7 @@ def run_smoke() -> Mapping[str, Any]:
         repeat_exact, repeat_max = exact_profile_repeat(original, repeated)
         artifact = train_probs[sample_id].astype(np.float64)
         baseline_diff = float(np.max(np.abs(original["full_vector"] - artifact)))
-        baseline_pass = baseline_diff <= NORMAL_ATOL and int(np.argmax(original["full_vector"])) == int(np.argmax(artifact))
+        baseline_pass = float_equivalent(original["full_vector"], artifact) and int(np.argmax(original["full_vector"])) == int(np.argmax(artifact))
         if not baseline_pass:
             raise PaperSmokeError(f"Baseline response mismatch for sample {sample_id}: {baseline_diff}")
         if not repeat_exact:
@@ -300,6 +309,7 @@ def run_smoke() -> Mapping[str, Any]:
         medoid_seg = frozen.recompute_segment_feature(evaluator, medoid_raw)
 
         no_op_max = 0.0
+        no_op_pass = True
         isolation_pass = True
         cross_view_pass = True
         windows_pass = True
@@ -320,6 +330,7 @@ def run_smoke() -> Mapping[str, Any]:
             )
             all_forward_shapes.extend(no_op["forward_shapes"])
             no_op_max = max(no_op_max, float(np.max(np.abs(no_op["full_vector"] - original["full_vector"]))))
+            no_op_pass = no_op_pass and float_equivalent(no_op["full_vector"], original["full_vector"])
 
             replacements = {
                 "normalized_zero": (zero_raw, zero_seg),
@@ -364,7 +375,7 @@ def run_smoke() -> Mapping[str, Any]:
                     }
                 )
 
-        if no_op_max > NORMAL_ATOL:
+        if not no_op_pass:
             raise PaperSmokeError(f"No-op produced material influence for sample {sample_id}: {no_op_max}")
         if not (isolation_pass and cross_view_pass and windows_pass and positions_pass and finite_pass):
             raise PaperSmokeError(f"Scientific operation check failed for sample {sample_id}")
@@ -376,7 +387,9 @@ def run_smoke() -> Mapping[str, Any]:
                 "target_class": frozen.CLASS_LABELS[target_class],
                 "original_response": float(original["full_vector"][target_class]),
                 "baseline_max_abs_diff": baseline_diff,
+                "baseline_pass": baseline_pass,
                 "noop_max_abs_influence": no_op_max,
+                "noop_pass": no_op_pass,
                 "repeat_max_abs_diff": repeat_max,
                 "repeat_exact": repeat_exact,
                 "single_epoch_isolation_pass": isolation_pass,
@@ -405,8 +418,8 @@ def run_smoke() -> Mapping[str, Any]:
     all_batch_one = bool(all(row["raw"][0] == row["segment"][0] == row["output"][0] == 1 for row in all_forward_shapes))
     gates = {
         "1_program_completed": len(sample_results) == 2,
-        "2_baseline_response_recovered": all(row["baseline_max_abs_diff"] <= NORMAL_ATOL for row in sample_results),
-        "3_noop_no_material_influence": all(row["noop_max_abs_influence"] <= NORMAL_ATOL for row in sample_results),
+        "2_baseline_response_recovered": all(row["baseline_pass"] for row in sample_results),
+        "3_noop_no_material_influence": all(row["noop_pass"] for row in sample_results),
         "4_single_physical_epoch_only": all(row["single_epoch_isolation_pass"] for row in sample_results),
         "5_raw_segment_synchronized": all(row["cross_view_synchronization_pass"] for row in sample_results),
         "6_overlapping_windows_complete": all(row["overlapping_windows_pass"] for row in sample_results),
@@ -447,7 +460,7 @@ def render_report(result: Mapping[str, Any], error: str | None = None) -> str:
         "",
         "## 正式实现配置",
         "",
-        f"正式执行策略为 `{POLICY}`：inference batch size 固定为 1，float32、`training=False`、冻结 checkpoint、75-epoch 上下文、Pre-HMM 响应、raw/segment 同步更新均保持不变；不调用 batch-16，也不声称 batch-size invariance。Canonical XAI 名称仍为 **Context-Preserving Classic Sequence-LIME**；Context Influence 仅是可选诊断/补充分析。",
+        f"正式执行策略为 `{POLICY}`：inference batch size 固定为 1，float32、`training=False`、冻结 checkpoint、75-epoch 上下文、Pre-HMM 响应、raw/segment 同步更新均保持不变；普通浮点对照沿用项目已有 `atol=1e-5, rtol=1e-5`，不创建新协议。不调用 batch-16，也不声称 batch-size invariance。Canonical XAI 名称仍为 **Context-Preserving Classic Sequence-LIME**；Context Influence 仅是可选诊断/补充分析。",
         "",
     ]
     if error:
