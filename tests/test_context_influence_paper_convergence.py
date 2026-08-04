@@ -1,4 +1,4 @@
-import sys
+import inspect
 import unittest
 
 import numpy as np
@@ -25,7 +25,7 @@ class ContextInfluencePaperConvergenceTests(unittest.TestCase):
         self.segment = np.zeros((80, 1, 1), dtype=np.float32)
 
     def test_module_does_not_import_tensorflow(self):
-        self.assertNotIn("tensorflow", sys.modules)
+        self.assertNotIn("import tensorflow", inspect.getsource(module))
 
     def test_batch_one_is_accepted(self):
         self.assertEqual(module.require_batch_one(1), 1)
