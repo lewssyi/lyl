@@ -1,0 +1,21 @@
+{
+  "schema_version": "sequence_lime_config_v1",
+  "run_id": "functional_smoke",
+  "mode": "functional-smoke",
+  "purpose": "Five-stage functional check with one correctly predicted case per true stage.",
+  "run_config": {
+    "mode": "functional_smoke",
+    "max_samples": 5,
+    "sample_correct_per_stage": 1,
+    "sample_wrong_per_stage": 0,
+    "train_masks": 300,
+    "val_masks": 100,
+    "random_repeats": 3,
+    "stability_seeds": [9001, 9002],
+    "bootstrap_repeats": 100,
+    "do_randomization": false,
+    "perturbation_modes": ["physiological"],
+    "batch_windows": 16
+  },
+  "claim_boundary": "Functional evidence only; not confirmation."
+}

@@ -1,0 +1,361 @@
+case,sample_id,selection_source,selection_rule,true_stage,predicted_stage,correct,transition_boundary,reliability_state,channel,segment,local_perturbation_sensitivity,attribution_seed
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,0,0.3901008665561676,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,1,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,2,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,3,1.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,4,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,5,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,6,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,7,0.17675890028476715,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,8,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,9,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,10,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,11,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,12,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,13,0.728035569190979,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,14,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,15,0.3886047303676605,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,16,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,17,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,18,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,19,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,20,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,21,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,22,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,23,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,24,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,25,0.03263697400689125,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,26,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,27,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,28,0.4807679057121277,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EEG,29,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,0,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,1,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,2,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,3,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,4,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,5,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,6,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,7,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,8,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,9,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,10,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,11,0.08797377347946167,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,12,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,13,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,14,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,15,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,16,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,17,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,18,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,19,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,20,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,21,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,22,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,23,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,24,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,25,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,26,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,27,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,28,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EOG,29,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,0,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,1,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,2,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,3,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,4,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,5,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,6,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,7,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,8,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,9,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,10,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,11,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,12,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,13,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,14,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,15,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,16,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,17,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,18,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,19,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,20,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,21,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,22,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,23,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,24,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,25,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,26,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,27,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,28,0.0,3101
+Relatively reliable,7861,B0_CLASSIC_90,canonical_state_then_lowest_sample_id,W,N1,False,False,LOCALLY_EXPLAINABLE,EMG,29,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,0,0.053338464349508286,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,1,0.06423253566026688,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,2,0.14916689693927765,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,3,0.24900676310062408,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,4,0.6525668501853943,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,5,0.318083256483078,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,6,0.6218072772026062,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,7,0.39772656559944153,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,8,0.322663277387619,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,9,0.11565548181533813,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,10,0.03915095329284668,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,11,0.07912164181470871,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,12,0.40190398693084717,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,13,0.7233849167823792,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,14,1.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,15,0.28631243109703064,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,16,0.5129045844078064,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,17,0.6661525964736938,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,18,0.33536994457244873,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,19,0.256710410118103,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,20,0.24707983434200287,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,21,0.25395703315734863,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,22,0.2104508876800537,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,23,0.2839963734149933,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,24,0.014465780928730965,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,25,0.4497971832752228,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,26,0.2742956280708313,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,27,0.5562224984169006,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,28,0.35505422949790955,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,29,0.128070667386055,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,0,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,1,0.0365566685795784,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,2,0.015210362151265144,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,3,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,4,0.018071196973323822,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,5,0.035213883966207504,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,6,0.06321351230144501,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,7,0.04664117470383644,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,8,0.017886674031615257,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,9,0.03345507010817528,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,10,0.016266198828816414,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,11,0.03278191760182381,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,12,0.10377892106771469,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,13,0.07340425997972488,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,14,0.016577351838350296,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,15,0.01933104172348976,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,16,0.00782487541437149,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,17,0.02783479541540146,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,18,0.03343716263771057,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,19,0.020246250554919243,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,20,0.034620318561792374,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,21,0.08879995346069336,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,22,0.019014639779925346,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,23,0.05525963380932808,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,24,0.037226393818855286,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,25,0.08602574467658997,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,26,0.04403553530573845,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,27,0.03344641998410225,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,28,0.051405515521764755,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,29,0.06197173893451691,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,0,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,1,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,2,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,3,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,4,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,5,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,6,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,7,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,8,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,9,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,10,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,11,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,12,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,13,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,14,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,15,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,16,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,17,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,18,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,19,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,20,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,21,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,22,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,23,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,24,0.021014215424656868,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,25,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,26,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,27,0.005059852264821529,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,28,0.0,3101
+Randomization-unreliable,3080,B0_CLASSIC_90,highest_R7_similarity_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,29,0.0024748730938881636,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,0,0.28657251596450806,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,1,0.40967440605163574,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,2,0.34272727370262146,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,3,0.2637673616409302,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,4,0.054247718304395676,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,5,0.5405649542808533,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,6,0.12516263127326965,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,7,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,8,0.11997580528259277,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,9,0.04284181445837021,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,10,0.32154718041419983,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,11,1.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,12,0.8846626281738281,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,13,0.471960186958313,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,14,0.72323077917099,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,15,0.3587462306022644,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,16,0.32614263892173767,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,17,0.32382693886756897,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,18,0.2248905450105667,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,19,0.34522515535354614,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,20,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,21,0.4630572497844696,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,22,0.2619532346725464,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,23,0.19085226953029633,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,24,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,25,0.2674887180328369,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,26,0.1971188187599182,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,27,0.21538332104682922,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,28,0.1645263433456421,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EEG,29,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,0,0.03399864211678505,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,1,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,2,0.030528465285897255,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,3,0.040372613817453384,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,4,0.0020576133392751217,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,5,0.04969014227390289,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,6,0.1603793352842331,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,7,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,8,0.0023529473692178726,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,9,0.056327078491449356,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,10,0.06662342697381973,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,11,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,12,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,13,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,14,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,15,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,16,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,17,0.06514974683523178,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,18,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,19,0.01891256868839264,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,20,0.06453175097703934,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,21,0.0049855089746415615,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,22,0.009577021934092045,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,23,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,24,0.022277075797319412,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,25,0.010521244257688522,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,26,0.022916872054338455,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,27,0.08249003440141678,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,28,0.004097925499081612,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EOG,29,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,0,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,1,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,2,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,3,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,4,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,5,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,6,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,7,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,8,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,9,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,10,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,11,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,12,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,13,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,14,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,15,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,16,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,17,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,18,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,19,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,20,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,21,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,22,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,23,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,24,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,25,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,26,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,27,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,28,0.0,3101
+Incorrect or transition,178,B0_CLASSIC_90,incorrect_transition_priority_then_sample_id,N1,N2,False,True,RANDOMIZATION_UNRELIABLE,EMG,29,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,0,0.25854334235191345,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,1,0.28432798385620117,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,2,0.051949936896562576,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,3,0.27540135383605957,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,4,0.21086375415325165,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,5,0.10193664580583572,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,6,0.45222920179367065,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,7,0.12454391270875931,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,8,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,9,0.06315165013074875,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,10,0.18364837765693665,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,11,0.07896854728460312,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,12,0.013264602050185204,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,13,0.05557313188910484,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,14,0.15188004076480865,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,15,0.1255890429019928,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,16,0.09618483483791351,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,17,0.20086686313152313,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,18,0.3933233618736267,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,19,0.1100890040397644,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,20,0.2697972059249878,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,21,0.3748053014278412,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,22,0.22869600355625153,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,23,0.640264093875885,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,24,1.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,25,0.32586365938186646,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,26,0.5754937529563904,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,27,0.366211473941803,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,28,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EEG,29,0.1694553941488266,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,0,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,1,0.19436490535736084,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,2,0.015700748190283775,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,3,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,4,0.040770288556814194,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,5,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,6,0.07248149067163467,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,7,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,8,0.009646822698414326,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,9,0.03175090253353119,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,10,0.043810632079839706,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,11,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,12,3.351429040776566e-05,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,13,0.03106013499200344,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,14,0.013294553384184837,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,15,0.012360413558781147,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,16,0.020154977217316628,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,17,0.03409126400947571,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,18,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,19,0.043713368475437164,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,20,0.048112522810697556,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,21,0.05048401281237602,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,22,0.16405470669269562,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,23,0.05853218585252762,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,24,0.05239438638091087,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,25,0.03398340195417404,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,26,0.14364217221736908,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,27,0.04561713710427284,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,28,0.037550460547208786,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EOG,29,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,0,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,1,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,2,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,3,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,4,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,5,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,6,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,7,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,8,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,9,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,10,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,11,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,12,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,13,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,14,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,15,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,16,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,17,0.010357923805713654,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,18,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,19,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,20,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,21,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,22,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,23,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,24,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,25,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,26,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,27,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,28,0.0,3101
+Context-dominated auxiliary flag,355,H3_G25_F45 selection; B0 attribution displayed,H3_G25_context_ratio_desc_then_sample_id,N1,N2,False,False,CONTEXT_DOMINATED,EMG,29,0.0,3101

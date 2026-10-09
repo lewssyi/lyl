@@ -1,0 +1,508 @@
+{
+  "allocation_seed": 20260726,
+  "blocked_by_gpu_backend_mismatch_fields": [],
+  "canonical_method": "CONTEXT_PRESERVING_CLASSIC_SEQUENCE_LIME",
+  "case_count": 30,
+  "cpu_diagnostic_used": false,
+  "cuda_visible_devices": "",
+  "display_attribution": "R0_seed3101_T0_existing_artifact",
+  "feedback_training_status": "PERMANENTLY_BLOCKED_FOR_CURRENT_METHOD",
+  "git_branch": "codex/a1-zero-mainline",
+  "no_gpu_execution": true,
+  "no_lime_experiment_started": true,
+  "no_model_inference": true,
+  "no_model_loaded": true,
+  "pilot_case_count": 10,
+  "predicted_stage_used_for_annotation": false,
+  "registration_commit": "e80c2805e09098ed92594a6313f4cca3f3d68fce",
+  "schema_version": "physiology_aware_display_validation_v1",
+  "scientific_status": "MODEL_FAITHFULNESS_NOT_ESTABLISHED",
+  "test_set_used": false,
+  "source_files": [
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample10644_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "51ff00246ee120b6ee53e6debd86e39eee3f37ce30c09bdadd3608c1782f471e"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample10644_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "e5c9547a5c924c6329fcdc752f5649e6410045a119b63dd2a3765b9de099dda1"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample10644_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "2c38f8e5b92afaf7b746e431c0eb03f42d7d641468325133690a9a0e2ac673b1"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample10644_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "fe303cef84dc8918cd57df48eac5887a5c7b71452d1f3dd1e3468468f478d980"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample10675_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "dfca8efd242fedb31772b093ab10245263d59a3b009faa49d71d83e002ce1dee"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample10675_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "15a5a083f8f7ed64c75896f57e1b5349341154cfcbd9e6c417db14fc2e3b6ea2"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample10675_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "9a3f90a0696b15a2e2c0dc5eb8b2e60305d790ef39c5a43823fe5dfbd6672fad"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample10675_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "71e89ce6a31a69ca3c7add73e28d66dc47888c6f645a148aa9cce845f3b34e86"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample10718_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "9cbe67148a8c26413b2a596cd3ddf5f19820409ceb420142ef6eb9e5f870c045"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample10718_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "ffc42338b78dc43e09e08955da435b7cf2580255375bfd42ba05d43256aeaac1"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample10718_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "8c574b7ab977cbe68504fba71a9de852e7c049fd41f13860f79cac18bde0a117"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample10718_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "bb663cacc99fd0c7f7b011a09d214d96d01484f57fee814b6cc70c0b36de449e"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample11503_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "0d60e87a8c08f19b922a71c506e14b38f9ff27c87b7bfaabb27bb71812733bf2"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample11503_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "d8844df9c1a8387accc241f1e2258aa44a2f5ef3411ec70d5fecc7145d250511"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample11503_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "93d97a6bec75f2619e688a120804b4589b8cab2d0ec54b831d97fd4fde33ce68"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample11503_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "b008be383a423aeeab2009a19578d979e32bebf794d0f4e616e74c0c5107ad21"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample11538_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "6c3828b9f5587bcd5625b9f6c2de22cd9c5aad0df673b14ec62b861406d3ce4f"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample11538_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "4c3d89ae158c54c5fa64f8916a3c4a40590402d607b0e94beecea4c3da453b69"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample11538_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "970eaa4fbd9360f3adc78816b1e1a0f2a3bbbd6b6e2ae4b07e1d4e59913c89e1"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample11538_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "826c8fe8209c2cc66fec92f7c1874708f418c51a0d2d9d40c95ee8e6d470e4d1"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample1169_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "dced6907cb43a817e59921ba39a5751d8e2b492ae9fb3ff946356cedcd6192fc"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample1169_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "84ee51e8224b0a250e97a3b48c080000c521ec5aed97a0c4c0276204902fd2ec"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample1169_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "20ddb2bd80f70d2a018a234110d06f9a2672673f817baa61d53351b7e2aec26b"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample1169_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "7aebe33f15e5c35bb597ab5398454d48366b28dfd93907a6d9e687b06f8e52fe"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample12137_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "cb411b5e4a011e911fd2ec600c26e54d1b01740d4434b2bab353e55497a2d256"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample12137_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "7768d0794a8e6e84d0475703a8e7503fae1c372b5d89f6c6f3404aba3fec22ec"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample12137_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "a899541ce555bf2fc20394270cf652b4e09646779d88c79a9945a397ba22ff5f"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample12137_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "3be075c955f5801150bcc1c265229a936229fd0a99856da6c8d6d91d2c4dbba4"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample12472_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "db10e84c8621e43c84e1628a1bd5a5ffd2a3439de21eaae0adb437c32715799f"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample12472_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "9bdb71f16e5dc75357b1e470275eb3e3b64deb382148f888ef3994072b0de804"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample12472_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "d5da34f430b508a130622f6bf003abfd8e53ad668d0205ed8ddc08be0cf9cf81"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample12472_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "a3f5c5d2efbb64830e2a4d7a29e324530dd6d55a6995312bd58ce74ff4d07360"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample1411_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "551aa48cb5d1a67cc162c6c764f4c98ae77135f1cc16db07ebb3f1843635ede6"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample1411_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "eec03df1bfb58760b0c21797a1a305cfce0320923d2583a06b8ffd213b50b154"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample1411_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "c6558a5282b30f25c11f9244155e688456b56695dd93ba1f76ae8c7ef6fdfd4c"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample1411_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "abf909293b4141963fb3711092938df471513ac218768eaf42b51fc0cd6d2e9e"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample178_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "81b6bf132ba24c4a9da2fd9aed8ced334d301fea13686baea2bdd8e64483701a"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample178_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "9b323f0e2106bb0067fcde8382d20a756ce523beefa6bc69a6ba900f42a908b8"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample178_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "3e56a637751721fb3dbd340101121dc377fc0580f78810998f093b7c2d8dbec3"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample178_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "a116e25bdbced087aa9cf36aa4b6fa440377f413f0d383b16f403e03d2982fd2"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample1828_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "72c9899d0bfc35989c08d6a3ff9c5bc927b203be3153ed77e66966983075724d"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample1828_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "0af59a383a24d144245763cb745fdda3e72b2370a803ce3c88f4f9a60a7104d7"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample1828_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "5ad0945cc81f1012ad19a688ebf6214459eea99d9d91ed6ececa1f0d4b1780b6"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample1828_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "152425205ebff3ee1c032186c098e8b84ca46fb3d0ed03ff6c7e8a1da299eeb5"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample1912_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "c254b06652c7e838f26b971f30dfd67f1d1620425021cb12fdbc4bdd75f0e591"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample1912_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "399faf7d78c85e389fcd271510cf9e87db285d3bfab897fcef1d823770771a9d"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample1912_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "b35d7ce4f3a52a8c470e8b0b1c74f049a6327f19cd9e01f01da38654d61b2ff2"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample1912_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "054799e5dbc8fdee702bbcd8130a37d21b5c2d9ea28e89e46299e43d702a88db"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample2306_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "935aabd7018d6f45676848671e80ba1cb959a2d4713686d6111bcdff87b7e0f2"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample2306_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "1d6f963c86ca1f77122336e3063940dcf4fbee6ab23be9abd209b70959cd6935"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample2306_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "3e05f5128fb4839506f532a8704f167ebcbf2b35fdce63996f389b7aa856de26"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample2306_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "91c1cda30950ad2eb961d7c60d47de9fdd8f04db9ccd9b5c0aa83689de75248c"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample2425_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "2438d8d0cac599ad400a4726ca582801a821ddfa5e270f44a98fca96cf21678e"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample2425_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "0bff31adf844c290c6aee40aea70e7a3feee0ca7c9f7d47f304a0328da376ded"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample2425_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "20127d359efb7798ad6c991b92e9858cf3303d4016083fc784ab3dc67e9a51d2"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample2425_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "de39a3daf35409e6b05854d4fb166d1c945c2d398f7a6cf0383b77158605c278"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample2536_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "2f07471d09ba5bcb987f694e5cc8a1f24a373dee8b7fe145c22fca97278b363d"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample2536_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "1899ee4349799f245ccbbbce5ad85e48aab0166a82986cfeedc457c863cbb0b0"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample2536_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "60c016796a2302697539ee82e166c18a3e4366f8eae4a1f988209ae206a57972"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample2536_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "680d0b2cba93a2657eef5b2cc423640e4b1141b7bfdf90fb6dc62b64713cb13c"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample2939_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "cea1e5b5062adc36de3fde7cb67a4cfe87aed778d2ba8f729a603fa6424befd3"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample2939_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "ebe4c4eed2036f5ed6ddd2dfb4748957a3b702fbc397826a31587dba40bc31e4"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample2939_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "624e1d9ba4b6ddeba58f6d887a0af1a9f34ba03721921ed00d603a9074a990d8"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample2939_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "fea2e31003eacffdf46cb1333c37882bfa9659849b1423c272e482c3d9826ed2"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample3080_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "e837f491851bf8858a2e543703fa09bafe499bf9acf45fa4b67fef68990d66ab"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample3080_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "7ae7254e9ab7d2616eb05345a479988b44cfaaaa0834160965d608f6b291ee2b"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample3080_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "3411962d552f5e409e783d7983f41a41530c6c7d09096dee32ff58b1a54bed87"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample3080_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "415f8b1ccbc4885d23a2fe486ac01941fbfefac0dbc1601d6d9f9eabce730957"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample355_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "0e088a9668485b0a3ed5ee86a5254f98a8b089ac072edc63137ca07047afbc31"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample355_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "71081effcf9961efd1350c50cd891350ec106a15912f7e17f4edf412d4fe42b7"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample355_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "cd08f146f424fc3371852ee8c693e6319f005ab22b55a4d4a78ac1d03140843c"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample355_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "11c7444368960b94bc37190912cd50393d8b877fee5b6cd6972c14d5fc2af4b3"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample5025_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "c681abbeb96e94609862750822015d48b038468449c7bfe90f73f0a7318508d5"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample5025_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "4b0788a60dc3c761c90b9a5b826dd17c366a2552b0d88f758234eb7d52280bfe"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample5025_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "35de7f5cce46a1363ccf217d353ddfc26679e6b4642f8f3c2ef3f50107ea6c71"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample5025_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "a8b4faf02e302e7d1d9b055a4003e76c943ebd5cfaadfe30ff02e7c00064d46b"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample5440_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "ba6a89913c1e508853442b245802eac6d60cd6dc9ba3e2dfae5d8295b605c54f"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample5440_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "2fcf0034d54c0e5575cb4858c72fed97f1c304e8cd877c4fcb05fa9acf391f2b"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample5440_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "9eb965d36055da6f84bbfc86a79a1e76f875ed3c62f720d8697d7867f98febca"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample5440_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "744d61c44581063b06a2827ff50a81659de8215cc1fdf45146a1be8ca8425ebf"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample6205_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "2765f0a193ca035576845b94a49516697e3332d94822ec50006d04dcfd186ba7"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample6205_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "2891c9a7461a271b9a726231449a544f99824e9d34f8d83ea9cae248aa7abcbc"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample6205_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "a28fba41527c7b0739cb1b76b8b308a093b08d97d9d797076139354164752ba1"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample6205_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "59e1932d53cd27e96402ab2a88a5b9e3136d289d8d513bae841c80a25dc63bbb"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample6863_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "b86eac703a4eebe27a5ed58694c5238ebdd68dbc3e7364f353081d233dcef51d"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample6863_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "ae3eaa54fe1ce05c21129b0ffe4c552b31c20d193c98fb0ca00be15b37db1b78"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample6863_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "46ea7a5dac784138ea6ff7e4cc73c689f7548ab30b28341c6259ec0d6bef0b42"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample6863_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "75fcba9453b3609616e21046c31e3adf127dc8eacec7e9e1ad72eb8395f86483"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample7861_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "32eb7b170d727012ee5f67a683b77272c13efb1c1092ccb0053633063625eac3"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample7861_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "9c6cc7a539831c451bf6907278aafd890a1f5a79099f2afefa6b0508151c31fb"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample7861_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "99142a56345aead8da0ef751727d433e12a087a1fab2b7a991cca43d09ab6dbe"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample7861_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "ce03957e54938d0676bc393d2f35da0bdc7a570a8cd106466d4c397c5d520dac"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample8040_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "9b18223102dc96c7ecc9e3881b0f40394235afd8cb1f3b73b7086871fbe58cdd"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample8040_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "4963d3168757c5b1e71c5867c6e202ba9403486990abd8f6d6aa88573e8e67ce"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample8040_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "5e13bbbdd2cfe9caf7c26489ab5299a2ec0b9011cea8d171a085a38a2bfbe3c4"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample8040_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "8a5a75697f10ed4f7654736c81c4940d9e67ad0533bd31c6528ab16574e4f2d2"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample8158_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "f4ee6fd29d1aca1843e847d4750fb9221636e36c72ce05757072670ba79600b2"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample8158_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "9ab969cb0d7398ea188f8fb22a838ca4815f471268e8e789bffe013070459708"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample8158_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "59cf5b409c29fea1dcac7d4632ec0db1747a7b347aef75b6524cbcf0f3642bf2"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample8158_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "8b3cd8dc65f6f4a4734f28eab480dbea36eb147875e5895c33678133f527e051"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample8603_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "2ce1e40bd77d190dd0fc57d9ac138eee6c070cafb8ab4077182959578d0ad71f"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample8603_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "c5342394925ab372216e9bdad087dfc860f09f9cc66cae8d0dc584cbd8c5f9e0"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample8603_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "55f99d59f3ca9482b0c6b8594774e8e70572f022760e434f5a47821282a917fb"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample8603_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "9321e50c58bc27bd251ccae21d2ab2a906d45d459694fcb1af3d263f3dff03fc"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample8929_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "a3f34c78cf9bab11eb8360324ed68093250a4e84661b25a68986ee1ef77d668c"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample8929_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "43dff2d95f5136df24d259368c234c273cabc04c4e63dbcce63f75c7dd983b78"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample8929_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "936fa763394531dd65d9b26c8fde4b56cfceab9da71f492d5b2942e9ab2cd24d"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample8929_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "1a2b449b57d4657eefe9c63754ebbfe65d8a7e011925ec8f47241b95888f8dfb"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample9208_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "db125ef5a3c9b6490db2c2502bd346dbd0b38cea87969a563c3e558ff00f390e"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample9208_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "03b97e626d068959c3c2137ee2fbd7cc72d2effa11d749517f4e956649725ef2"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample9208_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "353224b500011a177c69834451132bbe27872e6917e89abdecf55ed41a07a3c6"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample9208_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "26c0e33a7713860b82a2c61aaf940705479b0cf7b099787804447d38adde4651"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample9559_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "2da2c36a64dfb6689e9e971710afd610198b71271e83e1407b3c96cbbdc21ac3"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample9559_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "b6bf465622c53ed68bffd0b34299786d7701c77cf849a3f3b4ec6ce692ba4478"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample9559_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "18f6dd17779445f48cabefd05878e61a040ab7935c1b443761fef359506f99ab"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample9559_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "c50c5998289f549be854cf7f320fb1af71e5915abe2bb1e867d5a4c903fac714"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample9812_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "7b79ed9162ced364637e7b131d7b02c1dec6071a58bd4b1160846d83c3e9c520"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample9812_R0_seed3101_zero/classic_sample_level.csv",
+      "sha256": "27eada6b37b730836574ba1626047fc1a553fdf49469cac296e3c398c70cb7da"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample9812_R0_seed3102_zero/classic_attribution.csv",
+      "sha256": "6b31be42eca9df75f904be422df9e3e4c42dcfd577d50bb1674435d932a27618"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample9812_R0_seed3103_zero/classic_attribution.csv",
+      "sha256": "838166f004f909ea01a8edb48a6b19963fc985204fefc5c9c7cf5803a9c982ac"
+    },
+    {
+      "path": "outputs/sequence_lime_two_versions/isruc_seed42/cache/validation_inputs_segments.npz",
+      "sha256": "9ce27e402f4417f32b14dfb37d4c436f9b82b7dc2799e29ebdbdd02daf6c4b01"
+    }
+  ],
+  "true_stage_used_for_annotation": false
+}

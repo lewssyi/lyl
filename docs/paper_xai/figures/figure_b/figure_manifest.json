@@ -1,0 +1,41 @@
+{
+  "schema_version": "paper_xai_figure_manifest_v1",
+  "generated_at_utc": "2026-07-24T09:15:07.708990+00:00",
+  "generator": "tools/build_paper_xai_materials.py",
+  "canonical_method": "CONTEXT_PRESERVING_CLASSIC_SEQUENCE_LIME",
+  "method_role": "EXPLORATORY_LOCAL_PERTURBATION_SENSITIVITY",
+  "scientific_status": "MODEL_FAITHFULNESS_NOT_ESTABLISHED",
+  "note": "All panels use B0 Classic, validation T0, from one retained-method protocol. They are reliability diagnostics, not proof of model faithfulness.",
+  "source_files": [
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/hierarchical_surrogate_fidelity.csv",
+      "sha256": "b1645b46c32e83dfdba170bf1170c923c6d068c7689271bc8daa32f15c49129c"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/faithfulness_summary.csv",
+      "sha256": "b287dfcaf5eed777281a125c8710f02d26bf97b8a3ab729fc5a58467117918a4"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/stability_summary.csv",
+      "sha256": "40c60efc58e62120f7aa3ace45b47eadf4e6714750975c31d98da346df83475d"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/randomization_summary.csv",
+      "sha256": "917ea0f536898391d97c4e732008e00fcce17f32560d7b78f01f36184e959227"
+    }
+  ],
+  "artifacts": {
+    "png": {
+      "path": "figure.png",
+      "sha256": "3a229015354effe4297c66712760e694583d6a9abf4721cf70b6aff7e2e6df8c"
+    },
+    "pdf": {
+      "path": "figure.pdf",
+      "sha256": "601fc0746d21568237adf47ba435ef052a9d741cb0a93dee23cbcd222f51b536"
+    },
+    "data": {
+      "path": "figure_data.csv",
+      "sha256": "06901050ab934847d933bd83b247548ceadd2b6001b3206535fc7fb1401cdce6"
+    }
+  }
+}

@@ -3,11 +3,6 @@ __pycache__/
 *.pyc
 *.pyo
 
-/data
-/EEG_data
-*.edf
-*.npy
-*.csv
 # Virtual environments
 env/
 venv/
@@ -96,3 +91,40 @@ wheel/
 *.exe
 *.out
 *.app
+
+# LFTS experiment/runtime artifacts
+.deps/
+.tf_tmp/
+.pytest_cache/
+__pycache__/
+outputs/
+models/
+tmp/
+*.npz
+*.npy
+*.h5
+*.keras
+*.weights.h5
+*.ckpt
+*.edf
+*.mat
+*.pkl
+*.joblib
+*.png
+*.gif
+*.pdf
+*.tiff
+*.vsdx
+*.vdx
+*.pptx
+
+# Raw/local data directories; keep code helpers tracked.
+EEG_data/eeg_eog_emg/
+EEG_data/eeg_fpz_cz/
+EEG_data/eeg_pz_oz/
+EEG_data/physionet_sleep/
+
+# Large notebook artifacts
+notebooks/trained_models_final/
+notebooks/*.h5
+

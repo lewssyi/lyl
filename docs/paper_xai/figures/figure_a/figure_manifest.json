@@ -1,0 +1,30 @@
+{
+  "schema_version": "paper_xai_figure_manifest_v1",
+  "generated_at_utc": "2026-07-26T02:24:48.990710+00:00",
+  "generator": "tools/build_paper_xai_materials.py",
+  "canonical_method": "CONTEXT_PRESERVING_CLASSIC_SEQUENCE_LIME",
+  "method_role": "EXPLORATORY_LOCAL_PERTURBATION_SENSITIVITY",
+  "scientific_status": "MODEL_FAITHFULNESS_NOT_ESTABLISHED",
+  "note": "Code-native vector fallback used because the remote AI schematic generator had no OPENROUTER_API_KEY. Exact boundary text was preserved.",
+  "source_files": [
+    {
+      "path": "docs/XAI_ARCHITECTURE_CLAIM_BOUNDARIES.md",
+      "sha256": "f0a751efc6f2fe71007d73b00fe47eff1f2d293c667f91c40c9c9de61a720351"
+    }
+  ],
+  "artifacts": {
+    "png": {
+      "path": "figure.png",
+      "sha256": "7bec3489b5f4b69b72ddf5ad4e06b59d68d85773e08111fc62fa094032f4b2cd"
+    },
+    "pdf": {
+      "path": "figure.pdf",
+      "sha256": "4a5d9cd18b3d330b057f3a97d82b30de92be21b370956c2000d58239f146e836"
+    },
+    "data": {
+      "path": "figure_data.csv",
+      "sha256": "045c5ffd5e79edf096bbcf759337d07d800603199249323f7a439bdd00ac2575"
+    }
+  },
+  "render_backend": "native_vector_fallback"
+}

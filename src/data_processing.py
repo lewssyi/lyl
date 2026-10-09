@@ -55,6 +55,19 @@ def sanitize_signal_epochs(X, clip_value=None):
     return np.nan_to_num(X, copy=True, nan=0.0, posinf=0.0, neginf=0.0).astype(np.float32)
 
 
+def infer_subject_id_from_npz(filename):
+    """Infer the subject identifier used for leakage-safe splitting."""
+    stem = os.path.splitext(os.path.basename(str(filename)))[0]
+    upper_stem = stem.upper()
+    if (
+        len(upper_stem) >= 5
+        and upper_stem[:2] in {"SC", "ST"}
+        and upper_stem[2:5].isdigit()
+    ):
+        return upper_stem[:5]
+    return stem
+
+
 def _robust_positive_z(metric):
     metric = np.asarray(metric, dtype=np.float32)
     center = np.median(metric, axis=0, keepdims=True)
@@ -63,6 +76,75 @@ def _robust_positive_z(metric):
     fallback = np.std(metric, axis=0, keepdims=True)
     scale = np.where(scale < 1e-6, fallback + 1e-6, scale)
     return (metric - center) / scale
+
+
+def recording_robust_zscore(X, eps=1e-6):
+    """
+    Robust z-score within a single recording and channel.
+
+    This intentionally uses only the current recording's signal statistics, so
+    deployment can apply the same transform without train/test population fits.
+    """
+    X = sanitize_signal_epochs(X)
+    center = np.median(X, axis=(0, 1), keepdims=True)
+    mad = np.median(np.abs(X - center), axis=(0, 1), keepdims=True)
+    robust_scale = 1.4826 * mad
+    fallback_scale = np.std(X, axis=(0, 1), keepdims=True)
+    scale = np.where(robust_scale > eps, robust_scale, fallback_scale)
+    scale = np.where(scale > eps, scale, 1.0)
+    return sanitize_signal_epochs((X - center) / (scale + eps))
+
+
+def prefix_causal_robust_zscore(X, eps=1e-6):
+    """Normalize epoch t from unlabeled samples observed through epoch t only."""
+    values = sanitize_signal_epochs(X)
+    normalized = np.empty_like(values, dtype=np.float32)
+    for epoch_index in range(len(values)):
+        prefix = values[: epoch_index + 1]
+        center = np.median(prefix, axis=(0, 1), keepdims=True)
+        mad = np.median(np.abs(prefix - center), axis=(0, 1), keepdims=True)
+        robust_scale = 1.4826 * mad
+        fallback = np.std(prefix, axis=(0, 1), keepdims=True)
+        scale = np.where(robust_scale > eps, robust_scale, fallback)
+        scale = np.where(scale > eps, scale, 1.0)
+        normalized[epoch_index] = (values[epoch_index] - center[0]) / (scale[0] + eps)
+    return sanitize_signal_epochs(normalized)
+
+
+def epoch_local_normalization(X, eps=1e-6):
+    """Deployment-safe per-epoch, per-channel z-score without future context."""
+    values = sanitize_signal_epochs(X)
+    center = np.mean(values, axis=1, keepdims=True)
+    scale = np.std(values, axis=1, keepdims=True)
+    scale = np.where(scale > eps, scale, 1.0)
+    return sanitize_signal_epochs((values - center) / (scale + eps))
+
+
+def fit_train_global_scaler(X, eps=1e-6):
+    """Fit an unlabeled robust scaler on training data only."""
+    values = sanitize_signal_epochs(X)
+    center = np.median(values, axis=(0, 1), keepdims=True)
+    mad = np.median(np.abs(values - center), axis=(0, 1), keepdims=True)
+    scale = 1.4826 * mad
+    fallback = np.std(values, axis=(0, 1), keepdims=True)
+    scale = np.where(scale > eps, scale, fallback)
+    scale = np.where(scale > eps, scale, 1.0)
+    return {
+        "fit_scope": "train_only",
+        "center": center.astype(np.float32),
+        "scale": scale.astype(np.float32),
+        "eps": float(eps),
+    }
+
+
+def apply_train_fitted_global_scaler(X, scaler):
+    if not isinstance(scaler, dict) or scaler.get("fit_scope") != "train_only":
+        raise ValueError("train_fitted_global_scaler requires a train-only scaler state")
+    values = sanitize_signal_epochs(X)
+    center = np.asarray(scaler["center"], dtype=np.float32)
+    scale = np.asarray(scaler["scale"], dtype=np.float32)
+    eps = float(scaler.get("eps", 1e-6))
+    return sanitize_signal_epochs((values - center) / (scale + eps))
 
 
 def _secondwise_step_metric(X_safe, fs):
@@ -212,6 +294,51 @@ def compute_epoch_quality_scores(
     return quality_scores
 
 
+def compute_epoch_channel_quality_scores(
+    X,
+    fs=100,
+    flat_std_threshold=1e-4,
+    flat_std_ratio=0.02,
+    step_z_threshold=8.0,
+    noise_z_threshold=10.0,
+    min_quality=0.10,
+    max_quality=1.00,
+):
+    """Compute per-epoch, per-channel quality scores in [min_quality, max_quality]."""
+    X = _as_3d_float(X)
+    finite_channel = np.all(np.isfinite(X), axis=1)
+    X_safe = np.nan_to_num(X, copy=True, nan=0.0, posinf=0.0, neginf=0.0)
+
+    channel_std = np.std(X_safe, axis=1)
+    reference_std = np.median(channel_std, axis=0, keepdims=True)
+    flat_limit = np.maximum(flat_std_threshold, reference_std * flat_std_ratio)
+    flat_severity = np.clip((flat_limit - channel_std) / (flat_limit + 1e-6), 0.0, 1.0)
+
+    step_metric = _secondwise_step_metric(X_safe, fs)
+    step_z = _robust_positive_z(step_metric)
+    step_severity = np.clip((step_z - step_z_threshold) / max(step_z_threshold, 1e-6), 0.0, 1.0)
+
+    if X_safe.shape[1] > 1:
+        diff_abs = np.abs(np.diff(X_safe, axis=1))
+        noise_metric = np.percentile(diff_abs, 99.5, axis=1).astype(np.float32)
+        noise_z = _robust_positive_z(noise_metric)
+        noise_severity = np.clip((noise_z - noise_z_threshold) / max(noise_z_threshold, 1e-6), 0.0, 1.0)
+    else:
+        noise_severity = np.zeros_like(channel_std, dtype=np.float32)
+
+    nonfinite_severity = (~finite_channel).astype(np.float32)
+    severity = np.maximum.reduce(
+        [
+            nonfinite_severity,
+            0.95 * flat_severity,
+            0.95 * step_severity,
+            0.70 * noise_severity,
+        ]
+    )
+    channel_quality = 1.0 - 0.90 * np.clip(severity, 0.0, 1.0)
+    return np.clip(channel_quality, min_quality, max_quality).astype(np.float32)
+
+
 def compute_epoch_quality_weights(
     X,
     flat_std_threshold=1e-4,
@@ -351,16 +478,119 @@ def summarize_quality_reports(reports, quality_scores, report_name=None):
     }
 
 
+def _profile_key(value):
+    return str(value or "clinical_canonical").strip().lower().replace("-", "_")
+
+
+def _clamped_band(low, high, fs):
+    fs = float(fs) if fs is not None else 100.0
+    nyquist = fs / 2.0
+    low = max(float(low), 1e-4)
+    high = min(float(high), nyquist * 0.95)
+    if high <= low:
+        return None
+    return low, high
+
+
+def _apply_bandpass_to_channel(values, low, high, fs, backend="scipy"):
+    band = _clamped_band(low, high, fs)
+    if band is None:
+        return values.astype(np.float32)
+
+    low, high = band
+    backend_key = str(backend or "scipy").strip().lower()
+    if backend_key == "mne":
+        try:
+            import mne
+        except ImportError as exc:
+            raise ImportError(
+                "LFTS_PREPROCESS_FILTER_BACKEND=mne requires mne. Install it under "
+                "the project-local .deps directory or switch the backend to scipy."
+            ) from exc
+        flat = np.asarray(values, dtype=np.float64).reshape(-1, values.shape[1])
+        filtered = mne.filter.filter_data(
+            flat,
+            sfreq=float(fs),
+            l_freq=float(low),
+            h_freq=float(high),
+            method="fir",
+            fir_design="firwin",
+            verbose=False,
+        )
+        return filtered.reshape(values.shape).astype(np.float32)
+
+    if backend_key not in {"scipy", "sos", "butter"}:
+        raise ValueError(f"Unknown filter backend: {backend!r}")
+    sos = signal.butter(4, [low, high], btype="bandpass", fs=float(fs), output="sos")
+    try:
+        return signal.sosfiltfilt(sos, values, axis=1).astype(np.float32)
+    except ValueError:
+        return signal.sosfilt(sos, values, axis=1).astype(np.float32)
+
+
+def clinical_filter_bands(filter_profile="clinical_canonical", fs=100):
+    """
+    Return channel-specific bands for the shared clinical concept space.
+
+    The canonical profile intentionally keeps EOG below 0.5 Hz for slow eye
+    movement concepts and gives EMG its own muscle-activity band. The legacy
+    profile preserves the historical project behavior for reproducibility.
+    """
+    key = _profile_key(filter_profile)
+    if key in {"none", "off", "false", "no_filter", "nofilter"}:
+        return {}
+    if key in {"legacy", "baseline", "sleepedf_legacy"}:
+        eeg_high = min(30.0, float(fs) * 0.5 * 0.95)
+        return {0: (0.5, eeg_high), 1: (0.5, eeg_high)}
+    if key in {"clinical_canonical", "clinical", "sleepedf_like", "harmonized"}:
+        return {
+            0: (0.5, 30.0),  # EEG: delta/theta/alpha/sigma/beta concepts.
+            1: (0.1, 15.0),  # EOG: preserve slow eye movement, suppress muscle noise.
+            2: (10.0, 45.0),  # EMG: muscle tone/activation band.
+        }
+    if key in {"spindle_safe", "spindle_safe_0p3_35", "wide_0p3_35", "k_complex_safe"}:
+        return {
+            0: (0.3, 35.0),  # EEG: preserve K-complex slow energy and sigma spindles.
+            1: (0.05, 18.0),
+            2: (8.0, 45.0),
+        }
+    if key in {"sigma_preserve", "sigma_preserve_0p3_40", "wide_0p3_40"}:
+        return {
+            0: (0.3, 40.0),
+            1: (0.05, 18.0),
+            2: (8.0, 45.0),
+        }
+    if key in {"canonical_0p5_35", "eeg_0p5_35"}:
+        return {
+            0: (0.5, 35.0),
+            1: (0.1, 18.0),
+            2: (10.0, 45.0),
+        }
+    raise ValueError(
+        "filter_profile must be one of 'clinical_canonical', 'legacy', or 'none', "
+        f"got {filter_profile!r}"
+    )
+
+
 def preprocess_multichannel_epochs(
     X,
     fs=100,
     apply_filters=True,
     normalize=True,
+    normalization_mode="recording_robust_zscore",
+    filter_profile="clinical_canonical",
+    filter_backend="scipy",
     clip_sigma=None,
     enable_amplitude_clipping=False,
+    normalization_state=None,
 ):
     """
-    Apply the baseline physiological preprocessing used by the best run.
+    Apply dataset-agnostic clinical-concept harmonized preprocessing.
+
+    The default profile maps all datasets to the same EEG/EOG/EMG clinical
+    signal space before shared priors are applied:
+    EEG 0.5-30 Hz, EOG 0.1-15 Hz, EMG 10-45 Hz, followed by per-recording
+    normalization.
 
     No global amplitude clipping is applied. clip_sigma and
     enable_amplitude_clipping are kept only so run_main.py remains compatible.
@@ -370,41 +600,283 @@ def preprocess_multichannel_epochs(
 
     if apply_filters and X.shape[1] > 15:
         fs = float(fs) if fs is not None else 100.0
-        nyquist = fs / 2.0
         processed = X.copy()
-
-        eeg_high = min(30.0, nyquist * 0.95)
-        if eeg_high > 0.5 and X.shape[-1] >= 1:
-            sos_eeg = signal.butter(4, [0.5, eeg_high], btype="bandpass", fs=fs, output="sos")
-            processed[:, :, 0] = signal.sosfiltfilt(sos_eeg, processed[:, :, 0], axis=1).astype(np.float32)
-
-        if eeg_high > 0.5 and X.shape[-1] >= 2:
-            sos_eog = signal.butter(4, [0.5, eeg_high], btype="bandpass", fs=fs, output="sos")
-            processed[:, :, 1] = signal.sosfiltfilt(sos_eog, processed[:, :, 1], axis=1).astype(np.float32)
+        for channel_idx, band in clinical_filter_bands(filter_profile, fs=fs).items():
+            if channel_idx < X.shape[-1]:
+                processed[:, :, channel_idx] = _apply_bandpass_to_channel(
+                    processed[:, :, channel_idx],
+                    band[0],
+                    band[1],
+                    fs,
+                    backend=filter_backend,
+                )
 
         X = processed
 
     if normalize:
-        mean = np.mean(X, axis=(0, 1), keepdims=True)
-        std = np.std(X, axis=(0, 1), keepdims=True)
-        X = (X - mean) / (std + 1e-6)
-        X = sanitize_signal_epochs(X)
+        mode = str(normalization_mode or "recording_robust_zscore").strip().lower()
+        if mode in {
+            "recording_robust_zscore_canonical",
+            "recording_robust_zscore",
+            "robust",
+            "robust_zscore",
+        }:
+            X = recording_robust_zscore(X)
+        elif mode == "prefix_causal_robust_zscore":
+            X = prefix_causal_robust_zscore(X)
+        elif mode == "train_fitted_global_scaler":
+            X = apply_train_fitted_global_scaler(X, normalization_state)
+        elif mode == "epoch_local_normalization":
+            X = epoch_local_normalization(X)
+        elif mode in {"recording_zscore", "zscore", "standard", "channel_zscore"}:
+            mean = np.mean(X, axis=(0, 1), keepdims=True)
+            std = np.std(X, axis=(0, 1), keepdims=True)
+            X = sanitize_signal_epochs((X - mean) / (std + 1e-6))
+        elif mode in {"recording_minmax", "minmax", "channel_minmax"}:
+            data_min = np.min(X, axis=(0, 1), keepdims=True)
+            data_max = np.max(X, axis=(0, 1), keepdims=True)
+            X = sanitize_signal_epochs(2.0 * (X - data_min) / (data_max - data_min + 1e-6) - 1.0)
+        elif mode in {"recording_robust_minmax", "robust_minmax"}:
+            lo = np.percentile(X, 1.0, axis=(0, 1), keepdims=True)
+            hi = np.percentile(X, 99.0, axis=(0, 1), keepdims=True)
+            X = np.clip((X - lo) / (hi - lo + 1e-6), 0.0, 1.0)
+            X = sanitize_signal_epochs(2.0 * X - 1.0)
+        else:
+            raise ValueError(
+                "normalization_mode must be recording_robust_zscore_canonical, "
+                "prefix_causal_robust_zscore, train_fitted_global_scaler, "
+                "epoch_local_normalization, recording_zscore, recording_minmax, "
+                f"or recording_robust_minmax; got {normalization_mode!r}"
+            )
 
     return X.astype(np.float32)
 
 
-def split_npz_files(files, test_size=0.15, val_size=0.15, seed=42):
+def _subject_groups_from_files(files):
+    groups = {}
+    for filename in sorted(files):
+        groups.setdefault(infer_subject_id_from_npz(filename), []).append(filename)
+    return {subject: sorted(subject_files) for subject, subject_files in groups.items()}
+
+
+def _split_subject_ids(subject_ids, test_size=0.15, val_size=0.15, seed=42):
+    subject_ids = np.array(sorted(subject_ids), dtype=object)
+    if len(subject_ids) == 0:
+        return [], [], []
+
     rng = np.random.default_rng(seed)
-    files = np.array(sorted(files))
-    shuffled = files[rng.permutation(len(files))]
+    shuffled = subject_ids[rng.permutation(len(subject_ids))]
+    n_subjects = len(shuffled)
 
-    n_test = max(1, int(round(len(shuffled) * test_size)))
-    test_files = sorted(shuffled[:n_test].tolist())
-    train_val_files = shuffled[n_test:]
+    if n_subjects == 1:
+        return sorted(shuffled.tolist()), [], []
 
-    n_val = max(1, int(round(len(train_val_files) * val_size)))
-    val_files = sorted(train_val_files[:n_val].tolist())
-    train_files = sorted(train_val_files[n_val:].tolist())
+    n_test = int(round(n_subjects * float(test_size)))
+    if test_size > 0:
+        n_test = max(1, n_test)
+    n_test = min(n_test, n_subjects - 1)
+
+    remaining = n_subjects - n_test
+    n_val = int(round(remaining * float(val_size)))
+    if val_size > 0 and remaining >= 2:
+        n_val = max(1, n_val)
+    n_val = min(n_val, max(remaining - 1, 0))
+
+    test_subjects = sorted(shuffled[:n_test].tolist())
+    val_subjects = sorted(shuffled[n_test:n_test + n_val].tolist())
+    train_subjects = sorted(shuffled[n_test + n_val:].tolist())
+    return train_subjects, val_subjects, test_subjects
+
+
+def _subject_label_counts(subject_groups, folder_path, class_names=None):
+    n_classes = len(class_names) if class_names is not None else 0
+    subject_counts = {}
+    for subject, subject_files in subject_groups.items():
+        labels = []
+        for filename in subject_files:
+            with np.load(os.path.join(folder_path, filename), mmap_mode="r") as data:
+                file_labels = np.asarray(data["y"], dtype=np.int32).reshape(-1)
+            labels.append(file_labels)
+            if file_labels.size:
+                n_classes = max(n_classes, int(file_labels.max()) + 1)
+        if labels:
+            labels = np.concatenate(labels)
+            subject_counts[subject] = np.bincount(labels, minlength=n_classes).astype(np.float64)
+        else:
+            subject_counts[subject] = np.zeros(n_classes, dtype=np.float64)
+
+    for subject, counts in list(subject_counts.items()):
+        if counts.shape[0] < n_classes:
+            padded = np.zeros(n_classes, dtype=np.float64)
+            padded[:counts.shape[0]] = counts
+            subject_counts[subject] = padded
+    return subject_counts
+
+
+def _split_subject_ids_stratified(
+    subject_groups,
+    folder_path,
+    test_size=0.15,
+    val_size=0.15,
+    seed=42,
+    class_names=None,
+):
+    base_train, base_val, base_test = _split_subject_ids(
+        subject_groups.keys(),
+        test_size=test_size,
+        val_size=val_size,
+        seed=seed,
+    )
+    target_subject_counts = {
+        "train": len(base_train),
+        "val": len(base_val),
+        "test": len(base_test),
+    }
+    if target_subject_counts["val"] == 0 and target_subject_counts["test"] == 0:
+        return base_train, base_val, base_test
+
+    subject_counts = _subject_label_counts(subject_groups, folder_path, class_names=class_names)
+    subjects = sorted(subject_counts)
+    global_counts = np.sum([subject_counts[subject] for subject in subjects], axis=0)
+    global_distribution = global_counts / np.maximum(np.sum(global_counts), 1.0)
+    total_epochs = float(np.sum(global_counts))
+
+    rng = np.random.default_rng(seed)
+    shuffled_subjects = subjects[:]
+    rng.shuffle(shuffled_subjects)
+    shuffled_subjects = sorted(
+        shuffled_subjects,
+        key=lambda subject: float(np.sum(subject_counts[subject])),
+        reverse=True,
+    )
+
+    splits = {"train": [], "val": [], "test": []}
+    split_counts = {
+        "train": np.zeros_like(global_counts, dtype=np.float64),
+        "val": np.zeros_like(global_counts, dtype=np.float64),
+        "test": np.zeros_like(global_counts, dtype=np.float64),
+    }
+    split_order = ("test", "val", "train")
+    target_epoch_counts = {
+        name: total_epochs * (target_subject_counts[name] / max(len(subjects), 1))
+        for name in split_order
+    }
+
+    for subject in shuffled_subjects:
+        counts = subject_counts[subject]
+        best_name = None
+        best_score = np.inf
+        for split_name in split_order:
+            if len(splits[split_name]) >= target_subject_counts[split_name]:
+                continue
+
+            candidate_counts = split_counts[split_name] + counts
+            candidate_distribution = candidate_counts / np.maximum(np.sum(candidate_counts), 1.0)
+            distribution_error = float(np.sum(np.abs(candidate_distribution - global_distribution)))
+            subject_fill = (len(splits[split_name]) + 1) / max(target_subject_counts[split_name], 1)
+            epoch_fill = float(np.sum(candidate_counts)) / max(target_epoch_counts[split_name], 1.0)
+            size_error = abs(epoch_fill - subject_fill)
+            score = distribution_error + 0.25 * size_error
+            if score < best_score:
+                best_name = split_name
+                best_score = score
+
+        if best_name is None:
+            best_name = "train"
+        splits[best_name].append(subject)
+        split_counts[best_name] += counts
+
+    return sorted(splits["train"]), sorted(splits["val"]), sorted(splits["test"])
+
+
+def _format_label_distribution(labels, class_names=None):
+    labels = np.asarray(labels, dtype=np.int32).reshape(-1)
+    if class_names is None:
+        n_classes = int(labels.max()) + 1 if labels.size else 0
+        class_names = [str(idx) for idx in range(n_classes)]
+    counts = np.bincount(labels, minlength=len(class_names))
+    total = int(counts.sum())
+    parts = [
+        f"{name}:{int(count)}({(count / max(total, 1)):.1%})"
+        for name, count in zip(class_names, counts)
+    ]
+    return ", ".join(parts), counts
+
+
+def log_npz_split_summary(folder_path, split_map, class_names=None, logger=None):
+    for split_name, files in split_map.items():
+        subjects = sorted({infer_subject_id_from_npz(filename) for filename in files})
+        _emit(logger, f"{split_name} subjects ({len(subjects)}): {subjects}")
+        _emit(logger, f"{split_name} files ({len(files)}): {list(files)}")
+
+        split_labels = []
+        for filename in files:
+            with np.load(os.path.join(folder_path, filename), mmap_mode="r") as data:
+                labels = np.asarray(data["y"], dtype=np.int32).reshape(-1)
+            split_labels.append(labels)
+            file_distribution, _ = _format_label_distribution(labels, class_names)
+            _emit(logger, f"  {split_name} file distribution | {filename}: {file_distribution}")
+
+        if split_labels:
+            split_distribution, _ = _format_label_distribution(np.concatenate(split_labels), class_names)
+        else:
+            split_distribution, _ = _format_label_distribution(np.array([], dtype=np.int32), class_names)
+        _emit(logger, f"{split_name} distribution: {split_distribution}")
+
+
+def split_npz_files(
+    files,
+    test_size=0.15,
+    val_size=0.15,
+    seed=42,
+    folder_path=None,
+    class_names=None,
+    logger=None,
+    log_summary=False,
+    stratify_by_labels=False,
+):
+    subject_groups = _subject_groups_from_files(files)
+    if stratify_by_labels and folder_path is not None:
+        train_subjects, val_subjects, test_subjects = _split_subject_ids_stratified(
+            subject_groups,
+            folder_path,
+            test_size=test_size,
+            val_size=val_size,
+            seed=seed,
+            class_names=class_names,
+        )
+    else:
+        train_subjects, val_subjects, test_subjects = _split_subject_ids(
+            subject_groups.keys(),
+            test_size=test_size,
+            val_size=val_size,
+            seed=seed,
+        )
+
+    def files_for_subjects(subjects):
+        split_files = []
+        for subject in subjects:
+            split_files.extend(subject_groups[subject])
+        return sorted(split_files)
+
+    train_files = files_for_subjects(train_subjects)
+    val_files = files_for_subjects(val_subjects)
+    test_files = files_for_subjects(test_subjects)
+
+    if log_summary:
+        split_mode = "stratified subject-level" if stratify_by_labels and folder_path is not None else "subject-level"
+        _emit(logger, f"Split mode: {split_mode}")
+        if folder_path is not None:
+            log_npz_split_summary(
+                folder_path,
+                {"Train": train_files, "Val": val_files, "Test": test_files},
+                class_names=class_names,
+                logger=logger,
+            )
+        else:
+            _emit(logger, f"Train subjects ({len(train_subjects)}): {train_subjects}")
+            _emit(logger, f"Val subjects ({len(val_subjects)}): {val_subjects}")
+            _emit(logger, f"Test subjects ({len(test_subjects)}): {test_subjects}")
 
     return train_files, val_files, test_files
 
@@ -422,9 +894,13 @@ def load_npz_data(
     preprocess=False,
     apply_filters=True,
     normalize=True,
+    normalization_mode="recording_robust_zscore",
+    filter_profile="clinical_canonical",
+    filter_backend="scipy",
     clip_sigma=None,
     enable_amplitude_clipping=False,
     return_quality=False,
+    return_channel_quality=False,
     enable_quality_downweighting=False,
 ):
     """
@@ -465,6 +941,11 @@ def load_npz_data(
     X = np.empty((total_samples, *sample_shape), dtype=np.float32)
     y = np.empty((total_samples,), dtype=np.int32)
     quality_scores = np.empty((total_samples,), dtype=np.float32) if return_quality else None
+    channel_quality_scores = (
+        np.empty((total_samples, sample_shape[-1]), dtype=np.float32)
+        if return_channel_quality
+        else None
+    )
     quality_reports = []
 
     current_idx = 0
@@ -484,6 +965,9 @@ def load_npz_data(
                 fs=fs,
                 apply_filters=apply_filters,
                 normalize=normalize,
+                normalization_mode=normalization_mode,
+                filter_profile=filter_profile,
+                filter_backend=filter_backend,
                 clip_sigma=clip_sigma,
                 enable_amplitude_clipping=enable_amplitude_clipping,
             )
@@ -500,6 +984,10 @@ def load_npz_data(
             quality_scores[current_idx: current_idx + n_samples] = file_quality
             quality_reports.append(file_report)
 
+        if return_channel_quality:
+            file_channel_quality = compute_epoch_channel_quality_scores(quality_source, fs=fs)
+            channel_quality_scores[current_idx: current_idx + n_samples] = file_channel_quality
+
         X[current_idx: current_idx + n_samples] = x_data
         y[current_idx: current_idx + n_samples] = y_data
         current_idx += n_samples
@@ -514,7 +1002,12 @@ def load_npz_data(
             report_name=f"{os.path.basename(folder_path)} ({len(files)} files)",
         )
         log_quality_report(report)
+        if return_channel_quality:
+            return X, y, quality_scores, channel_quality_scores
         return X, y, quality_scores
+
+    if return_channel_quality:
+        return X, y, channel_quality_scores
 
     return X, y
 
@@ -552,374 +1045,3 @@ def load_edf_epoch(psg_path, hypno_path):
     )
     return epochs.get_data(), epochs.events[:, 2]
 
-
-#########0.8213##########
-#
-#import numpy as np
-#import os
-#from tensorflow.keras.utils import to_categorical
-#from scipy import signal
-#
-#
-#def sanitize_signal_epochs(X, clip_value=None):
-#    """Replace non-finite values and optionally clip extreme normalized amplitudes."""
-#    X = np.asarray(X, dtype=np.float32)
-#    if not np.all(np.isfinite(X)):
-#        X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
-#    if clip_value is not None and clip_value > 0:
-#        X = np.clip(X, -float(clip_value), float(clip_value))
-#    return X.astype(np.float32)
-#
-#
-#def compute_epoch_quality_weights(
-#    X,
-#    flat_std_threshold=1e-4,
-#    extreme_z_threshold=8.0,
-#    extreme_ratio_threshold=0.02,
-#    jump_z_threshold=10.0,
-#    min_weight=0.35,
-#    return_flags=False,
-#    enable_quality_downweighting=False,
-#    channel_names=None,
-#    return_report=False,
-#    report_name=None,
-#    logger=None,
-#):
-#    """
-#    Compute a multichannel quality report without changing the signal stream.
-#
-#    By default this is report-only: returned weights are all ones so EEG/EOG/EMG
-#    epochs are not downweighted. Set enable_quality_downweighting=True only for
-#    ablation runs that intentionally restore the old weighting behavior.
-#    """
-#    X = np.asarray(X, dtype=np.float32)
-#    if X.ndim == 2:
-#        X = X[..., np.newaxis]
-#    if X.ndim != 3:
-#        raise ValueError(f"Expected X with shape (epochs, samples, channels), got {X.shape}")
-#
-#    n_epochs, _, n_channels = X.shape
-#    if channel_names is None:
-#        default_names = ["EEG", "EOG", "EMG"]
-#        channel_names = [
-#            default_names[idx] if idx < len(default_names) else f"CH{idx + 1}"
-#            for idx in range(n_channels)
-#        ]
-#    else:
-#        channel_names = list(channel_names)
-#        if len(channel_names) < n_channels:
-#            channel_names.extend(f"CH{idx + 1}" for idx in range(len(channel_names), n_channels))
-#
-#    finite_channel = np.all(np.isfinite(X), axis=1)
-#    finite_epoch = np.all(finite_channel, axis=1)
-#    X_safe = np.nan_to_num(X, copy=True, nan=0.0, posinf=0.0, neginf=0.0)
-#
-#    channel_std = np.std(X_safe, axis=1)
-#    flat_channel = channel_std < flat_std_threshold
-#    flat_epoch = np.any(flat_channel, axis=1)
-#
-#    abs_values = np.abs(X_safe)
-#    extreme_ratio_channel = np.mean(abs_values >= extreme_z_threshold, axis=1)
-#    max_abs_channel = np.max(abs_values, axis=1)
-#    extreme_channel = (
-#        (extreme_ratio_channel > extreme_ratio_threshold) |
-#        (max_abs_channel >= extreme_z_threshold)
-#    )
-#    extreme_epoch = np.any(extreme_channel, axis=1)
-#
-#    if X_safe.shape[1] > 1:
-#        jump_metric = np.mean(np.abs(np.diff(X_safe, axis=1)), axis=1)
-#        median_jump = np.median(jump_metric, axis=0, keepdims=True)
-#        mad_jump = np.median(np.abs(jump_metric - median_jump), axis=0, keepdims=True)
-#        robust_jump_z = (jump_metric - median_jump) / (1.4826 * mad_jump + 1e-6)
-#        jump_channel = robust_jump_z > jump_z_threshold
-#        jump_epoch = np.any(jump_channel, axis=1)
-#    else:
-#        jump_channel = np.zeros((X_safe.shape[0], n_channels), dtype=bool)
-#        jump_epoch = np.zeros(X_safe.shape[0], dtype=bool)
-#
-#    weights = np.ones(X_safe.shape[0], dtype=np.float32)
-#    if enable_quality_downweighting:
-#        weights[~finite_epoch] *= 0.35
-#        weights[flat_epoch] *= 0.50
-#        weights[extreme_epoch] *= 0.65
-#        weights[jump_epoch] *= 0.75
-#        weights = np.clip(weights, min_weight, 1.0).astype(np.float32)
-#
-#    flags = {
-#        "nonfinite": ~finite_epoch,
-#        "flat": flat_epoch,
-#        "extreme": extreme_epoch,
-#        "jump": jump_epoch,
-#        "nonfinite_channel": ~finite_channel,
-#        "flat_channel": flat_channel,
-#        "extreme_channel": extreme_channel,
-#        "jump_channel": jump_channel,
-#    }
-#
-#    flagged_epoch = (~finite_epoch) | flat_epoch | extreme_epoch | jump_epoch
-#    report = {
-#        "epochs": int(n_epochs),
-#        "channels": int(n_channels),
-#        "downweighting_enabled": bool(enable_quality_downweighting),
-#        "flagged_epochs": int(np.sum(flagged_epoch)),
-#        "flagged_ratio": float(np.mean(flagged_epoch)) if n_epochs else 0.0,
-#        "nonfinite_epochs": int(np.sum(~finite_epoch)),
-#        "flat_epochs": int(np.sum(flat_epoch)),
-#        "extreme_epochs": int(np.sum(extreme_epoch)),
-#        "jump_epochs": int(np.sum(jump_epoch)),
-#        "channel_reports": [],
-#    }
-#    for channel_idx in range(n_channels):
-#        report["channel_reports"].append(
-#            {
-#                "channel": channel_names[channel_idx],
-#                "nonfinite_epochs": int(np.sum(~finite_channel[:, channel_idx])),
-#                "flat_epochs": int(np.sum(flat_channel[:, channel_idx])),
-#                "extreme_epochs": int(np.sum(extreme_channel[:, channel_idx])),
-#                "jump_epochs": int(np.sum(jump_channel[:, channel_idx])),
-#                "median_std": float(np.median(channel_std[:, channel_idx])),
-#                "max_abs": float(np.max(max_abs_channel[:, channel_idx])) if n_epochs else 0.0,
-#            }
-#        )
-#
-#    if logger is not None or report_name is not None:
-#        if hasattr(logger, "info"):
-#            emit = logger.info
-#        elif hasattr(logger, "write"):
-#            emit = lambda message: logger.write(f"{message}\n")
-#        elif callable(logger):
-#            emit = logger
-#        else:
-#            emit = print
-#        prefix = f"{report_name} " if report_name else ""
-#        emit(
-#            f"{prefix}quality report: epochs={report['epochs']}, "
-#            f"flagged={report['flagged_epochs']} ({report['flagged_ratio']:.1%}), "
-#            f"downweighting={'on' if enable_quality_downweighting else 'off'}, "
-#            f"returned_weight_mean={np.mean(weights):.3f}"
-#        )
-#        for channel_report in report["channel_reports"]:
-#            emit(
-#                "  "
-#                f"{channel_report['channel']}: "
-#                f"nonfinite={channel_report['nonfinite_epochs']}, "
-#                f"flat={channel_report['flat_epochs']}, "
-#                f"extreme={channel_report['extreme_epochs']}, "
-#                f"jump={channel_report['jump_epochs']}, "
-#                f"median_std={channel_report['median_std']:.4g}, "
-#                f"max_abs={channel_report['max_abs']:.4g}"
-#            )
-#
-#    if return_flags and return_report:
-#        return weights, flags, report
-#    if return_report:
-#        return weights, report
-#    if return_flags:
-#        return weights, flags
-#    return weights
-#
-#
-#def preprocess_multichannel_epochs(
-#    X,
-#    fs=100,
-#    apply_filters=True,
-#    normalize=True,
-#    clip_sigma=None,
-#    enable_amplitude_clipping=False,
-#):
-#    """
-#    Apply lightweight physiology-aware preprocessing to one recording.
-#
-#    X is expected to be (epochs, samples, channels). EEG/EOG are band-passed
-#    to 0.5-30 Hz. EMG is left unfiltered to preserve tonic muscle tone,
-#    then each channel is normalized
-#    per recording. Recording-level normalization keeps relative epoch amplitude
-#    cues while reducing subject/device scale drift.
-#    """
-#    X = sanitize_signal_epochs(X)
-#
-#    if X.ndim == 2:
-#        X = X[..., np.newaxis]
-#
-#    if apply_filters and X.shape[1] > 15:
-#        fs = float(fs) if fs is not None else 100.0
-#        nyquist = fs / 2.0
-#        processed = X.copy()
-#
-#        eeg_high = min(30.0, nyquist * 0.95)
-#        if eeg_high > 0.5 and X.shape[-1] >= 1:
-#            sos_eeg = signal.butter(4, [0.5, eeg_high], btype="bandpass", fs=fs, output="sos")
-#            processed[:, :, 0] = signal.sosfiltfilt(sos_eeg, processed[:, :, 0], axis=1).astype(np.float32)
-#
-#        if eeg_high > 0.5 and X.shape[-1] >= 2:
-#            sos_eog = signal.butter(4, [0.5, eeg_high], btype="bandpass", fs=fs, output="sos")
-#            processed[:, :, 1] = signal.sosfiltfilt(sos_eog, processed[:, :, 1], axis=1).astype(np.float32)
-#
-#        X = processed
-#
-#    if normalize:
-#        mean = np.mean(X, axis=(0, 1), keepdims=True)
-#        std = np.std(X, axis=(0, 1), keepdims=True)
-#        X = (X - mean) / (std + 1e-6)
-#        clip_value = clip_sigma if enable_amplitude_clipping else None
-#        X = sanitize_signal_epochs(X, clip_value=clip_value)
-#
-#    return X.astype(np.float32)
-#
-#
-#def split_npz_files(files, test_size=0.15, val_size=0.15, seed=42):
-#    """
-#    Deterministic file-level split. This avoids mixing epochs from the same
-#    recording across train/validation/test sets.
-#    """
-#    rng = np.random.default_rng(seed)
-#    files = np.array(sorted(files))
-#    shuffled = files[rng.permutation(len(files))]
-#
-#    n_test = max(1, int(round(len(shuffled) * test_size)))
-#    test_files = sorted(shuffled[:n_test].tolist())
-#    train_val_files = shuffled[n_test:]
-#
-#    n_val = max(1, int(round(len(train_val_files) * val_size)))
-#    val_files = sorted(train_val_files[:n_val].tolist())
-#    train_files = sorted(train_val_files[n_val:].tolist())
-#
-#    return train_files, val_files, test_files
-#
-## --- 获取文件列表 ---
-#def get_npz_file_list(folder_path):
-#    """获取指定文件夹下所有 .npz 文件的文件名列表（排序保证可复现）"""
-#    if not os.path.exists(folder_path):
-#        raise FileNotFoundError(f"找不到目录: {folder_path}")
-#    return sorted([f for f in os.listdir(folder_path) if f.endswith('.npz')])
-#
-#
-## --- 处理 NPZ 文件 (预分配内存 + 支持按文件子集加载) ---
-#def load_npz_data(
-#    folder_path,
-#    max_files=None,
-#    file_subset=None,
-#    preprocess=False,
-#    apply_filters=True,
-#    normalize=True,
-#    clip_sigma=None,
-#    enable_amplitude_clipping=False,
-#    return_quality=False,
-#    enable_quality_downweighting=False,
-#):
-#    """
-#    加载指定文件夹下所有的 npz 文件并合并。
-#    采用预分配内存策略，彻底解决 concatenate 导致的 OOM 内存爆炸问题。
-#
-#    参数:
-#        folder_path: 数据文件夹路径
-#        max_files:   (调试用) 只加载前 N 个文件
-#        file_subset: (按受试者切分) 只加载指定的文件名列表
-#    """
-#    if not os.path.exists(folder_path):
-#        raise FileNotFoundError(f"找不到目录: {folder_path}")
-#
-#    if file_subset is not None:
-#        files = [f for f in file_subset if f.endswith('.npz')]
-#    else:
-#        files = [f for f in os.listdir(folder_path) if f.endswith('.npz')]
-#
-#    if max_files is not None:
-#        files = files[:max_files]
-#
-#    if len(files) == 0:
-#        raise ValueError("没有找到任何 .npz 文件！")
-#
-#    print(f"正在从 {folder_path} 加载 {len(files)} 个文件...")
-#
-#    # 第一遍扫描：只读取 shape 算出总样本数，绝不把数据拉入内存
-#    total_samples = 0
-#    for f in files:
-#        data = np.load(os.path.join(folder_path, f), mmap_mode='r')
-#        total_samples += data['x'].shape[0]
-#
-#    print(f"扫描完毕，总样本数: {total_samples}。正在预分配连续内存...")
-#
-#    with np.load(os.path.join(folder_path, files[0]), mmap_mode='r') as first_data:
-#        first_shape = first_data['x'].shape
-#
-#    if len(first_shape) == 2:
-#        sample_shape = (first_shape[1], 1)
-#    else:
-#        sample_shape = first_shape[1:]
-#
-#    X = np.empty((total_samples, *sample_shape), dtype=np.float32)
-#    y = np.empty((total_samples,), dtype=np.int32)
-#    quality_weights = np.empty((total_samples,), dtype=np.float32) if return_quality else None
-#
-#    # 第二遍扫描：像拼图一样把数据填进预先挖好的坑里
-#    current_idx = 0
-#    for i, f in enumerate(files):
-#        with np.load(os.path.join(folder_path, f)) as data:
-#            x_data = data['x'].astype(np.float32)
-#            y_data = data['y']
-#            fs = float(data['fs']) if 'fs' in data.files else 100.0
-#            n_samples = x_data.shape[0]
-#
-#            # 适配 3 通道格式
-#            if len(x_data.shape) == 2:
-#                x_data = np.expand_dims(x_data, axis=-1)
-#
-#            if preprocess:
-#                x_data = preprocess_multichannel_epochs(
-#                    x_data,
-#                    fs=fs,
-#                    apply_filters=apply_filters,
-#                    normalize=normalize,
-#                    clip_sigma=clip_sigma,
-#                    enable_amplitude_clipping=enable_amplitude_clipping,
-#                )
-#            else:
-#                clip_value = clip_sigma if enable_amplitude_clipping else None
-#                x_data = sanitize_signal_epochs(x_data, clip_value=clip_value)
-#
-#            X[current_idx: current_idx + n_samples] = x_data
-#            y[current_idx: current_idx + n_samples] = y_data
-#
-#            current_idx += n_samples
-#
-#            if (i + 1) % 5 == 0 or (i + 1) == len(files):
-#                print(f"进度: 已加载 {i + 1}/{len(files)}...")
-#
-#    if return_quality:
-#        report_name = f"{os.path.basename(folder_path)} ({len(files)} files)"
-#        quality_weights[:] = compute_epoch_quality_weights(
-#            X,
-#            enable_quality_downweighting=enable_quality_downweighting,
-#            report_name=report_name,
-#        )
-#        return X, y, quality_weights
-#    return X, y
-#
-#
-## --- 格式化函数 (核心：适配 Conv1D) ---
-#def format_for_model(X, y, num_classes=5):
-#    """
-#    确保 X 是 (Samples, 3000, 1) 且 y 是 One-hot 编码。
-#    """
-#    if len(X.shape) == 2:
-#        X = np.expand_dims(X, axis=-1)
-#    y_one_hot = to_categorical(y, num_classes=num_classes)
-#    return X, y_one_hot
-#
-#
-## --- 处理 EDF 文件 (可选备份) ---
-#def load_edf_epoch(psg_path, hypno_path):
-#    import mne
-#
-#    raw = mne.io.read_raw_edf(psg_path, preload=True, verbose=False)
-#    annot = mne.read_annotations(hypno_path)
-#    raw.set_annotations(annot, emit_warning=False)
-#    event_id = {'Sleep stage W': 0, 'Sleep stage 1': 1, 'Sleep stage 2': 2,
-#                'Sleep stage 3': 3, 'Sleep stage 4': 3, 'Sleep stage R': 4}
-#    events, _ = mne.events_from_annotations(raw, event_id=event_id, chunk_duration=30.)
-#    epochs = mne.Epochs(raw=raw, events=events, event_id=event_id,
-#                        tmin=0., tmax=30. - 1 / raw.info['sfreq'],
-#                        baseline=None, preload=True, verbose=False)
-#    return epochs.get_data(), epochs.events[:, 2]

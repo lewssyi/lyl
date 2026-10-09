@@ -1,0 +1,18 @@
+protocol_version: hc_seqlime_feasibility_v1
+stage: smoke
+data_split: development
+sample_count: 4
+group_schemes: [G15]
+candidates: [H0, H3]
+feature_counts: [30]
+replacement_primary: zero
+replacement_robustness: [local_temporal_mean, recording_neutral_epoch]
+randomization_levels: [R0, R7]
+randomization_seeds: [3101]
+target_protocols: [T0, T1]
+context_queries: 306
+within_epoch_queries: 1200
+faithfulness_queries: 24
+total_queries_per_candidate: 1530
+stage_prior: false
+feedback_training: false

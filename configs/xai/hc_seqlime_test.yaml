@@ -1,0 +1,15 @@
+protocol_version: hc_seqlime_feasibility_v1
+stage: test
+data_split: test
+sample_count: 36
+run_count: 1
+requires_validation_gate: true
+frozen_selection: outputs/hierarchical_context_xai_feasibility/isruc_seed42/frozen_validation_selection.json
+randomization_levels: [R0, R3, R5, R7]
+randomization_seeds: [3101, 3102, 3103]
+target_protocols: [T0, T1]
+permutation_null_count: 1000
+total_queries_per_candidate: 1530
+test_data_used_for_selection: false
+stage_prior: false
+feedback_training: false

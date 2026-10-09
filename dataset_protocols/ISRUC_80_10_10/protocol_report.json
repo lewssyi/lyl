@@ -1,0 +1,654 @@
+{
+  "dataset": "ISRUC_80_10_10",
+  "npz_dir": "/home/b502/wssyi/ISRUC-Sleep/npz_epoch3",
+  "class_names": [
+    "W",
+    "N1",
+    "N2",
+    "N3",
+    "REM"
+  ],
+  "transition_names": [
+    "W_N1",
+    "N1_N2",
+    "N2_N3",
+    "N2_REM",
+    "W_REM",
+    "N1_REM",
+    "other"
+  ],
+  "settings": {
+    "seed": 42,
+    "train_ratio": 0.8,
+    "val_ratio": 0.1,
+    "test_ratio": 0.1,
+    "search_iters": 6000,
+    "sleep_margin_minutes": 30.0,
+    "epoch_seconds": 30.0,
+    "quality_low_threshold": 0.7,
+    "quality_severe_threshold": 0.4
+  },
+  "global_summary": {
+    "subjects": 100,
+    "files": 100,
+    "epochs": 87187,
+    "class_counts": {
+      "W": 20098,
+      "N1": 11062,
+      "N2": 27511,
+      "N3": 17251,
+      "REM": 11265
+    },
+    "class_ratio": [
+      0.230516,
+      0.126877,
+      0.31554,
+      0.197862,
+      0.129205
+    ],
+    "transition_counts": {
+      "W_N1": 4020,
+      "N1_N2": 5815,
+      "N2_N3": 1729,
+      "N2_REM": 472,
+      "W_REM": 544,
+      "N1_REM": 1075,
+      "other": 1719
+    },
+    "transition_ratio": 0.35108445066351635,
+    "mean_q": 0.957475678334619,
+    "low_q_ratio": 0.0668792365834356,
+    "severe_q_ratio": 0.044731439320082125,
+    "flagged_ratio": 0.08588436349455768,
+    "sleep_period_ratio": 0.9758794315666326
+  },
+  "split_score": 0.41770213606749285,
+  "split_subjects": {
+    "train": [
+      "S001",
+      "S002",
+      "S003",
+      "S004",
+      "S005",
+      "S006",
+      "S007",
+      "S008",
+      "S010",
+      "S011",
+      "S012",
+      "S013",
+      "S015",
+      "S016",
+      "S017",
+      "S018",
+      "S019",
+      "S020",
+      "S021",
+      "S022",
+      "S023",
+      "S024",
+      "S026",
+      "S027",
+      "S028",
+      "S029",
+      "S031",
+      "S032",
+      "S033",
+      "S034",
+      "S035",
+      "S036",
+      "S038",
+      "S039",
+      "S040",
+      "S041",
+      "S043",
+      "S044",
+      "S045",
+      "S046",
+      "S048",
+      "S049",
+      "S050",
+      "S051",
+      "S052",
+      "S053",
+      "S054",
+      "S055",
+      "S058",
+      "S061",
+      "S062",
+      "S063",
+      "S064",
+      "S065",
+      "S066",
+      "S067",
+      "S068",
+      "S072",
+      "S074",
+      "S075",
+      "S076",
+      "S077",
+      "S078",
+      "S079",
+      "S080",
+      "S081",
+      "S082",
+      "S083",
+      "S085",
+      "S086",
+      "S087",
+      "S090",
+      "S091",
+      "S092",
+      "S093",
+      "S094",
+      "S095",
+      "S097",
+      "S099",
+      "S100"
+    ],
+    "val": [
+      "S025",
+      "S030",
+      "S037",
+      "S042",
+      "S057",
+      "S059",
+      "S070",
+      "S071",
+      "S084",
+      "S089"
+    ],
+    "test": [
+      "S009",
+      "S014",
+      "S047",
+      "S056",
+      "S060",
+      "S069",
+      "S073",
+      "S088",
+      "S096",
+      "S098"
+    ]
+  },
+  "split_files": {
+    "train": [
+      "S001.npz",
+      "S002.npz",
+      "S003.npz",
+      "S004.npz",
+      "S005.npz",
+      "S006.npz",
+      "S007.npz",
+      "S008.npz",
+      "S010.npz",
+      "S011.npz",
+      "S012.npz",
+      "S013.npz",
+      "S015.npz",
+      "S016.npz",
+      "S017.npz",
+      "S018.npz",
+      "S019.npz",
+      "S020.npz",
+      "S021.npz",
+      "S022.npz",
+      "S023.npz",
+      "S024.npz",
+      "S026.npz",
+      "S027.npz",
+      "S028.npz",
+      "S029.npz",
+      "S031.npz",
+      "S032.npz",
+      "S033.npz",
+      "S034.npz",
+      "S035.npz",
+      "S036.npz",
+      "S038.npz",
+      "S039.npz",
+      "S040.npz",
+      "S041.npz",
+      "S043.npz",
+      "S044.npz",
+      "S045.npz",
+      "S046.npz",
+      "S048.npz",
+      "S049.npz",
+      "S050.npz",
+      "S051.npz",
+      "S052.npz",
+      "S053.npz",
+      "S054.npz",
+      "S055.npz",
+      "S058.npz",
+      "S061.npz",
+      "S062.npz",
+      "S063.npz",
+      "S064.npz",
+      "S065.npz",
+      "S066.npz",
+      "S067.npz",
+      "S068.npz",
+      "S072.npz",
+      "S074.npz",
+      "S075.npz",
+      "S076.npz",
+      "S077.npz",
+      "S078.npz",
+      "S079.npz",
+      "S080.npz",
+      "S081.npz",
+      "S082.npz",
+      "S083.npz",
+      "S085.npz",
+      "S086.npz",
+      "S087.npz",
+      "S090.npz",
+      "S091.npz",
+      "S092.npz",
+      "S093.npz",
+      "S094.npz",
+      "S095.npz",
+      "S097.npz",
+      "S099.npz",
+      "S100.npz"
+    ],
+    "val": [
+      "S025.npz",
+      "S030.npz",
+      "S037.npz",
+      "S042.npz",
+      "S057.npz",
+      "S059.npz",
+      "S070.npz",
+      "S071.npz",
+      "S084.npz",
+      "S089.npz"
+    ],
+    "test": [
+      "S009.npz",
+      "S014.npz",
+      "S047.npz",
+      "S056.npz",
+      "S060.npz",
+      "S069.npz",
+      "S073.npz",
+      "S088.npz",
+      "S096.npz",
+      "S098.npz"
+    ]
+  },
+  "split_summary": {
+    "train": {
+      "subjects": 80,
+      "files": 80,
+      "epochs": 69540,
+      "class_counts": {
+        "W": 15950,
+        "N1": 8774,
+        "N2": 21973,
+        "N3": 13769,
+        "REM": 9074
+      },
+      "class_ratio": [
+        0.229364,
+        0.126172,
+        0.315976,
+        0.198001,
+        0.130486
+      ],
+      "transition_counts": {
+        "W_N1": 3206,
+        "N1_N2": 4542,
+        "N2_N3": 1325,
+        "N2_REM": 392,
+        "W_REM": 448,
+        "N1_REM": 885,
+        "other": 1289
+      },
+      "transition_ratio": 0.3473540408398044,
+      "mean_q": 0.9561675471069143,
+      "low_q_ratio": 0.06889559965487489,
+      "severe_q_ratio": 0.04672131147540984,
+      "flagged_ratio": 0.08878343399482312,
+      "sleep_period_ratio": 0.9754817371297095
+    },
+    "val": {
+      "subjects": 10,
+      "files": 10,
+      "epochs": 8791,
+      "class_counts": {
+        "W": 2117,
+        "N1": 1123,
+        "N2": 2743,
+        "N3": 1670,
+        "REM": 1138
+      },
+      "class_ratio": [
+        0.240814,
+        0.127744,
+        0.312024,
+        0.189967,
+        0.129451
+      ],
+      "transition_counts": {
+        "W_N1": 370,
+        "N1_N2": 577,
+        "N2_N3": 193,
+        "N2_REM": 33,
+        "W_REM": 33,
+        "N1_REM": 99,
+        "other": 210
+      },
+      "transition_ratio": 0.34671823455807077,
+      "mean_q": 0.9640562751230534,
+      "low_q_ratio": 0.05573882379706518,
+      "severe_q_ratio": 0.035149584802639064,
+      "flagged_ratio": 0.07564554658173131,
+      "sleep_period_ratio": 0.9701967921738142
+    },
+    "test": {
+      "subjects": 10,
+      "files": 10,
+      "epochs": 8856,
+      "class_counts": {
+        "W": 2031,
+        "N1": 1165,
+        "N2": 2795,
+        "N3": 1812,
+        "REM": 1053
+      },
+      "class_ratio": [
+        0.229336,
+        0.131549,
+        0.315605,
+        0.204607,
+        0.118902
+      ],
+      "transition_counts": {
+        "W_N1": 444,
+        "N1_N2": 696,
+        "N2_N3": 211,
+        "N2_REM": 47,
+        "W_REM": 63,
+        "N1_REM": 91,
+        "other": 220
+      },
+      "transition_ratio": 0.38471093044263777,
+      "mean_q": 0.9612152243155881,
+      "low_q_ratio": 0.062104787714543815,
+      "severe_q_ratio": 0.03861788617886179,
+      "flagged_ratio": 0.0732836495031617,
+      "sleep_period_ratio": 0.9846431797651309
+    }
+  },
+  "extreme_subjects_for_review": [
+    {
+      "subject": "S040",
+      "files": [
+        "S040.npz"
+      ],
+      "epochs": 845,
+      "W_ratio": 0.655621,
+      "N1_ratio": 0.027219,
+      "REM_ratio": 0.009467,
+      "low_q_ratio": 0.1289940828402367,
+      "severe_q_ratio": 0.11597633136094675,
+      "transition_ratio": 0.16331360946745563
+    },
+    {
+      "subject": "S006",
+      "files": [
+        "S006.npz"
+      ],
+      "epochs": 867,
+      "W_ratio": 0.798155,
+      "N1_ratio": 0.018454,
+      "REM_ratio": 0.0,
+      "low_q_ratio": 0.02422145328719723,
+      "severe_q_ratio": 0.016147635524798153,
+      "transition_ratio": 0.06343713956170703
+    },
+    {
+      "subject": "S001",
+      "files": [
+        "S001.npz"
+      ],
+      "epochs": 850,
+      "W_ratio": 0.303529,
+      "N1_ratio": 0.082353,
+      "REM_ratio": 0.138824,
+      "low_q_ratio": 0.34352941176470586,
+      "severe_q_ratio": 0.2447058823529412,
+      "transition_ratio": 0.28823529411764703
+    },
+    {
+      "subject": "S013",
+      "files": [
+        "S013.npz"
+      ],
+      "epochs": 852,
+      "W_ratio": 0.728873,
+      "N1_ratio": 0.130282,
+      "REM_ratio": 0.019953,
+      "low_q_ratio": 0.03755868544600939,
+      "severe_q_ratio": 0.008215962441314555,
+      "transition_ratio": 0.2828638497652582
+    },
+    {
+      "subject": "S043",
+      "files": [
+        "S043.npz"
+      ],
+      "epochs": 717,
+      "W_ratio": 0.09205,
+      "N1_ratio": 0.232915,
+      "REM_ratio": 0.11855,
+      "low_q_ratio": 0.1701534170153417,
+      "severe_q_ratio": 0.12691771269177127,
+      "transition_ratio": 0.5258019525801952
+    },
+    {
+      "subject": "S048",
+      "files": [
+        "S048.npz"
+      ],
+      "epochs": 951,
+      "W_ratio": 0.361725,
+      "N1_ratio": 0.068349,
+      "REM_ratio": 0.134595,
+      "low_q_ratio": 0.1808622502628812,
+      "severe_q_ratio": 0.1440588853838065,
+      "transition_ratio": 0.2103049421661409
+    },
+    {
+      "subject": "S083",
+      "files": [
+        "S083.npz"
+      ],
+      "epochs": 895,
+      "W_ratio": 0.253631,
+      "N1_ratio": 0.103911,
+      "REM_ratio": 0.122905,
+      "low_q_ratio": 0.22905027932960895,
+      "severe_q_ratio": 0.20670391061452514,
+      "transition_ratio": 0.27150837988826815
+    },
+    {
+      "subject": "S079",
+      "files": [
+        "S079.npz"
+      ],
+      "epochs": 850,
+      "W_ratio": 0.068235,
+      "N1_ratio": 0.176471,
+      "REM_ratio": 0.169412,
+      "low_q_ratio": 0.13529411764705881,
+      "severe_q_ratio": 0.11294117647058824,
+      "transition_ratio": 0.34
+    },
+    {
+      "subject": "S007",
+      "files": [
+        "S007.npz"
+      ],
+      "epochs": 903,
+      "W_ratio": 0.148394,
+      "N1_ratio": 0.189369,
+      "REM_ratio": 0.17608,
+      "low_q_ratio": 0.16168327796234774,
+      "severe_q_ratio": 0.13953488372093023,
+      "transition_ratio": 0.4318936877076412
+    },
+    {
+      "subject": "S053",
+      "files": [
+        "S053.npz"
+      ],
+      "epochs": 880,
+      "W_ratio": 0.030682,
+      "N1_ratio": 0.078409,
+      "REM_ratio": 0.175,
+      "low_q_ratio": 0.07954545454545454,
+      "severe_q_ratio": 0.06931818181818182,
+      "transition_ratio": 0.2340909090909091
+    },
+    {
+      "subject": "S098",
+      "files": [
+        "S098.npz"
+      ],
+      "epochs": 869,
+      "W_ratio": 0.158803,
+      "N1_ratio": 0.162255,
+      "REM_ratio": 0.156502,
+      "low_q_ratio": 0.1518987341772152,
+      "severe_q_ratio": 0.13578826237054084,
+      "transition_ratio": 0.26927502876869963
+    },
+    {
+      "subject": "S004",
+      "files": [
+        "S004.npz"
+      ],
+      "epochs": 933,
+      "W_ratio": 0.030011,
+      "N1_ratio": 0.067524,
+      "REM_ratio": 0.21865,
+      "low_q_ratio": 0.07717041800643087,
+      "severe_q_ratio": 0.05359056806002144,
+      "transition_ratio": 0.2615219721329046
+    },
+    {
+      "subject": "S033",
+      "files": [
+        "S033.npz"
+      ],
+      "epochs": 890,
+      "W_ratio": 0.476404,
+      "N1_ratio": 0.060674,
+      "REM_ratio": 0.061798,
+      "low_q_ratio": 0.043820224719101124,
+      "severe_q_ratio": 0.024719101123595506,
+      "transition_ratio": 0.2157303370786517
+    },
+    {
+      "subject": "S045",
+      "files": [
+        "S045.npz"
+      ],
+      "epochs": 876,
+      "W_ratio": 0.127854,
+      "N1_ratio": 0.115297,
+      "REM_ratio": 0.194064,
+      "low_q_ratio": 0.1404109589041096,
+      "severe_q_ratio": 0.12442922374429223,
+      "transition_ratio": 0.3333333333333333
+    },
+    {
+      "subject": "S096",
+      "files": [
+        "S096.npz"
+      ],
+      "epochs": 828,
+      "W_ratio": 0.178744,
+      "N1_ratio": 0.070048,
+      "REM_ratio": 0.128019,
+      "low_q_ratio": 0.1497584541062802,
+      "severe_q_ratio": 0.1111111111111111,
+      "transition_ratio": 0.28502415458937197
+    },
+    {
+      "subject": "S069",
+      "files": [
+        "S069.npz"
+      ],
+      "epochs": 785,
+      "W_ratio": 0.03949,
+      "N1_ratio": 0.031847,
+      "REM_ratio": 0.289172,
+      "low_q_ratio": 0.045859872611464965,
+      "severe_q_ratio": 0.034394904458598725,
+      "transition_ratio": 0.23694267515923567
+    },
+    {
+      "subject": "S087",
+      "files": [
+        "S087.npz"
+      ],
+      "epochs": 896,
+      "W_ratio": 0.190848,
+      "N1_ratio": 0.06808,
+      "REM_ratio": 0.176339,
+      "low_q_ratio": 0.15066964285714285,
+      "severe_q_ratio": 0.11160714285714286,
+      "transition_ratio": 0.3080357142857143
+    },
+    {
+      "subject": "S032",
+      "files": [
+        "S032.npz"
+      ],
+      "epochs": 980,
+      "W_ratio": 0.05,
+      "N1_ratio": 0.213265,
+      "REM_ratio": 0.140816,
+      "low_q_ratio": 0.04795918367346939,
+      "severe_q_ratio": 0.0336734693877551,
+      "transition_ratio": 0.373469387755102
+    },
+    {
+      "subject": "S067",
+      "files": [
+        "S067.npz"
+      ],
+      "epochs": 832,
+      "W_ratio": 0.091346,
+      "N1_ratio": 0.15625,
+      "REM_ratio": 0.185096,
+      "low_q_ratio": 0.09495192307692307,
+      "severe_q_ratio": 0.07451923076923077,
+      "transition_ratio": 0.38221153846153844
+    },
+    {
+      "subject": "S010",
+      "files": [
+        "S010.npz"
+      ],
+      "epochs": 812,
+      "W_ratio": 0.357143,
+      "N1_ratio": 0.110837,
+      "REM_ratio": 0.034483,
+      "low_q_ratio": 0.1022167487684729,
+      "severe_q_ratio": 0.08866995073891626,
+      "transition_ratio": 0.3041871921182266
+    }
+  ],
+  "recommended_training_notes": [
+    "Use split_files as fixed subject-level train/val/test membership.",
+    "Use sleep_period_mask for a secondary sleep-period protocol; keep full-night protocol for primary clinical reporting.",
+    "Use quality_weight as optional sample-weight multiplier; avoid deleting epochs unless nonfinite/flat across all channels.",
+    "For ISRUC-like data, consider narrowing transition boundary weighting if boundary_epoch ratio exceeds roughly 35%."
+  ]
+}

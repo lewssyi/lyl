@@ -1,0 +1,129 @@
+{
+  "allowed_input_kind": "persisted diagnostic JSON/CSV/NPY and reports only",
+  "checkpoint_loaded": false,
+  "inputs": [
+    {
+      "bytes": 2803,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/development_smoke_2_batch_parity_diagnostic_1/diagnostic_protocol.json",
+      "sha256": "1a0ba6ae2c460980fe7901c43801be9b5c7dfecefbad2c55b0454a5c8db2e5e1"
+    },
+    {
+      "bytes": 8529,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/development_smoke_2_batch_parity_diagnostic_1/matched_input_identity.json",
+      "sha256": "01a131345cde9285759debfe593de491a077558b53d32d84cd9d5988846f965b"
+    },
+    {
+      "bytes": 2796,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/development_smoke_2_batch_parity_diagnostic_1/execution_environment.json",
+      "sha256": "8dbf92a8c2a2f03531651c6f8ba57bb11d6969114707288aa7c92df7ed954c69"
+    },
+    {
+      "bytes": 7087,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/development_smoke_2_batch_parity_diagnostic_1/batch1_repeatability.json",
+      "sha256": "c068c8d813adb4925214cdbbda6d69c8d10fd74e0104ba456852f14b13c2ac15"
+    },
+    {
+      "bytes": 7089,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/development_smoke_2_batch_parity_diagnostic_1/batch16_repeatability.json",
+      "sha256": "e6e9f7cd30c7270feffe9fa7d14a115e317c286f82bc5e1375edd49eb3deb195"
+    },
+    {
+      "bytes": 9335,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/development_smoke_2_batch_parity_diagnostic_1/batch_shape_difference.json",
+      "sha256": "9b3be36b105c9392c0c840b6e3e02b0c444f47fd2ddbb13df847abdc563945ee"
+    },
+    {
+      "bytes": 6037,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/development_smoke_2_batch_parity_diagnostic_1/layerwise_difference.csv",
+      "sha256": "ddc0c7c2f1f79644e1070d2ce49626af464ab8a97791fb6224909b5adfb20619"
+    },
+    {
+      "bytes": 2578,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/development_smoke_2_batch_parity_diagnostic_1/aggregation_difference.json",
+      "sha256": "bbc011f833fb30abbd12169a65fb3ffe1d2871a083d70c21ed8849db2c99f7f2"
+    },
+    {
+      "bytes": 428,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/development_smoke_2_batch_parity_diagnostic_1/final_outputs_batch1.npy",
+      "sha256": "8f60cbacf74aff6bc1c0ae31009a8d69cf99a264a670287d699b3dc6daa4dfed"
+    },
+    {
+      "bytes": 428,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/development_smoke_2_batch_parity_diagnostic_1/final_outputs_batch16.npy",
+      "sha256": "0a0cfb7171baf3bb90dd3750bdb22ac6d00837a030b092cc31c41c9efedfb9dc"
+    },
+    {
+      "bytes": 428,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/development_smoke_2_batch_parity_diagnostic_1/final_output_diff.npy",
+      "sha256": "8af460ccbd938a0cda2056028aa6007098718de0447ae6609261f30723012fec"
+    },
+    {
+      "bytes": 428,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/development_smoke_2_batch_parity_diagnostic_1/final_logits_batch1.npy",
+      "sha256": "45341cc86fe79d14da069c0f56e74e84ee10d2de894aefdff8722d1e16b7c328"
+    },
+    {
+      "bytes": 428,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/development_smoke_2_batch_parity_diagnostic_1/final_logits_batch16.npy",
+      "sha256": "422f03aaed3b511be4318282c97e561769c931dbd01eddafc0914346fbdc1bd0"
+    },
+    {
+      "bytes": 428,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/development_smoke_2_batch_parity_diagnostic_1/final_logits_diff.npy",
+      "sha256": "64005029c9596947c0fe8014a3a4ddbc7afb3d2525d3d291be26947e63ed55b7"
+    },
+    {
+      "bytes": 4021,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/development_smoke_2_batch_parity_diagnostic_1/runtime_memory_profile.json",
+      "sha256": "4974f9e7f518de7561947c4b1da0f02432987b101fc9f87262279f3e80e6e1e9"
+    },
+    {
+      "bytes": 2608,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/development_smoke_2_batch_parity_diagnostic_1/access_audit.json",
+      "sha256": "f15466d29a9fcbfd89f20e96cbcdd79eb9a3d57604458577679f45b19f5d87ef"
+    },
+    {
+      "bytes": 1352,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/development_smoke_2_batch_parity_diagnostic_1/failure_evidence.json",
+      "sha256": "f1a4474cda4d8cd5273b597b475f4da813b26684677ef6052424d536edbb66f9"
+    },
+    {
+      "bytes": 6631,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/development_smoke_2_batch_parity_diagnostic_1/run_manifest.json",
+      "sha256": "07d29a76d36d6e0dde774d6c864e1787e42f7906c178fcea8db910b5d132a880"
+    }
+  ],
+  "model_forward_executed": false,
+  "model_framework_imported": false,
+  "prior_authorization": {
+    "not_derived_from_observed_1_84178e_5": true,
+    "rule": "If the project has no defined parity standard, freeze atol=1e-5, rtol=1e-5 before inference; never loosen after seeing results.",
+    "smoke_protocol_frozen_utc": "2026-08-03T09:28:49.222959+00:00",
+    "source": "pre-smoke user authorization attachment 8f24a85b.../pasted-text.txt lines 211-215",
+    "source_bytes": 13836,
+    "source_created_utc": "2026-08-03T08:59:19Z",
+    "source_sha256": "327f0e4c21172c4b74cb9557c1835345a5f4acb7ba7f6460983a864583eb9d16"
+  },
+  "protected_historical_files": [
+    {
+      "bytes": 5426,
+      "path": "outputs/sleepxvit_inspired_audit/isruc_seed42/context_influence_v1/development_smoke_2/run_manifest.json",
+      "sha256": "bdda7a96d45ae0cf85d8381fb26c9b6a17cfe5c0aedb029ec0edf8ae7ced4781"
+    },
+    {
+      "bytes": 10286,
+      "path": "docs/paper_xai/SEQUENCE_CONTEXT_INFLUENCE_DEVELOPMENT_SMOKE.md",
+      "sha256": "d85a7400f4b5a9b26cf7ae9a86bd25afe6d4978c41b86c2d84a9ac8d7d53ccc6"
+    },
+    {
+      "bytes": 2217,
+      "path": "docs/paper_xai/SEQUENCE_CONTEXT_INFLUENCE_BATCH_PARITY_DIAGNOSTIC.md",
+      "sha256": "2f007f885ff7db751586a9c67df6bfd8c43e73fd9b550bd4ef799e82af616791"
+    }
+  ],
+  "raw_waveform_loaded": false,
+  "sample_58657_accessed": false,
+  "schema_version": "batch_shape_numerical_protocol_source_evidence_v1",
+  "test_accessed": false,
+  "validation_accessed": false
+}

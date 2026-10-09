@@ -1,0 +1,31 @@
+anonymous_case_id,sample_id,annotation_conflict,conflict_pairs,stage_concept_agreement,true_stage_joined_after_annotation
+CASE-001,178,False,,False,N1
+CASE-002,355,False,,False,N1
+CASE-003,1169,False,,False,W
+CASE-004,1411,False,,True,N1
+CASE-005,1828,True,EMG Low Tone vs EMG Muscle Activation,True,N2
+CASE-006,1912,False,,False,W
+CASE-007,2306,False,,False,W
+CASE-008,2425,False,,True,N1
+CASE-009,2536,False,,True,W
+CASE-010,2939,False,,True,N3
+CASE-011,3080,False,,False,N1
+CASE-012,5025,False,,False,W
+CASE-013,5440,False,,True,N2
+CASE-014,6205,False,,True,N3
+CASE-015,6863,False,,False,W
+CASE-016,7861,False,,False,W
+CASE-017,8040,False,,False,N1
+CASE-018,8158,True,EMG Low Tone vs EMG Muscle Activation,False,N1
+CASE-019,8603,False,,False,N2
+CASE-020,8929,False,,False,REM
+CASE-021,9208,False,,True,W
+CASE-022,9559,False,,True,REM
+CASE-023,9812,False,,False,REM
+CASE-024,10644,True,EOG Slow Eye vs EOG Rapid Eye,True,REM
+CASE-025,10675,False,,True,N3
+CASE-026,10718,False,,False,N3
+CASE-027,11503,False,,False,N2
+CASE-028,11538,False,,False,N2
+CASE-029,12137,False,,False,N1
+CASE-030,12472,False,,False,N2

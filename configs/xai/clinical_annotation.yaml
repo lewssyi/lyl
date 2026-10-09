@@ -1,0 +1,7 @@
+schema_version: clinical_annotation_v1
+execution_order: after_model_attribution
+ranking_modified: false
+predicted_stage_usage: display_context_only
+true_stage_used: false
+annotation_kind: derived clinical annotation
+clinical_validity_status: expert_review_required

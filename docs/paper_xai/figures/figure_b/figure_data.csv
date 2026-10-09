@@ -1,0 +1,12 @@
+panel,seed,metric,value
+fidelity,,weighted_R2,0.8106262878836674
+faithfulness,3101,insertion_minus_deletion,2.920250891261932
+faithfulness,3102,insertion_minus_deletion,2.926276296430804
+faithfulness,3103,insertion_minus_deletion,2.9530657161817406
+stability,,mask_seed_spearman_median,0.9061523878682018
+randomization,3101,R7_similarity,0.2529068263320426
+randomization,3101,null_q95,0.1040139403012503
+randomization,3102,R7_similarity,0.1801807394138293
+randomization,3102,null_q95,0.1041310989683003
+randomization,3103,R7_similarity,0.2868613980569729
+randomization,3103,null_q95,0.1038773011645756

@@ -1,0 +1,282 @@
+{
+  "access": "RESEARCH_TEAM_ONLY_DO_NOT_DISTRIBUTE_TO_EVALUATORS",
+  "allocation_seed": 20260726,
+  "balanced": {
+    "context_in_a": 15,
+    "context_in_b": 15
+  },
+  "identity_terms_hidden_in_evaluator_package": true,
+  "pairs": [
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-017",
+      "display_order": 1,
+      "panel_a_restricted": "BASE_PRESENTATION",
+      "panel_b_restricted": "CONTEXT_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 8040
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-009",
+      "display_order": 2,
+      "panel_a_restricted": "CONTEXT_PRESENTATION",
+      "panel_b_restricted": "BASE_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 2536
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-029",
+      "display_order": 3,
+      "panel_a_restricted": "CONTEXT_PRESENTATION",
+      "panel_b_restricted": "BASE_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 12137
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-005",
+      "display_order": 4,
+      "panel_a_restricted": "CONTEXT_PRESENTATION",
+      "panel_b_restricted": "BASE_PRESENTATION",
+      "pilot_case": true,
+      "sample_id_restricted": 1828
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-007",
+      "display_order": 5,
+      "panel_a_restricted": "BASE_PRESENTATION",
+      "panel_b_restricted": "CONTEXT_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 2306
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-001",
+      "display_order": 6,
+      "panel_a_restricted": "BASE_PRESENTATION",
+      "panel_b_restricted": "CONTEXT_PRESENTATION",
+      "pilot_case": true,
+      "sample_id_restricted": 178
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-024",
+      "display_order": 7,
+      "panel_a_restricted": "BASE_PRESENTATION",
+      "panel_b_restricted": "CONTEXT_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 10644
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-028",
+      "display_order": 8,
+      "panel_a_restricted": "CONTEXT_PRESENTATION",
+      "panel_b_restricted": "BASE_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 11538
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-020",
+      "display_order": 9,
+      "panel_a_restricted": "BASE_PRESENTATION",
+      "panel_b_restricted": "CONTEXT_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 8929
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-025",
+      "display_order": 10,
+      "panel_a_restricted": "BASE_PRESENTATION",
+      "panel_b_restricted": "CONTEXT_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 10675
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-012",
+      "display_order": 11,
+      "panel_a_restricted": "CONTEXT_PRESENTATION",
+      "panel_b_restricted": "BASE_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 5025
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-013",
+      "display_order": 12,
+      "panel_a_restricted": "CONTEXT_PRESENTATION",
+      "panel_b_restricted": "BASE_PRESENTATION",
+      "pilot_case": true,
+      "sample_id_restricted": 5440
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-023",
+      "display_order": 13,
+      "panel_a_restricted": "BASE_PRESENTATION",
+      "panel_b_restricted": "CONTEXT_PRESENTATION",
+      "pilot_case": true,
+      "sample_id_restricted": 9812
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-021",
+      "display_order": 14,
+      "panel_a_restricted": "BASE_PRESENTATION",
+      "panel_b_restricted": "CONTEXT_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 9208
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-004",
+      "display_order": 15,
+      "panel_a_restricted": "CONTEXT_PRESENTATION",
+      "panel_b_restricted": "BASE_PRESENTATION",
+      "pilot_case": true,
+      "sample_id_restricted": 1411
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-006",
+      "display_order": 16,
+      "panel_a_restricted": "CONTEXT_PRESENTATION",
+      "panel_b_restricted": "BASE_PRESENTATION",
+      "pilot_case": true,
+      "sample_id_restricted": 1912
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-026",
+      "display_order": 17,
+      "panel_a_restricted": "CONTEXT_PRESENTATION",
+      "panel_b_restricted": "BASE_PRESENTATION",
+      "pilot_case": true,
+      "sample_id_restricted": 10718
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-027",
+      "display_order": 18,
+      "panel_a_restricted": "BASE_PRESENTATION",
+      "panel_b_restricted": "CONTEXT_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 11503
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-018",
+      "display_order": 19,
+      "panel_a_restricted": "BASE_PRESENTATION",
+      "panel_b_restricted": "CONTEXT_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 8158
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-011",
+      "display_order": 20,
+      "panel_a_restricted": "CONTEXT_PRESENTATION",
+      "panel_b_restricted": "BASE_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 3080
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-014",
+      "display_order": 21,
+      "panel_a_restricted": "CONTEXT_PRESENTATION",
+      "panel_b_restricted": "BASE_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 6205
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-019",
+      "display_order": 22,
+      "panel_a_restricted": "CONTEXT_PRESENTATION",
+      "panel_b_restricted": "BASE_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 8603
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-008",
+      "display_order": 23,
+      "panel_a_restricted": "BASE_PRESENTATION",
+      "panel_b_restricted": "CONTEXT_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 2425
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-002",
+      "display_order": 24,
+      "panel_a_restricted": "BASE_PRESENTATION",
+      "panel_b_restricted": "CONTEXT_PRESENTATION",
+      "pilot_case": true,
+      "sample_id_restricted": 355
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-022",
+      "display_order": 25,
+      "panel_a_restricted": "BASE_PRESENTATION",
+      "panel_b_restricted": "CONTEXT_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 9559
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-010",
+      "display_order": 26,
+      "panel_a_restricted": "BASE_PRESENTATION",
+      "panel_b_restricted": "CONTEXT_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 2939
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-015",
+      "display_order": 27,
+      "panel_a_restricted": "CONTEXT_PRESENTATION",
+      "panel_b_restricted": "BASE_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 6863
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-003",
+      "display_order": 28,
+      "panel_a_restricted": "BASE_PRESENTATION",
+      "panel_b_restricted": "CONTEXT_PRESENTATION",
+      "pilot_case": true,
+      "sample_id_restricted": 1169
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-016",
+      "display_order": 29,
+      "panel_a_restricted": "CONTEXT_PRESENTATION",
+      "panel_b_restricted": "BASE_PRESENTATION",
+      "pilot_case": true,
+      "sample_id_restricted": 7861
+    },
+    {
+      "allocation_seed": 20260726,
+      "anonymous_case_id": "CASE-030",
+      "display_order": 30,
+      "panel_a_restricted": "CONTEXT_PRESENTATION",
+      "panel_b_restricted": "BASE_PRESENTATION",
+      "pilot_case": false,
+      "sample_id_restricted": 12472
+    }
+  ],
+  "schema_version": "blinded_pair_manifest_v1"
+}

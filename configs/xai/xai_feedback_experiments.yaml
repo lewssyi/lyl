@@ -1,0 +1,56 @@
+{
+  "schema_version": "xai_feedback_experiments_v1",
+  "default_enabled": false,
+  "feedback_training_status": "PERMANENTLY_BLOCKED_FOR_CURRENT_METHOD",
+  "canonical_posthoc_method": "CONTEXT_PRESERVING_CLASSIC_SEQUENCE_LIME",
+  "canonical_baseline": "E0",
+  "teacher_target_default": null,
+  "teacher_target_split": "train",
+  "teacher_mode_default": "self_distillation_in_sample",
+  "label_conditioned_targets_allowed": false,
+  "head_output_shape": [null, 75, 30, 3],
+  "losses": [
+    "normalized_mse",
+    "kl_divergence",
+    "js_divergence",
+    "rank_correlation_surrogate",
+    "top_k_bce"
+  ],
+  "schedule": {
+    "warmup_epochs": 3,
+    "linear_ramp_epochs": 5,
+    "early_stop_on_validation_faithfulness": true
+  },
+  "lambda_sweep": [0.0],
+  "gradient_scopes": [],
+  "permitted_unit_controls": ["E0", "E1", "E2", "E3"],
+  "reliability_gate": {
+    "validation_weighted_r2_min": 0.70,
+    "mask_seed_stability_spearman_min": 0.50,
+    "original_mask_error_max": 0.00001,
+    "physiological_deletion_advantage_vs_random_min": 0.0,
+    "physiological_insertion_advantage_vs_random_min": 0.0,
+    "prediction_correctness_used_by_gate": false,
+    "teacher_confidence_used_by_gate": false
+  },
+  "acceptance_thresholds": {
+    "classification_macro_f1_drop_max": 0.005,
+    "classification_accuracy_drop_max": 0.005,
+    "explanation_deletion_auc_improvement_min": 0.0,
+    "explanation_insertion_auc_improvement_min": 0.0,
+    "explanation_stability_spearman_improvement_min": 0.0,
+    "surrogate_validation_weighted_r2_median_min": 0.80,
+    "surrogate_validation_weighted_r2_p10_min": 0.60
+  },
+  "experiments": {
+    "E0": {"description": "Frozen A1-zero baseline", "head_enabled": false, "xai_loss_weight": 0.0, "training_allowed": false},
+    "E1": {"description": "Forward-only head shape/parity unit test", "head_enabled": true, "xai_loss_weight": 0.0, "training_allowed": false},
+    "E2": {"description": "Random-target loss-shape unit control", "target": "random_target_control", "training_allowed": false},
+    "E3": {"description": "Shuffled-target loss-shape unit control", "target": "shuffled_target_control", "training_allowed": false},
+    "E4": {"description": "Historical real-target proposal; prohibited", "target": "classic_sequence_lime", "training_allowed": false, "status": "PROHIBITED"},
+    "E5": {"description": "Historical real-target proposal; prohibited", "target": "physiological_single_feature", "training_allowed": false, "status": "PROHIBITED"},
+    "E6": {"description": "Historical real-target proposal; prohibited", "target": "lime_physiology_consensus", "training_allowed": false, "status": "PROHIBITED"},
+    "E7": {"description": "Historical circularity control; prohibited", "target": "pc_seqlime_with_predicted_stage_prior_ablation", "training_allowed": false, "status": "PROHIBITED"}
+  },
+  "claim_boundary": "No XAI feedback experiment may train the frozen A1-zero classifier. E1-E3 are isolated unit controls only; E4-E7 are prohibited historical proposals."
+}

@@ -1,0 +1,118 @@
+{
+  "authoritative_report": "docs/SEQUENCE_LIME_PROTOCOL_CONSISTENCY_REPORT.md",
+  "authoritative_result_root": "outputs/sequence_lime_protocol_consistency_audit/isruc_seed42",
+  "framework_display_name": "Physiology-Aware and Reliability-Controlled Post-hoc Sequence Explanation Framework",
+  "framework_short_name": "PR-SeqXAI",
+  "framework_definition": [
+    "CONTEXT_PRESERVING_CLASSIC_SEQUENCE_LIME",
+    "INDEPENDENT_CLINICAL_CONCEPT_ANNOTATION",
+    "RELIABILITY_AWARE_VISUALIZATION"
+  ],
+  "engineering_status": "IMPLEMENTATION_AND_AUDIT_PIPELINE_VALID",
+  "sequence_adaptation_status": "CONTEXT_PRESERVING_SEQUENCE_INFERENCE_ESTABLISHED",
+  "physiology_annotation_status": "AUTOMATIC_PHYSIOLOGY_CONSISTENCY_SUPPORTED",
+  "visualization_status": "PHYSIOLOGY_AND_RELIABILITY_ENHANCED_PRESENTATION_IMPLEMENTED",
+  "human_interpretability_status": "NOT_EVALUATED",
+  "clinical_validation_status": "NOT_VALIDATED",
+  "model_faithfulness_status": "NOT_ESTABLISHED",
+  "physiology_aware_visualization_decision": "PHYSIOLOGY_AWARE_VISUALIZATION_NOT_YET_VALIDATED",
+  "physiology_aware_visualization_decision_scope": "GENUINE_HUMAN_EVALUATION_NOT_PERFORMED",
+  "canonical_batch16_parity": "PASS",
+  "cca_policy": "DERIVED_ANNOTATION_ONLY_NO_ATTRIBUTION_MODIFICATION",
+  "classic_sequence_lime_unified_randomization": {
+    "T0_seed_pass_count": 0,
+    "T1_seed_pass_count": 0,
+    "generalization_supported": false,
+    "required_seed_pass_count": 2,
+    "seeds": [
+      3101,
+      3102,
+      3103
+    ]
+  },
+  "classifier": "A1-zero",
+  "classifier_checkpoint_policy": "READ_ONLY",
+  "correction_base_commit": "72b4258fafa32f6579e7eb4de9c2bd6621cc70f1",
+  "canonical_posthoc_method": "CONTEXT_PRESERVING_CLASSIC_SEQUENCE_LIME",
+  "method_role": "EXPLORATORY_LOCAL_PERTURBATION_SENSITIVITY",
+  "mf_seqlime_status": "SUPERSEDED_HISTORICAL_CANDIDATE",
+  "hc_seqlime_status": "VALIDATION_FAILED_HISTORICAL_CANDIDATE",
+  "clinical_annotation_status": "IMPLEMENTATION_VALID_EXPERT_VALIDATION_PENDING",
+  "dataset": "ISRUC",
+  "explanation_guided_training_allowed": false,
+  "feedback_training_status": "PERMANENTLY_BLOCKED_FOR_CURRENT_METHOD",
+  "fixed_graph_memory_1200": "PASS",
+  "git_branch": "codex/a1-zero-mainline",
+  "hc_seqlime_feasibility": {
+    "T0_seed_pass_count": {
+      "H3_G25_F45": 0,
+      "H3_G9_F45": 0
+    },
+    "T1_seed_pass_count": {
+      "H3_G25_F45": 0,
+      "H3_G9_F45": 0
+    },
+    "fixed_test_executed": false,
+    "fixed_test_execution_count": 0,
+    "paper_level_decision": "HC_SEQLIME_FAIL",
+    "validation_decision": "VALIDATION_NO_QUALIFIED_HIERARCHICAL_CANDIDATE"
+  },
+  "historical_guard_artifact_incident": {
+    "classifier_or_method_results_changed": false,
+    "disclosed": true,
+    "root": "outputs/sequence_lime_two_versions/isruc_seed42/final_validation"
+  },
+  "historical_method_results_overwritten": false,
+  "historical_outputs_overwritten": true,
+  "latest_feasibility_git_commit": "71197c0bf87f513c0e0fee144d132b8b72537723",
+  "latest_feasibility_report": "docs/HIERARCHICAL_CONTEXT_XAI_FEASIBILITY_REPORT.md",
+  "latest_feasibility_result_root": "outputs/hierarchical_context_xai_feasibility/isruc_seed42",
+  "maintained_checks": {
+    "failed": 0,
+    "passed": 152
+  },
+  "final_freeze_validation": {
+    "unittest": "PASS_131_OF_131",
+    "pytest": "PASS_21_OF_21",
+    "total": "PASS_152_OF_152",
+    "authoritative_gpu_batch16_parity": "PASS",
+    "authoritative_fixed_graph_memory_1200": "PASS",
+    "cpu_backend_diagnostic": {
+      "status": "NON_AUTHORITATIVE_BACKEND_DIAGNOSTIC",
+      "argmax_agreement": 1.0,
+      "accuracy_abs_diff": 0.0,
+      "macro_f1_abs_diff": 0.0,
+      "kappa_abs_diff": 0.0,
+      "probability_max_abs_diff": 0.0008518397808074951,
+      "sequence_wrapper_parity": "PASS",
+      "reason": "NVIDIA user-space/kernel driver mismatch prevented same-backend GPU rerun"
+    }
+  },
+  "narrative_reconstruction_validation": {
+    "static_guard_tests": "PASS_10_OF_10",
+    "claim_audit": {
+      "current_allowed": 64,
+      "historical_with_warning": 43,
+      "prohibited_current_claim": 0
+    },
+    "new_lime_experiment": false,
+    "new_model_inference": false,
+    "model_training": false,
+    "expert_evaluation_package_modified": false
+  },
+  "latest_freeze_content_commit": "bd7d5f7",
+  "model_faithfulness_supported": false,
+  "paper_level_interpretability_supported": false,
+  "protocol_consistency_decision": "CASE_PROTOCOL_DRIFT",
+  "schema_version": "current_xai_status_v1",
+  "scientific_status": "MODEL_FAITHFULNESS_NOT_ESTABLISHED",
+  "seed": 42,
+  "sequence_wrapper_parity": "PASS",
+  "source_hashes": {
+    "hc_current_results_manifest_sha256": "4e0138d7d40977b3bb890678b84d5052320a4f7317092541fa44ebfedade4557",
+    "hc_final_decision_sha256": "0a91ab11682cf6e2a2feb3c412ff017a27d43a65cf911f575c0d8851b7bf9ce8",
+    "hc_frozen_selection_sha256": "a4d64fbab98f0f9f3e3421ede525ea8975426c38797ca7a7b942892304f0db99",
+    "hc_report_sha256": "a03a4d753ceb0008e78b653bb4bb561a07d4ac419cac20ad36b52b23dd534266"
+  },
+  "test_data_selection_allowed": false
+}

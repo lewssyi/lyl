@@ -1,0 +1,45 @@
+{
+  "schema_version": "paper_xai_figure_manifest_v1",
+  "generated_at_utc": "2026-07-24T09:15:07.708990+00:00",
+  "generator": "tools/build_paper_xai_materials.py",
+  "canonical_method": "CONTEXT_PRESERVING_CLASSIC_SEQUENCE_LIME",
+  "method_role": "EXPLORATORY_LOCAL_PERTURBATION_SENSITIVITY",
+  "scientific_status": "MODEL_FAITHFULNESS_NOT_ESTABLISHED",
+  "note": "Cases were selected deterministically before visualization; no beauty, physiological-expectation, or story-support criterion was used.",
+  "source_files": [
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/reliability_sample_level.csv",
+      "sha256": "eeee6650c39332a4be8dc20f42e59900b58d364639e6fc477893fe6ef7b7b312"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample7861_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "32eb7b170d727012ee5f67a683b77272c13efb1c1092ccb0053633063625eac3"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample3080_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "e837f491851bf8858a2e543703fa09bafe499bf9acf45fa4b67fef68990d66ab"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample178_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "81b6bf132ba24c4a9da2fd9aed8ced334d301fea13686baea2bdd8e64483701a"
+    },
+    {
+      "path": "outputs/hierarchical_context_xai_feasibility/isruc_seed42/runs/validation_classic_sample355_R0_seed3101_zero/classic_attribution.csv",
+      "sha256": "0e088a9668485b0a3ed5ee86a5254f98a8b089ac072edc63137ca07047afbc31"
+    }
+  ],
+  "artifacts": {
+    "png": {
+      "path": "figure.png",
+      "sha256": "0130f898138a230f716e291936837adead42e42d779104a64e2e139ebf45f3b4"
+    },
+    "pdf": {
+      "path": "figure.pdf",
+      "sha256": "c6548cba48cf5fd2e1903c0f87cd2636ee475223adb83f1cf2651bb871fb23ad"
+    },
+    "data": {
+      "path": "figure_data.csv",
+      "sha256": "332ebb0d558d4de8566a45ce892d432697c37a0e9baebb386ddccbef31ea3e32"
+    }
+  }
+}

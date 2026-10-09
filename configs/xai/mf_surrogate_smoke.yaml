@@ -1,0 +1,14 @@
+schema_version: mf_surrogate_improvement_config_v1
+data_split: validation
+stage: smoke
+sample_count: 4
+candidate_profile: smoke
+randomization_levels: [R0, R7]
+randomization_seeds: [3101]
+query_budget_per_candidate: 1530
+neighborhood_queries: 1506
+faithfulness_queries: 24
+surrogate_target: Y2
+target_protocols: [T0, T1]
+selection_uses_test: false
+training_allowed: false
