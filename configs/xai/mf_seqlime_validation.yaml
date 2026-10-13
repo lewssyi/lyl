@@ -1,7 +1,0 @@
-schema_version: mf_seqlime_selection_v1
-selection_split: validation
-test_selection_forbidden: true
-candidates: [M0, M3, B1_logit_margin, B2_hierarchical, B3_grouped_masks, B4_grouped_ridge]
-objectives: [surrogate_fidelity, faithfulness, stability, randomization_sensitivity]
-required_randomization_seeds: 2
-equal_query_budget: true

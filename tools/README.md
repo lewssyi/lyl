@@ -1,78 +1,61 @@
-# Maintained tools
+# Maintained mainline tools
 
-`tools/` contains only A1-zero, unified Sequence-XAI, protocol, and clinical
-review entry points. One-off C10/B2/B3/SCR/UTF-Lite/SupCon/multi-teacher/
-channel-residual and superseded diagnostic scripts were removed after an
-external, hash-verified backup and a reference scan.
+The active classifier is A1-zero. The canonical attribution method is
+Context-Preserving Classic Sequence-LIME; reliability evaluation and physiological
+annotation remain independent post-hoc modules. Historical results and logs are
+preserved in full. See `docs/WORKSPACE_CLEANUP_20261010.md` for cleanup provenance.
 
-## A1-zero and protocol
+## Classifier, data protocol and paper ablations
 
-- `run_main_with_protocol_split.py` — fixed-split launcher; canonical ISRUC
-  preset: `isruc_A1_concept_film_zero`.
-- `build_sleep_dataset_protocol.py` — subject/recording-disjoint dataset split
-  protocol builder.
-- `build_cross_dataset_protocol.py` — explicit cross-dataset protocol builder.
+- `run_main_with_protocol_split.py`: fixed-split A1-zero training/evaluation launcher.
+- `build_sleep_dataset_protocol.py`: subject-disjoint dataset protocol builder.
+- `build_cross_dataset_protocol.py`: cross-dataset protocol and linked NPZ view builder.
+- `prepare_paper_combinations.py`: prepares the paired paper architecture ablations;
+  relocated without content changes from the old root-level temporary helper.
 
-## Sequence-XAI
+## Canonical Sequence-LIME and validation
 
-- `sequence_lime_paper_evaluation.py` — parity, isolated/resumable smoke,
-  confirmation/full evaluation, stability, randomization, faithfulness,
-  A-G prior ablation, runtime/query accounting, and paper tables.
-- `generate_sequence_xai_training_targets.py` — train-only offline teacher with
-  self-distillation/OOF provenance, multiple target controls, and a reliability
-  score plus hard gate.
-- `xai_feedback_head_smoke.py` — default-off head shape, checkpoint parity, and
-  gradient-isolation smoke test.
-- `audit_concept_definition_parity.py` — real-sample comparison of
-  `segment_proxy_v1` and `raw_physiology_v1`.
+- `sequence_lime_paper_evaluation.py`: canonical checkpoint/wrapper parity, smoke,
+  evaluation, faithfulness, stability and paper tables.
+- `sequence_lime_protocol_consistency_audit.py`: unified Classic randomization protocol
+  underlying the current paper conclusion.
+- `aggregate_sequence_lime_protocol_consistency.py`: aggregate the unified audit.
+- `finalize_sequence_lime_protocol_consistency.py`: finalize the unified audit decision.
+- `sequence_lime_abc_diagnosis.py`: shared response/faithfulness helpers required by
+  the retained unified audit. Its historical A/B/C campaign is not an active route.
+- `final_xai_guards.py`: isolated checkpoint/wrapper parity and fixed-graph memory guard.
 
-## Clinical review
+## Paper materials and independent post-hoc modules
 
-- `build_clinical_expert_review_pack.py` — blinded, stratified review pack.
-- `analyze_clinical_expert_ratings.py` — agreement and rating analysis after
-  human experts complete the template.
+- `build_paper_xai_materials.py`: paper tables, figures and deterministic case materials.
+- `build_physiology_aware_display_validation.py`: frozen blinded display-validation pack.
+- `sleepxvit_offline_reliability_audit.py`: inference-free reliability statistics.
+- `audit_concept_definition_parity.py`: raw-physiology versus segment-proxy audit.
+- `context_influence_paper_convergence.py`: fixed batch-1 paper implementation check.
+- `sequence_context_influence_development_smoke.py`: shared context-window/replacement
+  helpers used by the batch-1 entry point. Historical batch-16 runs are not the
+  canonical paper implementation.
+- `build_clinical_expert_review_pack.py`: expert review package generation.
+- `analyze_clinical_expert_ratings.py`: analyze real expert ratings when available.
 
-Clinical expert validation is pending.
+Retired HC/MF campaign launchers, superseded batch numerical diagnostics, dummy
+training-target generators and one-off source cleaners were removed after a
+hash-verified external backup. Their result directories, manifests and reports
+remain at their original paths. `src/` is unchanged to preserve checkpoint and
+inference compatibility. The disabled feedback YAML is retained as an executable
+freeze guard exercised by existing tests, not as an experiment entry point.
 
-The current guarded formal result, validation counts, scientific decision, and
-failure/recovery provenance are recorded in
-`docs/XAI_FULL_EVALUATION_RESULTS.md`.
-
-## Canonical commands
-
-Run prediction/wrapper parity:
+## Commands
 
 ```bash
-/home/b502/app/anaconda3/envs/l_venv/bin/python3.11 \
-  tools/sequence_lime_paper_evaluation.py \
+/home/b502/app/anaconda3/envs/l_venv/bin/python3.11 tools/run_main_with_protocol_split.py \
+  --split-json dataset_protocols/ISRUC/split.json --gpus 0 \
+  --dataset-preset isruc_A1_concept_film_zero
+
+/home/b502/app/anaconda3/envs/l_venv/bin/python3.11 tools/sequence_lime_paper_evaluation.py \
   --dataset isruc --seed 42 --mode parity-diagnostic
+
+PYTHONPATH=/home/b502/wssyi/project_backups/LIME-for-Time-Series_cleanup_20261010_021513/validation_dependencies \
+PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES= \
+  /home/b502/app/anaconda3/envs/l_venv/bin/python3.11 -B -m pytest -q -p no:cacheprovider tests
 ```
-
-Run the isolated functional profile:
-
-```bash
-/home/b502/app/anaconda3/envs/l_venv/bin/python3.11 \
-  tools/sequence_lime_paper_evaluation.py \
-  --dataset isruc --seed 42 \
-  --mode functional-smoke \
-  --config configs/xai/sequence_lime_functional.yaml \
-  --run-id functional_smoke --resume
-```
-
-Generate a train-only teacher smoke artifact:
-
-```bash
-/home/b502/app/anaconda3/envs/l_venv/bin/python3.11 \
-  tools/generate_sequence_xai_training_targets.py \
-  --split train --target-type pc_seqlime_without_stage_prior \
-  --teacher-mode self_distillation_in_sample \
-  --max-recordings 1 --max-samples 1 --run-id feedback_target_smoke
-```
-
-The canonical decoder is validation-selected temperature argmax. HMM is an
-optional validation-selected candidate, and LIME explains pre-HMM neural
-probabilities.
-
-The pre-cleanup usage decision, reason, replacement, and backup location for
-every audited Python entry are recorded in
-`docs/TOOLS_INVENTORY_BEFORE_CLEANUP.csv`.
