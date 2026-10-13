@@ -1,7 +1,0 @@
-schema_version: mf_seqlime_test_v1
-selection_split: none
-test_evaluation_count: 1
-weights_source: frozen_validation_selection
-predicted_stage_prior_allowed: false
-true_stage_prior_allowed: false
-endpoints: [fidelity, faithfulness, stability, randomization]
